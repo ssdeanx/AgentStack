@@ -4,7 +4,7 @@ import { log } from '../config/logger'
 
 import { libsqlChunker, mastraChunker } from '../tools/document-chunking.tool'
 
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { USER_ID_CONTEXT_KEY } from './request-context'
@@ -81,7 +81,7 @@ User: ${userId} | In: ${inputDirectory} | Out: ${outputDirectory}
             internal: InternalSpans.ALL,
         },
     },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+    //outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 log.info('Document Processing Agent initialized')

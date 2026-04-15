@@ -62,6 +62,9 @@ import {
     PanelRightCloseIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 
 type LogRecord = Record<string, unknown>
 
@@ -243,6 +246,14 @@ export default function LogsPage() {
     }, [rawLogs])
 
     return (
+        <ChatProvider>
+            <ChatPageShell
+                title="Logs"
+                description="Inspect live log streams from the shared chat shell."
+                sidebar={<MainSidebar />}
+                hideHeader
+                contentClassName="p-0"
+            >
         <TooltipProvider delayDuration={150}>
         <div className="flex h-full min-h-0 flex-col gap-6 p-6">
             {/* Header */}
@@ -630,5 +641,7 @@ export default function LogsPage() {
             </div>
         </div>
         </TooltipProvider>
+            </ChatPageShell>
+        </ChatProvider>
     )
 }

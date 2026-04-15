@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Agents","version":"2.0.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-26T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Agents","version":"2.0.0","applies_to":"/src/mastra/agents","last_updated":"2026-04-15T00:00:00Z","status":"stable"} -->
 
 # Agents (`/src/mastra/agents`)
 
@@ -94,9 +94,14 @@ This directory contains 22+ agent definitions that map use-case intents to seque
 - **Tool Typing**: Avoid adding `ToolsInput` annotations to agent definitions unless they are truly required. Prefer inferred tool maps (`const tools = { ... }`) with `typeof tools`, or `Record<string, never>` for tool-less agents.
 - **Supervisor Delegation**: For agents that define `agents: { ... }`, keep delegation hooks and completion scorers local to that agent so domain-specific routing prompts, failure feedback, and completion checks stay easy to audit.
 - **Completion Scoring**: Prefer more than one local scorer for supervisor-style agents when a task can be "complete" in different valid ways (for example, a comprehensive answer scorer plus an execution-readiness scorer).
+- **Shared Scorer Primitives**: Reuse `createSupervisorPatternScorer(...)` from `src/mastra/scorers/supervisor-scorers.ts` for coordinator-style agents, but keep the final scorer instances and domain regexes local to each agent file.
+- **Supervisor-Specific Shared Helpers**: For supervisor-style agent files, prefer `createSupervisorAgentPatternScorer(...)` so agent supervisors can share stronger user-facing defaults without forcing networks or other coordinators onto the exact same shared export.
 - **Child Agent Boundaries**: Do not mutate unrelated child-agent public generics just to satisfy one parent registration. If a supervisor relationship becomes awkward, prefer changing the parent composition instead of forcing a type-shape change into the child agent.
 - **Request Context**: Prefer dynamic `instructions: ({ requestContext }) => ...` plus `requestContextSchema` for user-facing supervisor agents so tier, language, user identity, and workspace hints can shape the final output contract safely.
 - **Supported Hook Surface**: For the current Mastra version in this repo, the main supervisor-style execution hooks are `onDelegationStart`, `onDelegationComplete`, `messageFilter`, `onIterationComplete`, and `isTaskComplete`. Prefer using these directly rather than inventing extra abstraction layers.
+- **Browser Delegation**: When a supervisor has access to `browserAgent`, use it only for high-value live verification, page inspection, or browser-state confirmation. Do not browse by default when static research is sufficient.
+- **Channel Wiring**: Gate optional channel adapters such as GitHub behind explicit environment checks so local/dev boots do not fail when webhook secrets or auth credentials are absent.
+- **Browser Config**: Keep browser-provider lifecycle hooks and provider-specific defaults centralized in `src/mastra/browsers.ts` so agents share one production-grade browser policy surface.
 
 ## Execution & Testing
 
@@ -126,6 +131,9 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 
 | Version | Date (UTC) | Changes                                                                                                                              |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 2.2.10  | 2026-04-15 | Replaced `researchAgent`'s hard-coded free-model default with role-aware Gemini selection so the chat route uses the same production model pattern as the other research agents. |
+| 2.2.9   | 2026-04-15 | Added the supervisor-specific shared scorer helper convention (`createSupervisorAgentPatternScorer(...)`), documented environment-gated channel adapters, and standardized centralized browser-provider hooks/config guidance. |
+| 2.2.8   | 2026-04-15 | Standardized supervisor-style agents on shared `createSupervisorPatternScorer(...)` primitives with local wrappers and made `supervisor-agent` browser-aware by wiring in `browserAgent` with verification-first delegation guidance. |
 | 2.2.7   | 2026-03-28 | Made the active supervisor-style agents request-context-aware, added request-context schema validation, and expanded them to use the full supported execution-hook surface from the installed Mastra types. |
 | 2.2.6   | 2026-03-28 | Added dual completion scorers and explicit final-answer contracts to the active supervisor-style agents; restored `calendarAgent` shape and removed nested PM registration instead of changing the child agent public generic. |
 | 2.2.5   | 2026-03-27 | Added per-agent delegation hooks and local completion scorers for the active supervisor-style agents (`supervisor-agent`, customer support, project management, SEO, social media, translation) instead of introducing a shared helper layer. |

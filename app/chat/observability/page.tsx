@@ -39,6 +39,9 @@ import {
     TooltipTrigger,
 } from '@/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 
 type SpanRecord = Record<string, unknown> & {
     id?: string
@@ -410,6 +413,14 @@ export default function ObservabilityPage() {
     const visibleSpans = spans
 
     return (
+        <ChatProvider>
+            <ChatPageShell
+                title="Observability"
+                description="Inspect trace, span, and scoring context from the shared chat shell."
+                sidebar={<MainSidebar />}
+                hideHeader
+                contentClassName="p-0"
+            >
         <TooltipProvider delayDuration={150}>
             <div className='flex h-full min-h-0 flex-col gap-6 p-6'>
                 <div className='flex flex-wrap items-start justify-between gap-4'>
@@ -670,5 +681,7 @@ export default function ObservabilityPage() {
                 </div>
             </div>
         </TooltipProvider>
+            </ChatPageShell>
+        </ChatProvider>
     )
 }

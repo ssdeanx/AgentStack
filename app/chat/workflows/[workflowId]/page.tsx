@@ -36,6 +36,9 @@ import {
 	RefreshCwIcon,
 	WorkflowIcon,
 } from 'lucide-react'
+import { ChatPageShell } from '../../components/chat-page-shell'
+import { MainSidebar } from '../../components/main-sidebar'
+import { ChatProvider } from '../../providers/chat-context'
 
 type WorkflowRunRecord = Record<string, unknown>
 
@@ -128,6 +131,14 @@ export default function WorkflowDetailPage() {
 	)
 
 	return (
+		<ChatProvider>
+			<ChatPageShell
+				title="Workflow details"
+				description="Inspect workflow schemas and recent runs from the shared chat shell."
+				sidebar={<MainSidebar />}
+				hideHeader
+				contentClassName="p-0"
+			>
 		<TooltipProvider delayDuration={150}>
 			<div className="flex min-h-screen flex-col bg-background">
 				<header className="border-b bg-card/60 backdrop-blur">
@@ -399,5 +410,7 @@ export default function WorkflowDetailPage() {
 				</main>
 			</div>
 		</TooltipProvider>
+			</ChatPageShell>
+		</ChatProvider>
 	)
 }

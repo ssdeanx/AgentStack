@@ -4,9 +4,6 @@ import { log } from '../config/logger'
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
-import {
   getLanguageFromContext,
   getRoleFromContext,
   type AgentRequestContext,
@@ -66,7 +63,7 @@ export const reportAgent = new Agent({
       return "google/gemini-3.1-flash-lite-preview"
     }
     // cheaper/faster model for free tier
-    return "google/gemini-3.1-flash-lite-preview"
+    return "google/gemma-4-31b-it"
   },
   memory: LibsqlMemory,
   tools: {},
@@ -78,14 +75,6 @@ export const reportAgent = new Agent({
   scorers: {},
   workflows: {},
   maxRetries: 5,
-  outputProcessors: [
-    new TokenLimiterProcessor(1048576),
-    //   new BatchPartsProcessor({
-    //       batchSize: 5,
-    //       maxWaitTime: 75,
-    //       emitOnNonText: true,
-    //   }),
-  ],
 })
 
 // --- IGNORE ---

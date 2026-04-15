@@ -40,6 +40,69 @@ interface SupervisorSignals extends SupervisorSnapshot {
     keyTermCoverage: number
 }
 
+interface SupervisorPatternSignal {
+    label: string
+    regex: RegExp
+    weight: number
+}
+
+interface SupervisorPatternPenalty {
+    label: string
+    regex: RegExp
+    weight: number
+}
+
+interface SupervisorPatternThreshold {
+    min: number
+    weight: number
+}
+
+interface SupervisorPatternScorerOptions {
+    id: string
+    name: string
+    description: string
+    label: string
+    emptyReason: string
+    weakReason: string
+    strongReasonPrefix: string
+    signals: SupervisorPatternSignal[]
+    penaltySignals?: SupervisorPatternPenalty[]
+    responseLengthThresholds?: SupervisorPatternThreshold[]
+    minParagraphsForStructure?: number
+    structureWeight?: number
+    reasoningWeight?: number
+    toolWeight?: number
+    toolFallbackWeight?: number
+    userMessageWeight?: number
+    systemMessageWeight?: number
+}
+
+interface SupervisorPatternAnalysis {
+    hasUserMessage: boolean
+    systemMessageCount: number
+    responseLength: number
+    hasResponse: boolean
+    hasReasoning: boolean
+    toolCount: number
+    hasStructure: boolean
+    matchedSignals: string[]
+    matchedPenaltySignals: string[]
+}
+
+interface SupervisorAgentPatternScorerOptions
+    extends Omit<SupervisorPatternScorerOptions, 'signals' | 'penaltySignals'> {
+    signals?: SupervisorPatternSignal[]
+    penaltySignals?: SupervisorPatternPenalty[]
+}
+
+interface SupervisorStructuredOutputPatternScorerOptions
+    extends Omit<SupervisorAgentPatternScorerOptions, 'signals' | 'penaltySignals'> {
+    requiredFields: string[]
+    includeMarkdownFencePenalty?: boolean
+    signals?: SupervisorPatternSignal[]
+    penaltySignals?: SupervisorPatternPenalty[]
+}
+
 const STOPWORDS = new Set([
     'a',
     'an',
@@ -232,6 +295,255 @@ function generateSupervisorReason(
     }
 
     return `Score: ${score.toFixed(2)}. ${label} is strong because ${details.join(', ')}.`
+}
+
+/**
+ * Builds a reusable scorer for supervisor/coordinator responses that can stay local
+ * to each agent or network file while sharing the same preprocessing and scoring core.
+ */
+export function createSupervisorPatternScorer(
+    options: SupervisorPatternScorerOptions
+) {
+    return createScorer({
+        id: options.id,
+        name: options.name,
+        description: options.description,
+        type: 'agent',
+    })
+        .preprocess(({ run }) => buildSupervisorSnapshot(run))
+        .analyze(({ results }) => {
+            const snapshot = results.preprocessStepResult
+            const responseText = snapshot.responseText
+            const minParagraphsForStructure = options.minParagraphsForStructure ?? 2
+            const matchedSignals = options.signals
+                .filter((signal) => signal.regex.test(responseText))
+                .map((signal) => signal.label)
+            const matchedPenaltySignals = (options.penaltySignals ?? [])
+                .filter((signal) => signal.regex.test(responseText))
+                .map((signal) => signal.label)
+
+            return {
+                hasUserMessage: snapshot.userMessage.length > 0,
+                systemMessageCount: snapshot.systemMessageCount,
+                responseLength: responseText.length,
+                hasResponse: responseText.length > 0,
+                hasReasoning: snapshot.reasoningText.length > 0,
+                toolCount: snapshot.toolCount,
+                hasStructure:
+                    STRUCTURE_REGEX.test(responseText) ||
+                    snapshot.paragraphCount >= minParagraphsForStructure,
+                matchedSignals,
+                matchedPenaltySignals,
+            } satisfies SupervisorPatternAnalysis
+        })
+        .generateScore(({ results }) => {
+            const analysis = results.analyzeStepResult as
+                | SupervisorPatternAnalysis
+                | undefined
+
+            if (!analysis?.hasResponse) {
+                return 0
+            }
+
+            let score = 0
+
+            if (analysis.hasUserMessage) {
+                score += options.userMessageWeight ?? 0
+            }
+
+            if (analysis.systemMessageCount > 0) {
+                score += options.systemMessageWeight ?? 0
+            }
+
+            for (const threshold of options.responseLengthThresholds ?? []) {
+                if (analysis.responseLength >= threshold.min) {
+                    score += threshold.weight
+                }
+            }
+
+            for (const signal of options.signals) {
+                if (
+                    analysis.matchedSignals.some(
+                        (matchedSignal) => matchedSignal === signal.label
+                    )
+                ) {
+                    score += signal.weight
+                }
+            }
+
+            for (const signal of options.penaltySignals ?? []) {
+                if (
+                    analysis.matchedPenaltySignals.some(
+                        (matchedSignal) => matchedSignal === signal.label
+                    )
+                ) {
+                    score -= signal.weight
+                }
+            }
+
+            if (analysis.hasStructure) {
+                score += options.structureWeight ?? 0
+            }
+
+            if (analysis.hasReasoning) {
+                score += options.reasoningWeight ?? 0
+            }
+
+            if (analysis.toolCount > 0) {
+                score += options.toolWeight ?? 0
+            } else {
+                score += options.toolFallbackWeight ?? 0
+            }
+
+            return clamp(score)
+        })
+        .generateReason(({ results, score }) => {
+            const analysis = results.analyzeStepResult as
+                | SupervisorPatternAnalysis
+                | undefined
+
+            if (!analysis?.hasResponse) {
+                return options.emptyReason
+            }
+
+            const details = [...analysis.matchedSignals]
+
+            if (analysis.hasStructure && (options.structureWeight ?? 0) > 0) {
+                details.push('it is structured for execution')
+            }
+
+            if (analysis.hasReasoning && (options.reasoningWeight ?? 0) > 0) {
+                details.push('it includes reasoning support')
+            }
+
+            if (analysis.toolCount > 0 && (options.toolWeight ?? 0) > 0) {
+                details.push(
+                    `it used ${analysis.toolCount} delegation signal(s)`
+                )
+            }
+
+            if (analysis.matchedPenaltySignals.length > 0) {
+                details.push(
+                    `it should still improve ${analysis.matchedPenaltySignals.join(
+                        ', '
+                    )}`
+                )
+            }
+
+            if (details.length === 0) {
+                return `Score: ${score.toFixed(2)}. ${options.weakReason}`
+            }
+
+            return `Score: ${score.toFixed(2)}. ${options.strongReasonPrefix} ${details.join(', ')}.`
+        })
+}
+
+const SUPERVISOR_AGENT_DEFAULT_SIGNALS: SupervisorPatternSignal[] = [
+    {
+        label: 'it opens with a direct summary or answer',
+        regex: SUMMARY_REGEX,
+        weight: 0.05,
+    },
+    {
+        label: 'it includes evidence anchors or dated support',
+        regex: EVIDENCE_REGEX,
+        weight: 0.05,
+    },
+    {
+        label: 'it includes next steps or follow-up guidance',
+        regex: NEXT_STEPS_REGEX,
+        weight: 0.05,
+    },
+]
+
+const SUPERVISOR_AGENT_DEFAULT_PENALTIES: SupervisorPatternPenalty[] = [
+    {
+        label: 'raw routing chatter',
+        regex: ROUTING_CHATTER_REGEX,
+        weight: 0.1,
+    },
+]
+
+const SUPERVISOR_CHANNEL_DEFAULT_SIGNALS: SupervisorPatternSignal[] = [
+    {
+        label: 'it stays concise enough for a public channel reply',
+        regex: /summary|quick take|top line|recommend/i,
+        weight: 0.05,
+    },
+    {
+        label: 'it assigns a next action, owner, or follow-up',
+        regex: /owner|assignee|follow-up|next step|action item/i,
+        weight: 0.05,
+    },
+]
+
+/**
+ * Builds a supervisor-agent-specific scorer layer that preserves local domain
+ * signals while adding the shared answer-quality expectations we want across
+ * user-facing supervisor agents.
+ */
+export function createSupervisorAgentPatternScorer(
+    options: SupervisorAgentPatternScorerOptions
+) {
+    return createSupervisorPatternScorer({
+        ...options,
+        signals: [...SUPERVISOR_AGENT_DEFAULT_SIGNALS, ...(options.signals ?? [])],
+        penaltySignals: [
+            ...SUPERVISOR_AGENT_DEFAULT_PENALTIES,
+            ...(options.penaltySignals ?? []),
+        ],
+    })
+}
+
+/**
+ * Builds a channel-oriented supervisor scorer for supervisors that need
+ * short, public, action-oriented replies on platforms such as Discord, Slack,
+ * or GitHub issues and pull requests.
+ */
+export function createSupervisorChannelPatternScorer(
+    options: SupervisorAgentPatternScorerOptions
+) {
+    return createSupervisorAgentPatternScorer({
+        ...options,
+        signals: [...SUPERVISOR_CHANNEL_DEFAULT_SIGNALS, ...(options.signals ?? [])],
+    })
+}
+
+/**
+ * Builds a structured-output-oriented supervisor scorer for supervisors that
+ * are expected to return stable fields or JSON-like payloads instead of only
+ * natural-language prose.
+ */
+export function createStructuredOutputSupervisorPatternScorer(
+    options: SupervisorStructuredOutputPatternScorerOptions
+) {
+    const fieldSignals: SupervisorPatternSignal[] = options.requiredFields.map(
+        (fieldName) => ({
+            label: `it includes the structured field "${fieldName}"`,
+            regex: new RegExp(`["'\`]?${fieldName}["'\`]?\\s*:`, 'i'),
+            weight: 0.05,
+        })
+    )
+
+    const structuredPenaltySignals: SupervisorPatternPenalty[] =
+        options.includeMarkdownFencePenalty === false
+            ? []
+            : [
+                  {
+                      label: 'markdown fences around structured output',
+                      regex: /```(?:json|yaml)?/i,
+                      weight: 0.1,
+                  },
+              ]
+
+    return createSupervisorAgentPatternScorer({
+        ...options,
+        signals: [...fieldSignals, ...(options.signals ?? [])],
+        penaltySignals: [
+            ...structuredPenaltySignals,
+            ...(options.penaltySignals ?? []),
+        ],
+    })
 }
 
 /**

@@ -68,6 +68,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAuthQuery } from '@/lib/hooks/use-auth-query'
 import { useAgent, useAgentModelProviders } from '@/lib/hooks/use-mastra-query'
+import { extractThoughtSummaryFromProviderMetadata } from '../components/chat.utils'
 import { ChatContext } from './chat-context-hooks'
 
 const CHAT_PROVIDER_ID_CONTEXT_KEY = 'provider-id' as const
@@ -316,13 +317,9 @@ export function ChatProvider({
         null
     )
 
-    const [resourceId, setResourceIdState] = useState(
-        defaultResourceId ?? ''
-    )
+    const [resourceIdOverride, setResourceIdState] = useState('')
 
-    const [threadId, setThreadIdState] = useState(
-        defaultThreadId ?? ''
-    )
+    const [threadIdOverride, setThreadIdState] = useState('')
 
     const [selectedModelId, setSelectedModelId] = useState('')
     const [isFocusMode, setFocusMode] = useState(false)
@@ -335,41 +332,36 @@ export function ChatProvider({
         [modelProvidersQuery.data]
     )
 
-    useEffect(() => {
-        if (defaultResourceId !== undefined && defaultResourceId.trim().length > 0) {
-            queueMicrotask(() => {
-                setResourceIdState(defaultResourceId)
-            })
-            return
-        }
-
-        if (userId.length > 0) {
-            queueMicrotask(() => {
-                setResourceIdState(userId)
-            })
-        }
-    }, [defaultResourceId, userId])
-
-    useEffect(() => {
-        if (
-            defaultThreadId !== undefined &&
-            defaultThreadId.trim().length > 0
-        ) {
-            queueMicrotask(() => {
-                setThreadIdState(defaultThreadId)
-            })
-            return
-        }
-
-        if (userId.length > 0) {
-            queueMicrotask(() => {
-                setThreadIdState(`thread:${userId}:${defaultAgent}`)
-            })
-        }
-    }, [defaultAgent, defaultThreadId, userId])
-
     // Ref to track message snapshots for checkpoint restore
     const messageSnapshotsRef = useRef<Map<string, UIMessage[]>>(new Map())
+
+    const resourceId = useMemo(() => {
+        if (resourceIdOverride.length > 0) {
+            return resourceIdOverride
+        }
+
+        if (defaultResourceId !== undefined && defaultResourceId.trim().length > 0) {
+            return defaultResourceId
+        }
+
+        return userId
+    }, [defaultResourceId, resourceIdOverride, userId])
+
+    const threadId = useMemo(() => {
+        if (threadIdOverride.length > 0) {
+            return threadIdOverride
+        }
+
+        if (defaultThreadId !== undefined && defaultThreadId.trim().length > 0) {
+            return defaultThreadId
+        }
+
+        if (userId.length > 0) {
+            return `thread:${userId}:${defaultAgent}`
+        }
+
+        return ''
+    }, [defaultAgent, defaultThreadId, threadIdOverride, userId])
 
     const availableModels = useMemo<ChatModel[]>(() => {
         const modelsById = new Map<string, ChatModel>()
@@ -441,6 +433,7 @@ export function ChatProvider({
             new DefaultChatTransport({
                 // Use stable endpoint - agentId passed in body, not URL path
                 api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
+                credentials: 'include',
                 prepareSendMessagesRequest({
                     messages: outgoingMessages,
                     requestMetadata,
@@ -515,6 +508,20 @@ export function ChatProvider({
     useEffect(() => {
         let cancelled = false
 
+        const hasIncompleteMessage = messages.some((message) => {
+            if (!Array.isArray(message.parts)) {
+                return true
+            }
+
+            return message.parts.length === 0
+        })
+
+        if (messages.length === 0 || aiStatus !== 'ready' || hasIncompleteMessage) {
+            return () => {
+                cancelled = true
+            }
+        }
+
         void safeValidateUIMessages<UIMessage>({ messages }).then((result) => {
             if (cancelled) {
                 return
@@ -530,7 +537,7 @@ export function ChatProvider({
         return () => {
             cancelled = true
         }
-    }, [messages])
+    }, [aiStatus, messages])
 
     const aiErrorMessage = useMemo(
         () => (aiError ? normalizeChatError(aiError) : null),
@@ -586,28 +593,10 @@ export function ChatProvider({
                           ? (part.callProviderMetadata as ProviderMetadata)
                           : undefined
 
-                const googleMeta = providerMetadata?.google as
-                    | Record<string, unknown>
-                    | undefined
-
-                if (googleMeta === undefined) {
-                    continue
-                }
-
-                // Different SDKs/versions surface this under slightly different keys.
-                const candidates = [
-                    googleMeta.thoughtSummary,
-                    googleMeta.thoughts,
-                    googleMeta.thinkingSummary,
-                ]
-
-                for (const candidate of candidates) {
-                    if (
-                        typeof candidate === 'string' &&
-                        candidate.trim().length > 0
-                    ) {
-                        return candidate
-                    }
+                const summary =
+                    extractThoughtSummaryFromProviderMetadata(providerMetadata)
+                if (summary.length > 0) {
+                    return summary
                 }
             }
         }

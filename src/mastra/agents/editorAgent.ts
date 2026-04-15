@@ -59,7 +59,7 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
                         includeThoughts: true,
                         thinkingLevel: 'medium',
                     },
-                    responseModalities: ['TEXT'],
+                    responseModalities: ['TEXT', 'IMAGE'],
                 } satisfies GoogleLanguageModelOptions,
             },
         }
@@ -74,7 +74,7 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
             return google.chat('gemini-3.1-pro-preview')
         }
         // cheaper/faster model for user tier
-        return google.chat('gemini-3.1-flash-lite-preview')
+        return "google/gemma-4-31b-it"
     },
     memory: LibsqlMemory,
     tools: {},

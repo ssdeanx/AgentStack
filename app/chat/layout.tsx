@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -11,7 +11,7 @@ import { auth } from '@/auth'
  * This prevents unauthenticated users from briefly rendering protected chat
  * surfaces before the client redirect runs.
  */
-export default async function ChatLayout({
+async function ChatSessionGate({
 	children,
 }: {
 	children: ReactNode
@@ -25,4 +25,12 @@ export default async function ChatLayout({
 	}
 
 	return children
+}
+
+export default function ChatLayout({
+	children,
+}: {
+	children: ReactNode
+}) {
+	return <Suspense fallback={null}><ChatSessionGate>{children}</ChatSessionGate></Suspense>
 }

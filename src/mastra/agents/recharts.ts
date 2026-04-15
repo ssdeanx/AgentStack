@@ -2,10 +2,9 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
 import {
-  TokenLimiterProcessor,
+  //TokenLimiterProcessor,
   UnicodeNormalizer
 } from '@mastra/core/processors'
-import { googleAI, googleAIFlashLite } from '../config'
 import { log } from '../config/logger'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
@@ -140,7 +139,7 @@ You are a Financial Data Visualization Specialist focused on recommending optima
       },
     }
   },
-  model: googleAIFlashLite,
+  model: 'google/gemma-4-31b-it',
   memory: LibsqlMemory,
   tools: {},
   maxRetries: 3,
@@ -149,7 +148,6 @@ You are a Financial Data Visualization Specialist focused on recommending optima
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 /**
@@ -199,7 +197,7 @@ You are a Financial Data Processing Specialist that transforms raw API data into
       },
     }
   },
-  model: googleAIFlashLite,
+  model: 'google/gemma-4-31b-it',
   tools: chartDataProcessorTools,
   memory: LibsqlMemory,
   options: {
@@ -208,7 +206,7 @@ You are a Financial Data Processing Specialist that transforms raw API data into
     },
   },
   maxRetries: 3,
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 /**
@@ -259,7 +257,7 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
       },
     }
   },
-  model: googleAI,
+  model: 'google/gemma-4-31b-it',
   memory: LibsqlMemory,
   tools: {},
   maxRetries: 3,
@@ -324,7 +322,7 @@ You are the Financial Chart Supervisor, orchestrating the complete chart creatio
       },
     }
   },
-  model: googleAI,
+  model: 'google/gemma-4-31b-it',
   tools: chartSupervisorTools,
   memory: LibsqlMemory,
   options: {

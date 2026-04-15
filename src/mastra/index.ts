@@ -47,6 +47,7 @@ import { researchPaperAgent } from './agents/researchPaperAgent'
 
 // Utility Agents
 import { bgColorAgent } from './agents/bgColorAgent'
+import { browserAgent } from './agents/browserAgent'
 import { calendarAgent } from './agents/calendarAgent'
 import { noteTakerAgent } from './agents/noteTakerAgent'
 import { danePackagePublisher } from './agents/package-publisher'
@@ -289,6 +290,7 @@ export const mastra = new Mastra({
         // Calendar and misc
         calendarAgent,
         bgColorAgent,
+        browserAgent,
         // Package publisher
         danePackagePublisher,
         // Financial Chart Agents

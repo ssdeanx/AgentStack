@@ -112,6 +112,14 @@ type ProfileFormState = {
     image: string
 }
 
+export type UserSettingsPanelSection =
+    | 'all'
+    | 'profile'
+    | 'security'
+    | 'sessions'
+    | 'api-keys'
+    | 'danger-zone'
+
 const emptyApiKeyForm: ApiKeyFormState = {
     name: '',
     prefix: 'ak_',
@@ -171,7 +179,11 @@ function badgeVariantFromBoolean(value: boolean): React.ComponentProps<typeof Ba
 /**
  * User settings surface for the signed-in account.
  */
-export function UserSettingsPanel() {
+export function UserSettingsPanel({
+    section = 'all',
+}: {
+    section?: UserSettingsPanelSection
+}) {
     const { data: session } = useAuthQuery()
     const currentSessionsQuery = useCurrentSessionsQuery()
     const apiKeysQuery = useApiKeysQuery()
@@ -268,6 +280,11 @@ export function UserSettingsPanel() {
         revokeCurrentSessions.isPending ||
         signOut.isPending ||
         requestPasswordReset.isPending
+    const showProfile = section === 'all' || section === 'profile'
+    const showSecurity = section === 'all' || section === 'security'
+    const showSessions = section === 'all' || section === 'sessions'
+    const showApiKeys = section === 'all' || section === 'api-keys'
+    const showDangerZone = section === 'all' || section === 'danger-zone'
 
     async function handleSaveProfile(event: React.SyntheticEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -414,8 +431,10 @@ export function UserSettingsPanel() {
                     </div>
                 </section>
 
-                <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                    <Card>
+                {showProfile || showSecurity ? (
+                    <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                        {showProfile ? (
+                            <Card>
                         <CardHeader>
                             <CardTitle>Profile</CardTitle>
                             <CardDescription>
@@ -502,9 +521,11 @@ export function UserSettingsPanel() {
                                 Save profile
                             </Button>
                         </CardFooter>
-                    </Card>
+                            </Card>
+                        ) : null}
 
-                    <Card>
+                        {showSecurity ? (
+                            <Card>
                         <CardHeader>
                             <CardTitle>Security</CardTitle>
                             <CardDescription>
@@ -629,10 +650,13 @@ export function UserSettingsPanel() {
                                 Sign out only
                             </Button>
                         </CardFooter>
-                    </Card>
-                </section>
+                            </Card>
+                        ) : null}
+                    </section>
+                ) : null}
 
-                <Card>
+                {showSessions ? (
+                    <Card>
                     <CardHeader>
                         <CardTitle>Live sessions</CardTitle>
                         <CardDescription>
@@ -704,9 +728,11 @@ export function UserSettingsPanel() {
                             </TableBody>
                         </Table>
                     </CardContent>
-                </Card>
+                    </Card>
+                ) : null}
 
-                <Card>
+                {showApiKeys ? (
+                    <Card>
                     <CardHeader>
                         <CardTitle>API keys</CardTitle>
                         <CardDescription>
@@ -1016,9 +1042,11 @@ export function UserSettingsPanel() {
                             </TableBody>
                         </Table>
                     </CardContent>
-                </Card>
+                    </Card>
+                ) : null}
 
-                <Card>
+                {showDangerZone ? (
+                    <Card>
                     <CardHeader>
                         <CardTitle>Danger zone</CardTitle>
                         <CardDescription>
@@ -1064,10 +1092,12 @@ export function UserSettingsPanel() {
                             </Button>
                         </form>
                     </CardContent>
-                </Card>
+                    </Card>
+                ) : null}
             </div>
 
-            <Dialog open={Boolean(editingKey)} onOpenChange={(open) => !open && setEditingKey(null)}>
+            {showApiKeys ? (
+                <Dialog open={Boolean(editingKey)} onOpenChange={(open) => !open && setEditingKey(null)}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Edit API key</DialogTitle>
@@ -1192,7 +1222,8 @@ export function UserSettingsPanel() {
                         </form>
                     ) : null}
                 </DialogContent>
-            </Dialog>
+                </Dialog>
+            ) : null}
         </TooltipProvider>
     )
 }

@@ -145,7 +145,7 @@ gha-creds-*.json
 .zencoder/rules/*.md
 
 # Stakpak local files
-.stakpak
+.stakpak/session*
 stakpak.backup
 stakpak.exe
 opnapi.json
@@ -208,3 +208,19 @@ src/mastra/public/workspace/workspace/iran-war-report.md
 .env.local.bak
 thoughts/ledgers/CONTINUITY_ses_303c.md
 thoughts/ledgers/CONTINUITY_ses_303d.md
+.mastra-project.json
+start-server.js
+start-dev.js
+.playwright-mcp/page-2026-04-15T07-03-10-932Z.yml
+.playwright-mcp/page-2026-04-15T07-04-06-556Z.yml
+.playwright-mcp/page-2026-04-15T08-44-34-033Z.yml
+.playwright-mcp/page-2026-04-15T07-36-00-846Z.yml
+.playwright-mcp/page-2026-04-15T07-34-28-100Z.yml
+.gitignore
+.playwright-mcp/page-2026-04-15T07-29-52-207Z.yml
+.playwright-mcp/page-2026-04-15T07-17-59-962Z.yml
+.playwright-mcp/page-2026-04-15T07-31-15-475Z.yml
+.playwright-mcp/page-2026-04-15T07-26-05-653Z.yml
+.playwright-mcp/page-2026-04-15T07-24-17-682Z.yml
+.playwright-mcp/page-2026-04-15T07-20-32-715Z.yml
+.playwright-mcp/page-2026-04-15T07-18-30-461Z.yml

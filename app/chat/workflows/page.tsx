@@ -22,6 +22,9 @@ import {
     GitBranchIcon,
     PanelRightCloseIcon,
 } from 'lucide-react'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 
 interface WorkflowRecord {
     id?: string
@@ -67,6 +70,14 @@ export default function ChatWorkflowsPage() {
     }, [query, workflows])
 
     return (
+        <ChatProvider>
+            <ChatPageShell
+                title="Workflows"
+                description="Browse workflow inventory from the shared chat shell."
+                sidebar={<MainSidebar />}
+                hideHeader
+                contentClassName="p-0"
+            >
         <TooltipProvider delayDuration={150}>
             <div className="flex min-h-screen flex-col bg-background">
             <header className="border-b bg-card/60 backdrop-blur">
@@ -216,5 +227,7 @@ export default function ChatWorkflowsPage() {
             </main>
             </div>
         </TooltipProvider>
+            </ChatPageShell>
+        </ChatProvider>
     )
 }

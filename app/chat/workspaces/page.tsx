@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 
 import type {
     SkillMetadata,
@@ -25,6 +25,9 @@ import {
     useWorkspaceSkills,
     useWorkspaces,
 } from '@/lib/hooks/use-mastra-query'
+import { ChatPageShell } from '@/app/chat/components/chat-page-shell'
+import { MainSidebar } from '@/app/chat/components/main-sidebar'
+import { ChatProvider } from '@/app/chat/providers/chat-context'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
@@ -165,6 +168,24 @@ function parentWorkspacePath(path: string): string {
  * Explorer for live workspace metadata, skills, and sandbox files.
  */
 export default function WorkspacesPage() {
+    return (
+        <Suspense fallback={null}>
+            <ChatProvider>
+                <ChatPageShell
+                    title="Workspaces"
+                    description="Inspect live workspaces, sandbox files, indexing state, and installed skills."
+                    sidebar={<MainSidebar />}
+                    contentClassName="p-0"
+                    hideHeader
+                >
+                    <WorkspacesPageContent />
+                </ChatPageShell>
+            </ChatProvider>
+        </Suspense>
+    )
+}
+
+function WorkspacesPageContent() {
     const workspacesQuery = useWorkspaces()
     const [showHelpPanel, setShowHelpPanel] = useState(true)
     const [workspaceSearch, setWorkspaceSearch] = useState('')
@@ -185,7 +206,7 @@ export default function WorkspacesPage() {
     const [terminalOutput, setTerminalOutput] = useState('')
 
     const workspaces = useMemo<WorkspaceItem[]>(
-        () => normalizeCollection<WorkspaceItem>(workspacesQuery.data, 'workspaces'),
+        () => workspacesQuery.data ?? [],
         [workspacesQuery.data]
     )
 
@@ -327,6 +348,35 @@ export default function WorkspacesPage() {
             workspaceSkills.length,
         ]
     )
+
+    useEffect(() => {
+        const fallbackWorkspaceId = filteredWorkspaces[0]?.id ?? workspaces[0]?.id ?? ''
+        const workspaceStillExists =
+            selectedWorkspaceId.length === 0 ||
+            workspaces.some((workspace) => workspace.id === selectedWorkspaceId)
+
+        if (workspaceStillExists && selectedWorkspaceId.length > 0) {
+            return
+        }
+
+        queueMicrotask(() => {
+            setSelectedWorkspaceId(fallbackWorkspaceId)
+        })
+    }, [filteredWorkspaces, selectedWorkspaceId, workspaces])
+
+    useEffect(() => {
+        queueMicrotask(() => {
+            setSelectedSkillName('')
+            setFilesystemPath('/')
+            setSelectedEntryPath('')
+            setSelectedEntryType('')
+            setEditorContent('')
+            setNewFilePath('')
+            setNewFileContent('')
+            setNewFolderPath('')
+            setFilesystemSearch('')
+        })
+    }, [activeWorkspaceId])
 
     return (
         <TooltipProvider delayDuration={150}>

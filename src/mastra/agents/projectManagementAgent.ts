@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-    extractAgentResponseMessages,
-    extractInputMessages,
-    extractToolCalls,
-    getAssistantMessageFromRunOutput,
-    getCombinedSystemPrompt,
-    getReasoningFromRunOutput,
-    getSystemMessagesFromRunInput,
-    getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import { log } from '../config/logger'
 
 import { reportAgent } from './reportAgent'
@@ -22,6 +11,7 @@ import {
     getRoleFromContext,
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
+import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
 
 log.info('Initializing Project Management Agent...')
 
@@ -29,207 +19,94 @@ log.info('Initializing Project Management Agent...')
  * Evaluates whether a project-management response contains a practical plan,
  * scheduling awareness, and visible risk management.
  */
-const projectManagementTaskCompleteScorer = createScorer({
+const projectManagementTaskCompleteScorer = createSupervisorAgentPatternScorer({
     id: 'project-management-task-complete',
     name: 'Project Management Task Completeness',
     description:
         'Checks whether a project response includes timeline, deliverables, risks, and next actions.',
-    type: 'agent',
+    label: 'project management completeness',
+    emptyReason: 'No usable project management response was produced.',
+    weakReason: 'The response is present but lacks planning depth.',
+    strongReasonPrefix: 'This project response is strong because',
+    responseLengthThresholds: [
+        { min: 180, weight: 0.15 },
+        { min: 350, weight: 0.15 },
+    ],
+    minParagraphsForStructure: 3,
+    structureWeight: 0.05,
+    reasoningWeight: 0.03,
+    toolWeight: 0.02,
+    userMessageWeight: 0.05,
+    systemMessageWeight: 0.05,
+    signals: [
+        {
+            label: 'it includes timeline or milestone guidance',
+            regex: /timeline|schedule|deadline|milestone/i,
+            weight: 0.2,
+        },
+        {
+            label: 'it calls out risks or blockers',
+            regex: /risk|blocker|dependency|constraint/i,
+            weight: 0.2,
+        },
+        {
+            label: 'it includes ownership or stakeholder guidance',
+            regex: /owner|stakeholder|resource|team/i,
+            weight: 0.15,
+        },
+        {
+            label: 'it ends with concrete next actions',
+            regex: /next step|action item|deliverable/i,
+            weight: 0.15,
+        },
+    ],
 })
-    .preprocess(({ run }) => {
-        const userMessage = getUserMessageFromRunInput(run.input)
-        const inputMessages = extractInputMessages(run.input)
-        const systemMessages = getSystemMessagesFromRunInput(run.input)
-        const systemPrompt = getCombinedSystemPrompt(run.input)
-        const response = getAssistantMessageFromRunOutput(run.output)
-        const responseMessages = extractAgentResponseMessages(run.output)
-        const reasoning = getReasoningFromRunOutput(run.output)
-        const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-        return {
-            userMessage,
-            inputMessages,
-            systemMessages,
-            systemPrompt,
-            response,
-            responseMessages,
-            reasoning,
-            tools,
-            toolCallInfos,
-        }
-    })
-    .analyze(({ results }) => {
-        const {
-            userMessage,
-            inputMessages,
-            systemMessages,
-            systemPrompt,
-            response,
-            responseMessages,
-            reasoning,
-            tools,
-            toolCallInfos,
-        } = results.preprocessStepResult
-
-        const responseText = (response ?? responseMessages.join('\n')).trim()
-
-        return {
-            hasUserMessage: Boolean(userMessage),
-            inputMessageCount: inputMessages.length,
-            systemMessageCount: systemMessages.length,
-            systemPromptLength: systemPrompt.length,
-            responseLength: responseText.length,
-            hasResponse: responseText.length > 0,
-            hasReasoning: Boolean(reasoning),
-            toolCount: tools.length,
-            toolCallCount: toolCallInfos.length,
-            hasTimeline: /timeline|schedule|deadline|milestone/i.test(responseText),
-            hasRisk: /risk|blocker|dependency|constraint/i.test(responseText),
-            hasOwnership: /owner|stakeholder|resource|team/i.test(responseText),
-            hasActions: /next step|action item|deliverable/i.test(responseText),
-            hasStructure:
-                /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText) ||
-                responseText.split(/\n\s*\n/).filter(Boolean).length >= 3,
-        }
-    })
-    .generateScore(({ results }) => {
-        const analysis = results.analyzeStepResult
-        if (!analysis?.hasResponse) {
-            return 0
-        }
-
-        let score = 0
-        if (analysis.responseLength >= 180) score += 0.15
-        if (analysis.responseLength >= 350) score += 0.15
-        if (analysis.hasTimeline) score += 0.2
-        if (analysis.hasRisk) score += 0.2
-        if (analysis.hasOwnership) score += 0.15
-        if (analysis.hasActions) score += 0.15
-        if (analysis.hasReasoning) score += 0.03
-        if (analysis.toolCount > 0) score += 0.02
-        if (analysis.hasStructure) score += 0.05
-
-        return Math.max(0, Math.min(1, score))
-    })
-    .generateReason(({ results, score }) => {
-        const analysis = results.analyzeStepResult
-        const parts: string[] = []
-
-        if (!analysis?.hasResponse) {
-            return 'No usable project management response was produced.'
-        }
-
-        if (analysis.hasTimeline) parts.push('it includes timeline or milestone guidance')
-        if (analysis.hasRisk) parts.push('it calls out risks or blockers')
-        if (analysis.hasOwnership) parts.push('it includes ownership or stakeholder guidance')
-        if (analysis.hasActions) parts.push('it ends with concrete next actions')
-
-        return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This project response is strong because ${parts.join(', ')}.` : 'The response is present but lacks planning depth.'}`
-    })
 
 /**
  * Evaluates whether the project-management response is execution-ready with a
  * clear plan shape, sequencing, and ownership or decision guidance.
  */
-const projectManagementExecutionScorer = createScorer({
+const projectManagementExecutionScorer = createSupervisorAgentPatternScorer({
     id: 'project-management-execution-readiness',
     name: 'Project Management Execution Readiness',
     description:
         'Checks whether a PM response includes priorities, sequencing, accountability, and decision-ready next actions.',
-    type: 'agent',
+    label: 'project management execution',
+    emptyReason: 'No usable project management execution plan was produced.',
+    weakReason: 'The response is present but still lacks execution detail.',
+    strongReasonPrefix: 'This execution plan is strong because',
+    responseLengthThresholds: [
+        { min: 160, weight: 0.15 },
+        { min: 280, weight: 0.1 },
+    ],
+    structureWeight: 0.05,
+    reasoningWeight: 0.03,
+    toolWeight: 0.02,
+    userMessageWeight: 0.05,
+    systemMessageWeight: 0.05,
+    signals: [
+        {
+            label: 'it clarifies priority or sequencing',
+            regex: /priority|p0|p1|phase|sequence|order/i,
+            weight: 0.2,
+        },
+        {
+            label: 'it names owners or accountable parties',
+            regex: /owner|stakeholder|team|responsible/i,
+            weight: 0.2,
+        },
+        {
+            label: 'it calls out decisions or trade-offs',
+            regex: /decision|assumption|trade-off|escalation/i,
+            weight: 0.2,
+        },
+        {
+            label: 'it includes immediate next actions',
+            regex: /next step|immediate action|this week|milestone/i,
+            weight: 0.1,
+        },
+    ],
 })
-    .preprocess(({ run }) => {
-        const userMessage = getUserMessageFromRunInput(run.input)
-        const inputMessages = extractInputMessages(run.input)
-        const systemMessages = getSystemMessagesFromRunInput(run.input)
-        const systemPrompt = getCombinedSystemPrompt(run.input)
-        const response = getAssistantMessageFromRunOutput(run.output)
-        const responseMessages = extractAgentResponseMessages(run.output)
-        const reasoning = getReasoningFromRunOutput(run.output)
-        const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-        return {
-            userMessage,
-            inputMessages,
-            systemMessages,
-            systemPrompt,
-            response,
-            responseMessages,
-            reasoning,
-            tools,
-            toolCallInfos,
-        }
-    })
-    .analyze(({ results }) => {
-        const {
-            userMessage,
-            inputMessages,
-            systemMessages,
-            systemPrompt,
-            response,
-            responseMessages,
-            reasoning,
-            tools,
-            toolCallInfos,
-        } = results.preprocessStepResult
-
-        const responseText = (response ?? responseMessages.join('\n')).trim()
-
-        return {
-            hasUserMessage: Boolean(userMessage),
-            inputMessageCount: inputMessages.length,
-            systemMessageCount: systemMessages.length,
-            systemPromptLength: systemPrompt.length,
-            responseLength: responseText.length,
-            hasResponse: responseText.length > 0,
-            hasReasoning: Boolean(reasoning),
-            toolCount: tools.length,
-            toolCallCount: toolCallInfos.length,
-            hasPriority: /priority|p0|p1|phase|sequence|order/i.test(responseText),
-            hasAccountability:
-                /owner|stakeholder|team|responsible/i.test(responseText),
-            hasDecisionSupport:
-                /decision|assumption|trade-off|escalation/i.test(responseText),
-            hasUrgency:
-                /next step|immediate action|this week|milestone/i.test(responseText),
-            hasStructure:
-                /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText),
-        }
-    })
-    .generateScore(({ results }) => {
-        const analysis = results.analyzeStepResult
-        if (!analysis?.hasResponse) {
-            return 0
-        }
-
-        let score = 0
-        if (analysis.responseLength >= 160) score += 0.15
-        if (analysis.responseLength >= 280) score += 0.1
-        if (analysis.hasPriority) score += 0.2
-        if (analysis.hasAccountability) score += 0.2
-        if (analysis.hasDecisionSupport) score += 0.2
-        if (analysis.hasUrgency) score += 0.1
-        if (analysis.hasReasoning) score += 0.03
-        if (analysis.toolCount > 0) score += 0.02
-        if (analysis.hasStructure) score += 0.05
-
-        return Math.max(0, Math.min(1, score))
-    })
-    .generateReason(({ results, score }) => {
-        const analysis = results.analyzeStepResult
-        const parts: string[] = []
-
-        if (!analysis?.hasResponse) {
-            return 'No usable project management execution plan was produced.'
-        }
-
-        if (analysis.hasPriority) parts.push('it clarifies priority or sequencing')
-        if (analysis.hasAccountability) parts.push('it names owners or accountable parties')
-        if (analysis.hasDecisionSupport) parts.push('it calls out decisions or trade-offs')
-        if (analysis.hasUrgency) parts.push('it includes immediate next actions')
-
-        return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution plan is strong because ${parts.join(', ')}.` : 'The response is present but still lacks execution detail.'}`
-    })
 
 export const projectManagementAgent = new Agent<
     'project-management-agent',

@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import {
     getRoleFromContext,
@@ -73,5 +73,5 @@ Extract the single most important learning and create one relevant follow-up que
     },
     workflows: {},
     maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(128000)],
+  //  outputProcessors: [new TokenLimiterProcessor(128000)],
 })

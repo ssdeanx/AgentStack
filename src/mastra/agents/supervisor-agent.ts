@@ -1,17 +1,7 @@
 
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import { InternalSpans } from '@mastra/core/observability'
+import { browserAgent } from './browserAgent'
 import { researchAgent } from './researchAgent'
 import { copywriterAgent } from './copywriterAgent'
 import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool, libsqlvector } from '../config/libsql'
@@ -29,6 +19,7 @@ import {
 } from './request-context'
 import { embed } from 'ai';
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm';
+import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
 
 const workspace = new Workspace({
   id: 'supervisor-workspace',
@@ -66,238 +57,95 @@ const workspace = new Workspace({
  * Evaluates whether the supervisor produced a complete research-backed final answer
  * instead of stopping at a partial delegation summary.
  */
-const supervisorTaskCompleteScorer = createScorer({
+const supervisorTaskCompleteScorer = createSupervisorAgentPatternScorer({
   id: 'supervisor-task-complete',
   name: 'Supervisor Task Completeness',
   description:
     'Checks whether the supervisor returned a structured, substantial, research-backed final response.',
-  type: 'agent',
+  label: 'supervisor completeness',
+  emptyReason: 'No usable supervisor response was produced.',
+  weakReason: 'The response is present but lacks several synthesis signals.',
+  strongReasonPrefix: 'This supervisor response is strong because',
+  responseLengthThresholds: [
+    { min: 220, weight: 0.15 },
+    { min: 600, weight: 0.15 },
+  ],
+  minParagraphsForStructure: 3,
+  structureWeight: 0.15,
+  reasoningWeight: 0.1,
+  toolWeight: 0.05,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it starts with a direct synthesis',
+      regex: /summary|executive summary|top line|bottom line|direct answer|recommend/i,
+      weight: 0.05,
+    },
+    {
+      label: 'it includes evidence or source anchors',
+      regex: /source|sources|citation|citations|http|www\.|\b20\d{2}\b/i,
+      weight: 0.15,
+    },
+    {
+      label: 'it ends with next steps or follow-up guidance',
+      regex: /next step|next steps|action|follow-up|open question/i,
+      weight: 0.05,
+    },
+    {
+      label: 'it acknowledges uncertainty or caveats',
+      regex: /risk|caveat|uncertain|unknown|assumption/i,
+      weight: 0.05,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-    const paragraphCount = responseText.split(/\n\s*\n/).filter(Boolean).length
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      paragraphCount,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasEvidence:
-        /source|sources|citation|citations|http|www\.|\b20\d{2}\b/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText) || paragraphCount >= 3,
-      hasDirectAnswer:
-        /summary|executive summary|top line|bottom line|direct answer|recommend/i.test(
-          responseText
-        ),
-      hasNextSteps:
-        /next step|next steps|action|follow-up|open question/i.test(responseText),
-      hasCaveat:
-        /risk|caveat|uncertain|unknown|assumption/i.test(responseText),
-      mentionsSynthesis:
-        /synthes|delegate|research|writing/i.test(responseText) ||
-        /synthes|delegate|research|writing/i.test(systemPrompt),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.hasUserMessage) score += 0.05
-    if (analysis.systemMessageCount > 0) score += 0.05
-    if (analysis.responseLength >= 220) score += 0.15
-    if (analysis.responseLength >= 600) score += 0.15
-    if (analysis.paragraphCount >= 3) score += 0.15
-    if (analysis.hasReasoning) score += 0.1
-    if (analysis.toolCount > 0) score += 0.05
-    if (analysis.hasEvidence) score += 0.15
-    if (analysis.hasStructure) score += 0.05
-    if (analysis.hasDirectAnswer) score += 0.05
-    if (analysis.hasNextSteps) score += 0.05
-    if (analysis.hasCaveat) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable supervisor response was produced.'
-    }
-
-    if (analysis.hasDirectAnswer) parts.push('it starts with a direct synthesis')
-    if (analysis.hasEvidence) parts.push('it includes evidence or source anchors')
-    if (analysis.hasNextSteps) parts.push('it ends with next steps or follow-up guidance')
-    if (analysis.hasCaveat) parts.push('it acknowledges uncertainty or caveats')
-    if (analysis.hasReasoning) parts.push('it shows reasoning support')
-    if (analysis.toolCount > 0) parts.push(`it used ${analysis.toolCount} tool call(s)`)
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This supervisor response is strong because ${parts.join(', ')}.` : 'The response is present but lacks several synthesis signals.'}`
-  })
 
 /**
  * Evaluates whether the supervisor delivered a user-ready synthesis with a
  * direct answer, actionable guidance, and explicit caveats or next steps.
  */
-const supervisorSynthesisScorer = createScorer({
+const supervisorSynthesisScorer = createSupervisorAgentPatternScorer({
   id: 'supervisor-synthesis-readiness',
   name: 'Supervisor Synthesis Readiness',
   description:
     'Checks whether the supervisor response is actionable, synthesized, and ready for the user without another iteration.',
-  type: 'agent',
+  label: 'supervisor synthesis',
+  emptyReason: 'No usable supervisor response was produced.',
+  weakReason: 'The response is present but lacks several synthesis signals.',
+  strongReasonPrefix: 'This supervisor response is strong because',
+  responseLengthThresholds: [
+    { min: 220, weight: 0.2 },
+    { min: 600, weight: 0.1 },
+  ],
+  minParagraphsForStructure: 3,
+  structureWeight: 0.15,
+  reasoningWeight: 0.1,
+  toolWeight: 0.05,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'the answer starts with a direct synthesis',
+      regex: /summary|in short|bottom line|recommend|recommended/i,
+      weight: 0.05,
+    },
+    {
+      label: 'it includes evidence or source anchors',
+      regex: /source|sources|citation|citations|http|www\.|\b20\d{2}\b/i,
+      weight: 0.15,
+    },
+    {
+      label: 'it ends with next steps or follow-up guidance',
+      regex: /next step|next steps|action|follow-up/i,
+      weight: 0.05,
+    },
+    {
+      label: 'it acknowledges uncertainty or caveats',
+      regex: /risk|caveat|uncertain|unknown|assumption/i,
+      weight: 0.05,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-    const paragraphCount = responseText.split(/\n\s*\n/).filter(Boolean).length
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      paragraphCount,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasEvidence:
-        /source|sources|citation|citations|http|www\.|\b20\d{2}\b/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText) || paragraphCount >= 3,
-      hasDirectAnswer:
-        /summary|in short|bottom line|recommend|recommended/i.test(responseText),
-      hasNextSteps:
-        /next step|next steps|action|follow-up/i.test(responseText),
-      hasCaveat:
-        /risk|caveat|uncertain|unknown|assumption/i.test(responseText),
-      mentionsDelegation:
-        /research|writing|delegate|synthes/i.test(responseText) ||
-        /research|writing|delegate|synthes/i.test(systemPrompt),
-      hasSupportSignal: Boolean(responseText.trim()),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.hasUserMessage) score += 0.05
-    if (analysis.systemMessageCount > 0) score += 0.05
-    if (analysis.responseLength >= 220) score += 0.2
-    if (analysis.responseLength >= 600) score += 0.1
-    if (analysis.paragraphCount >= 3) score += 0.15
-    if (analysis.hasReasoning) score += 0.1
-    if (analysis.toolCount > 0) score += 0.05
-    if (analysis.hasEvidence) score += 0.15
-    if (analysis.hasStructure) score += 0.05
-    if (analysis.hasDirectAnswer) score += 0.05
-    if (analysis.hasNextSteps) score += 0.05
-    if (analysis.hasCaveat) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable supervisor response was produced.'
-    }
-
-    if (analysis.hasDirectAnswer) parts.push('the answer starts with a direct synthesis')
-    if (analysis.hasEvidence) parts.push('it includes evidence or source anchors')
-    if (analysis.hasNextSteps) parts.push('it ends with next steps or follow-up guidance')
-    if (analysis.hasCaveat) parts.push('it acknowledges uncertainty or caveats')
-    if (analysis.hasReasoning) parts.push('it shows reasoning support')
-    if (analysis.toolCount > 0) parts.push(`it used ${analysis.toolCount} tool call(s)`)
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This supervisor response is strong because ${parts.join(', ')}.` : 'The response is present but lacks several synthesis signals.'}`
-  })
 
 export const supervisorAgent = new Agent({
   id: 'supervisor-agent',
@@ -318,13 +166,14 @@ You coordinate research and writing tasks using specialized agents.
 
 Available resources:
 - researchAgent: Gathers factual data and sources (returns bullet points)
+- browserAgent: Verifies live pages, browser state, and web claims when static research is not enough
 - writing-agent: Transforms research into well-structured articles (returns full paragraphs)
 - judge: Evaluates the quality and completeness of the supervisor agent's output
 
 Delegation strategy:
-1. For research requests: Delegate to research-agent first to gather facts
+1. For research requests: Delegate to research-agent first to gather facts, and use browserAgent when live verification, page inspection, or browser-state evidence would materially improve confidence
 2. For writing requests: Delegate to writing-agent with any available research context
-3. For comprehensive reports: Delegate to research-agent first, then writing-agent
+3. For comprehensive reports: Delegate to research-agent first, then writing-agent, and pull in browserAgent only for high-value verification
 4. Always ensure you have gathered sufficient information before producing final output
 
 Success criteria:
@@ -340,20 +189,18 @@ Final answer contract:
 
 Operating rules:
 - Prefer the minimum number of delegations needed for a trustworthy answer.
+- Use browserAgent only when live verification will materially improve the answer; do not browse by default.
 - Preserve user language when possible.
 - If evidence is weak, say so explicitly instead of overcommitting.
 - Do not return raw delegation summaries as the final answer; convert them into a single coherent response.`,
     }
   },
-  model: {
-    url: "https://api.kilo.ai/api/gateway",
-    id:'kilo/x-ai/grok-code-fast-1:optimized:free',
-    apiKey: process.env.KILO_API_KEY,
-  },
+  model: 'google/gemma-4-31b-it:free',
   tools: {libsqlgraphQueryTool, libsqlQueryTool,
   },
   agents: {
     researchAgent,
+    browserAgent,
     copywriterAgent,
   },
   memory: LibsqlMemory,
@@ -365,19 +212,21 @@ Operating rules:
     },
   },
   defaultOptions: {
-    maxSteps: 10,
+    maxSteps: 20,
     providerOptions: {
       anthropic: {
         sendReasoning: true,
         thinking: {
           type: 'adaptive',
         },
+        cacheControl: { type: 'ephemeral' }
       },
       google: {
         thinkingConfig: {
           includeThoughts: true,
           thinkingLevel: 'medium',
         },
+        responseModalities: ['TEXT', 'IMAGE'],
         mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
       } satisfies GoogleLanguageModelOptions,
       openai: {
@@ -440,10 +289,20 @@ Operating rules:
         if (context.primitiveId === 'researchAgent') {
           return {
             proceed: true,
-            modifiedPrompt: `${context.prompt}\n\nReturn concise research notes with sources, dated evidence, unresolved gaps, and the most decision-relevant findings first. Focus on recent developments from 2024-2026 unless the user explicitly asks for historical coverage.`,
+            modifiedPrompt: `${context.prompt}\n\nReturn concise research notes with sources, dated evidence, unresolved gaps, and the most decision-relevant findings first. If live page verification or browser-state evidence would materially improve confidence, explicitly say that browserAgent should verify it. Focus on recent developments from 2024-2026 unless the user explicitly asks for historical coverage.`,
             modifiedInstructions:
               'Act as a senior research analyst. Prioritize evidence quality, source attribution, dated findings, and unresolved gaps. Return only research-ready material for synthesis.',
             modifiedMaxSteps: 8,
+          }
+        }
+
+        if (context.primitiveId === 'browserAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nUse deterministic browser verification to confirm live claims, page behavior, or browser-state details. Prefer the minimum navigation needed, capture concrete evidence such as URLs, timestamps, visible page text, or interaction results, and clearly separate verified facts from anything still unresolved.`,
+            modifiedInstructions:
+              'Act as a deterministic browser verification specialist. Verify only what matters, avoid exploratory browsing, and return concise evidence that the supervisor can synthesize for the user.',
+            modifiedMaxSteps: 6,
           }
         }
 

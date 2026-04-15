@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
@@ -22,6 +11,7 @@ import {
   getRoleFromContext,
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
+import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
 
 log.info('Initializing Customer Support Agent...')
 
@@ -29,220 +19,88 @@ log.info('Initializing Customer Support Agent...')
  * Evaluates whether a customer-support response contains empathy, a practical resolution,
  * and clear follow-up guidance.
  */
-const customerSupportTaskCompleteScorer = createScorer({
+const customerSupportTaskCompleteScorer = createSupervisorAgentPatternScorer({
   id: 'customer-support-task-complete',
   name: 'Customer Support Task Completeness',
   description:
     'Checks whether a support reply includes empathy, concrete next steps, and resolution guidance.',
-  type: 'agent',
+  label: 'customer support completeness',
+  emptyReason: 'No usable customer support response was produced.',
+  weakReason: 'The response is present but lacks the main support signals.',
+  strongReasonPrefix: 'This support response is strong because',
+  responseLengthThresholds: [
+    { min: 140, weight: 0.15 },
+    { min: 300, weight: 0.1 },
+  ],
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it opens with empathy',
+      regex: /understand|sorry|happy to help|i can help|thanks for sharing/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it includes clear actions',
+      regex: /step 1|1\.|next step|please try|follow these steps|here's what to do/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it includes a resolution or escalation path',
+      regex: /if this does not work|if the issue persists|contact|follow up|escalate/i,
+      weight: 0.15,
+    },
+    {
+      label: 'it adds verification guidance',
+      regex: /verify|confirm|check|test|expected result|what should happen/i,
+      weight: 0.05,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasEmpathy:
-        /understand|sorry|happy to help|i can help|thanks for sharing/i.test(
-          responseText
-        ),
-      hasActionableSteps:
-        /step 1|1\.|next step|please try|follow these steps|here's what to do/i.test(
-          responseText
-        ),
-      hasResolutionPath:
-        /if this does not work|if the issue persists|contact|follow up|escalate/i.test(
-          responseText
-        ),
-      hasVerification:
-        /verify|confirm|check|test|expected result|what should happen/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.hasUserMessage) score += 0.05
-    if (analysis.systemMessageCount > 0) score += 0.05
-    if (analysis.responseLength >= 140) score += 0.15
-    if (analysis.responseLength >= 300) score += 0.1
-    if (analysis.hasEmpathy) score += 0.2
-    if (analysis.hasActionableSteps) score += 0.2
-    if (analysis.hasResolutionPath) score += 0.15
-    if (analysis.hasVerification) score += 0.05
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-    if (analysis.hasStructure) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable customer support response was produced.'
-    }
-
-    if (analysis.hasEmpathy) parts.push('it opens with empathy')
-    if (analysis.hasActionableSteps) parts.push('it includes clear actions')
-    if (analysis.hasResolutionPath) parts.push('it includes a resolution or escalation path')
-    if (analysis.hasVerification) parts.push('it adds verification guidance')
-    if (analysis.hasReasoning) parts.push('it includes reasoning support')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This support response is strong because ${parts.join(', ')}.` : 'The response is present but lacks the main support signals.'}`
-  })
 
 /**
  * Evaluates whether the support response is concise, operationally clear, and
  * ready to send to the customer.
  */
-const customerSupportResolutionScorer = createScorer({
+const customerSupportResolutionScorer = createSupervisorAgentPatternScorer({
   id: 'customer-support-resolution-readiness',
   name: 'Customer Support Resolution Readiness',
   description:
     'Checks whether a support reply provides a usable resolution flow, clear next steps, and escalation guidance.',
-  type: 'agent',
+  label: 'customer support resolution',
+  emptyReason: 'No usable customer support resolution was produced.',
+  weakReason: 'The response is present but not yet resolution-ready.',
+  strongReasonPrefix: 'This resolution is strong because',
+  responseLengthThresholds: [
+    { min: 140, weight: 0.2 },
+    { min: 260, weight: 0.1 },
+  ],
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it gives a step-by-step flow',
+      regex: /1\.|2\.|step 1|step-by-step|follow these steps/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it tells the user how to verify the fix',
+      regex: /expected result|what should happen|confirm|verify/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it includes escalation guidance',
+      regex: /escalate|contact support|follow up|reply back|reach out/i,
+      weight: 0.15,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasSequence:
-        /1\.|2\.|step 1|step-by-step|follow these steps/i.test(responseText),
-      hasVerification:
-        /expected result|what should happen|confirm|verify/i.test(responseText),
-      hasEscalation:
-        /escalate|contact support|follow up|reply back|reach out/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.responseLength >= 140) score += 0.2
-    if (analysis.responseLength >= 260) score += 0.1
-    if (analysis.hasSequence) score += 0.25
-    if (analysis.hasVerification) score += 0.2
-    if (analysis.hasEscalation) score += 0.15
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-    if (analysis.hasStructure) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable customer support resolution was produced.'
-    }
-
-    if (analysis.hasSequence) parts.push('it gives a step-by-step flow')
-    if (analysis.hasVerification) parts.push('it tells the user how to verify the fix')
-    if (analysis.hasEscalation) parts.push('it includes escalation guidance')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This resolution is strong because ${parts.join(', ')}.` : 'The response is present but not yet resolution-ready.'}`
-  })
 
 /**
  * Customer Support Agent.

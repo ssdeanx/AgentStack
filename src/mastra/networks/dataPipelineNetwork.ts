@@ -1,21 +1,11 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 
 import { dataExportAgent } from '../agents/dataExportAgent'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
 import { reportAgent } from '../agents/reportAgent'
 import { log } from '../config/logger'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 import { confirmationTool } from '../tools/confirmation.tool'
 import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow'
 import { LibsqlMemory } from '../config/libsql'
@@ -26,151 +16,63 @@ log.info('Initializing Data Pipeline Network...')
  * Validates that the data pipeline network returns a concrete pipeline outcome
  * instead of only describing a potential handoff.
  */
-const dataPipelineNetworkTaskCompleteScorer = createScorer({
+const dataPipelineNetworkTaskCompleteScorer = createSupervisorPatternScorer({
   id: 'data-pipeline-network-task-complete',
   name: 'Data Pipeline Network Task Completeness',
   description:
     'Checks whether the network returned a concrete import, transform, export, or reporting outcome.',
-  type: 'agent',
+  label: 'Data pipeline response',
+  emptyReason: 'No usable data pipeline response was produced.',
+  weakReason: 'The response is present but still needs more report detail.',
+  strongReasonPrefix: 'This pipeline response is strong because',
+  signals: [
+    {
+      label: 'it includes pipeline or transformation language',
+      regex: /csv|json|xml|transform|schema|columns|rows|report|summary|file/i,
+      weight: 0.4,
+    },
+  ],
+  responseLengthThresholds: [{ min: 60, weight: 0.25 }],
+  minParagraphsForStructure: 999,
+  structureWeight: 0.15,
+  reasoningWeight: 0.05,
+  toolWeight: 0.05,
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const { response, responseMessages, reasoning, tools, toolCallInfos } =
-      results.preprocessStepResult
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasResponse: responseText.length > 0,
-      responseLength: responseText.length,
-      hasPipelineLanguage:
-        /csv|json|xml|transform|schema|columns|rows|report|summary|file/i.test(
-          responseText
-        ),
-      hasStructure: /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 60) score += 0.25
-    if (analysis.hasPipelineLanguage) score += 0.4
-    if (analysis.hasStructure) score += 0.15
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable data pipeline response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasPipelineLanguage) parts.push('it includes pipeline or transformation language')
-    if (analysis.hasStructure) parts.push('it is structured and readable')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This pipeline response is strong because ${parts.join(', ')}.` : 'The response is present but still needs more report detail.'}`
-  })
 
 /**
  * Checks that the data pipeline answer is execution-ready with explicit output,
  * validation, or next-step guidance.
  */
-const dataPipelineNetworkExecutionScorer = createScorer({
-  id: 'data-pipeline-network-execution-readiness',
-  name: 'Data Pipeline Network Execution Readiness',
-  description:
-    'Checks whether the data-pipeline response tells the user what was produced, what changed, and what to do next.',
-  type: 'agent',
-})
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const { response, responseMessages, reasoning, tools, toolCallInfos } =
-      results.preprocessStepResult
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasResponse: responseText.length > 0,
-      responseLength: responseText.length,
-      hasPipelineLanguage:
-        /output|result|generated|exported|transformed/i.test(responseText),
-      categoryMatches: [
-        /validation|mismatch|missing|error|warning/i.test(responseText),
-        /next step|download|import|review|fix/i.test(responseText),
-      ].filter(Boolean).length,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 120) score += 0.25
-    if (analysis.hasPipelineLanguage) score += 0.35
-    if (analysis.categoryMatches >= 2) score += 0.2
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable pipeline execution result was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasPipelineLanguage) parts.push('it includes pipeline or transformation language')
-    if (analysis.categoryMatches >= 2) parts.push('it covers validation and follow-up actions')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution response is strong because ${parts.join(', ')}.` : 'The response is present but still needs more execution detail.'}`
+const dataPipelineNetworkExecutionScorer =
+  createSupervisorPatternScorer({
+    id: 'data-pipeline-network-execution-readiness',
+    name: 'Data Pipeline Network Execution Readiness',
+    description:
+      'Checks whether the data-pipeline response tells the user what was produced, what changed, and what to do next.',
+    label: 'Data pipeline execution response',
+    emptyReason: 'No usable pipeline execution result was produced.',
+    weakReason: 'The response is present but still needs more execution detail.',
+    strongReasonPrefix: 'This execution response is strong because',
+    signals: [
+      {
+        label: 'it includes pipeline or transformation language',
+        regex: /output|result|generated|exported|transformed/i,
+        weight: 0.35,
+      },
+      {
+        label: 'it covers validation detail',
+        regex: /validation|mismatch|missing|error|warning/i,
+        weight: 0.1,
+      },
+      {
+        label: 'it covers follow-up actions',
+        regex: /next step|download|import|review|fix/i,
+        weight: 0.1,
+      },
+    ],
+    responseLengthThresholds: [{ min: 120, weight: 0.25 }],
+    reasoningWeight: 0.05,
+    toolWeight: 0.05,
   })
 
 export const dataPipelineNetwork = new Agent({

@@ -59,6 +59,9 @@ import {
     SparklesIcon,
 } from 'lucide-react'
 import { Panel } from '@/src/components/ai-elements/panel'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 
 type AnyRecord = Record<string, unknown>
 
@@ -236,6 +239,14 @@ export default function EvaluationPage() {
     }
 
     return (
+        <ChatProvider>
+            <ChatPageShell
+                title="Evaluation"
+                description="Review scorers, datasets, and evaluation experiments from the shared chat shell."
+                sidebar={<MainSidebar />}
+                hideHeader
+                contentClassName="p-0"
+            >
         <TooltipProvider delayDuration={150}>
             <div className="relative flex h-full min-h-0 flex-col gap-6 p-6">
                 {showHelpPanel ? (
@@ -810,5 +821,7 @@ export default function EvaluationPage() {
             </div>
         </div>
         </TooltipProvider>
+            </ChatPageShell>
+        </ChatProvider>
     )
 }

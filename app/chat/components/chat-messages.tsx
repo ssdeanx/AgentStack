@@ -72,6 +72,7 @@ import { AgentConfirmation } from './agent-confirmation'
 import { AgentWorkflow, type WorkflowNode, type WorkflowEdge } from './agent-workflow'
 import {
     extractPlanFromText,
+    extractThoughtSummaryFromProviderMetadata,
     parseReasoningToSteps,
     tokenizeInlineCitations,
 } from './chat.utils'
@@ -743,28 +744,17 @@ function extractThoughtSummaryFromParts(
     }
 
     for (const part of parts) {
-        const pm = (part as { providerMetadata?: ProviderMetadata | undefined })
-            .providerMetadata
+        const providerMetadata =
+            'providerMetadata' in part
+                ? (part.providerMetadata as ProviderMetadata | undefined)
+                : 'callProviderMetadata' in part
+                  ? (part.callProviderMetadata as ProviderMetadata | undefined)
+                  : undefined
 
-        const googleMeta = (pm as Record<string, unknown>).google
-        if (
-            googleMeta === undefined ||
-            googleMeta === null ||
-            typeof googleMeta !== 'object'
-        ) {
-            continue
-        }
-
-        const candidates = [
-            (googleMeta as Record<string, unknown>).thoughtSummary,
-            (googleMeta as Record<string, unknown>).thoughts,
-            (googleMeta as Record<string, unknown>).thinkingSummary,
-        ]
-
-        for (const c of candidates) {
-            if (typeof c === 'string' && c.trim().length > 0) {
-                return c
-            }
+        const summary =
+            extractThoughtSummaryFromProviderMetadata(providerMetadata)
+        if (summary.length > 0) {
+            return summary
         }
     }
 
@@ -2158,7 +2148,15 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
 
         const timeoutId = window.setTimeout(() => {
             const validateMessages = async () => {
-                if (messages.length === 0) {
+                const hasIncompleteMessage = messages.some((message) => {
+                    if (!Array.isArray(message.parts)) {
+                        return true
+                    }
+
+                    return message.parts.length === 0
+                })
+
+                if (messages.length === 0 || isLoading || hasIncompleteMessage) {
                     setValidationError(null)
                     return
                 }
@@ -2186,7 +2184,7 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
             isMounted = false
             window.clearTimeout(timeoutId)
         }
-    }, [messages])
+    }, [isLoading, messages])
 
     const showReasoning = agentConfig?.features.reasoning ?? false
     const showChainOfThought = agentConfig?.features.chainOfThought ?? false

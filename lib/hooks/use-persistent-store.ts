@@ -107,13 +107,16 @@ export function usePersistentStore<T>({
         }
 
         const handleStorage = (event: StorageEvent) => {
-            if (event.key !== key || event.newValue === null) {
+            const newValue = event.newValue
+
+            if (event.key !== key || newValue === null) {
                 return
             }
 
             try {
                 const parse = deserialize ?? defaultDeserialize
-                store.setState(parse(event.newValue))
+                // Use functional updater to satisfy Store.setState overload expecting a function
+                store.setState(() => parse(newValue))
             } catch {
                 // Ignore malformed storage payloads.
             }
@@ -135,7 +138,7 @@ export function usePersistentStore<T>({
     )
 
     const resetValue = useCallback(() => {
-        store.setState(initialValue)
+        store.setState(() => initialValue)
     }, [initialValue, store])
 
     return {

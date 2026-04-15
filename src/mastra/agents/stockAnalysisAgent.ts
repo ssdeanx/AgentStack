@@ -18,7 +18,6 @@ import {
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 //import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import {
     getLanguageFromContext,
@@ -119,7 +118,7 @@ export const stockAnalysisAgent = new Agent({
             internal: InternalSpans.ALL,
         },
     },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+   // outputProcessors: [new TokenLimiterProcessor(1048576)],
     maxRetries: 5,
     defaultOptions: {
         autoResumeSuspendedTools: true,

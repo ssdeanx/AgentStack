@@ -130,12 +130,12 @@ User: ${userId} | Role: ${role} | Style: ${strategy}
             thinkingBudget: -1,
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-          responseModalities: ['TEXT'],
+          responseModalities: ['TEXT', 'IMAGE'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
-  model: 'google/gemini-3.1-flash-preview',
+  model: 'google/gemma-4-31b-it',
   memory: LibsqlMemory,
   tools: contentStrategistTools,
   options: {

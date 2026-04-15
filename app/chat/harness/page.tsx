@@ -126,6 +126,9 @@ import {
 	StackTraceHeader,
 	StackTraceFrames,
 } from '@/src/components/ai-elements/stack-trace'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 import {
 	Terminal,
 	TerminalActions,
@@ -1098,6 +1101,14 @@ export default function HarnessPage() {
 	}
 
 	return (
+		<ChatProvider>
+			<ChatPageShell
+				title="Harness"
+				description="Inspect live harness state, artifacts, and execution details from the shared chat shell."
+				sidebar={<MainSidebar />}
+				hideHeader
+				contentClassName="p-0"
+			>
 		<div className="flex h-full min-h-0 flex-col gap-6 p-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="flex items-center gap-3">
@@ -1730,5 +1741,7 @@ export default function HarnessPage() {
 				</div>
 			</div>
 		</div>
+			</ChatPageShell>
+		</ChatProvider>
 	)
 }

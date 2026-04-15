@@ -3,10 +3,21 @@
 import Link from 'next/link'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, type SyntheticEvent } from 'react'
+import {
+    Suspense,
+    useEffect,
+    useMemo,
+    useState,
+    type SyntheticEvent,
+} from 'react'
 import { Eye, EyeOff, Loader2, LogIn, ShieldCheck, Sparkles } from 'lucide-react'
 
-import { authClient } from '@/lib/auth-client'
+import {
+    authClient,
+    hasGoogleOneTapClient,
+    signInWithUsername,
+    startGoogleOneTap,
+} from '@/lib/auth-client'
 import { useAuthQuery } from '@/lib/hooks/use-auth-query'
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/ui/card'
@@ -25,10 +36,22 @@ function getSafeNextPath(next: string | null): Route {
 const REMEMBERED_IDENTIFIER_KEY = 'agentstack.auth.remembered-identifier'
 type LoginSubmitEvent = SyntheticEvent<HTMLFormElement, SubmitEvent>
 
-export default function LoginPage() {
+function LoginPageFallback() {
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background via-background to-muted/30 p-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                Loading sign-in...
+            </div>
+        </div>
+    )
+}
+
+function LoginPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const authQuery = useAuthQuery()
+    const isHydrated = true
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
     const [identifier, setIdentifier] = useState('')
@@ -45,6 +68,10 @@ export default function LoginPage() {
     const canSubmit = normalizedIdentifier.length > 0 && password.length > 0 && !isLoading
 
     useEffect(() => {
+        if (!isHydrated) {
+            return
+        }
+
         if (authQuery.isPending) {
             return
         }
@@ -52,28 +79,21 @@ export default function LoginPage() {
         if (authQuery.data) {
             router.replace(nextPath)
         }
-    }, [authQuery.data, authQuery.isPending, nextPath, router])
+    }, [authQuery.data, authQuery.isPending, isHydrated, nextPath, router])
 
     useEffect(() => {
-        if (authQuery.isPending || authQuery.data) {
+        if (!isHydrated) {
             return
         }
 
-        void authClient.oneTap({
+        if (authQuery.isPending || authQuery.data || !hasGoogleOneTapClient) {
+            return
+        }
+
+        void startGoogleOneTap({
             callbackURL: nextPath,
         })
-    }, [authQuery.data, authQuery.isPending, nextPath])
-
-    useEffect(() => {
-        const savedIdentifier = window.localStorage.getItem(REMEMBERED_IDENTIFIER_KEY)
-
-        if (savedIdentifier) {
-            queueMicrotask(() => {
-                setIdentifier(savedIdentifier)
-                setRememberIdentifier(true)
-            })
-        }
-    }, [])
+    }, [authQuery.data, authQuery.isPending, isHydrated, nextPath])
 
     /** Starts the Google OAuth flow through Better Auth. */
     const handleGoogleSignIn = async () => {
@@ -115,7 +135,7 @@ export default function LoginPage() {
                   password,
                   callbackURL: nextPath,
               })
-            : await authClient.signIn.username({
+            : await signInWithUsername({
                   username: normalizedIdentifier,
                   password,
                   callbackURL: nextPath,
@@ -131,7 +151,7 @@ export default function LoginPage() {
         router.replace(nextPath)
     }
 
-    if (authQuery.isPending || authQuery.data) {
+    if (!isHydrated || authQuery.isPending || authQuery.data) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background via-background to-muted/30 p-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -364,5 +384,13 @@ export default function LoginPage() {
                 </section>
             </div>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<LoginPageFallback />}>
+            <LoginPageContent />
+        </Suspense>
     )
 }

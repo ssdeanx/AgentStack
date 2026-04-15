@@ -1,3 +1,77 @@
+# Active Context Update (2026-04-15 - chat settings routing and workspace hook cleanup)
+
+- `app/chat/user/*` and `app/chat/admin/*` now use route-level layouts (`layout.tsx`) built on `app/chat/components/chat-settings-shell.tsx`, which centralizes `ChatProvider`, `ChatPageShell`, and `MainSidebar` for modular settings routes.
+- `/chat/user` and `/chat/admin` are now overview landing pages, and focused settings subpages exist for:
+  - `/chat/user/profile`
+  - `/chat/user/security`
+  - `/chat/user/sessions`
+  - `/chat/user/api-keys`
+  - `/chat/user/danger-zone`
+  - `/chat/admin/runtime`
+  - `/chat/admin/users`
+- `UserSettingsPanel` and `AdminSettingsPanel` now accept a section prop so the new routes can render focused slices of the existing Better Auth management surfaces instead of duplicating mutation logic.
+- `lib/hooks/use-mastra-query.ts` now normalizes `useWorkspaces()` to return `WorkspaceItem[]` directly, which removed duplicate raw-response normalization from `app/chat/workspaces/page.tsx` and `app/chat/components/chat-sidebar.tsx`.
+- The active vector-store default in the chat-facing hook layer remains `libsqlvector`.
+- Additional chat routes now also run inside the shared chat shell (`ChatProvider` + `ChatPageShell` + `MainSidebar`) instead of bypassing the sidebar:
+  - `app/chat/dataset/page.tsx`
+  - `app/chat/evaluation/page.tsx`
+  - `app/chat/observability/page.tsx`
+  - `app/chat/tools/page.tsx`
+  - `app/chat/logs/page.tsx`
+  - `app/chat/harness/page.tsx`
+  - `app/chat/mcp-a2a/page.tsx`
+  - `app/chat/workflows/page.tsx`
+  - `app/chat/workflows/[workflowId]/page.tsx`
+- The last chat-facing `PgVector` label in `app/chat/config/agents.ts` was replaced with vector-store-neutral wording.
+- Shared chat UX was further refined:
+  - `app/chat/components/main-sidebar.tsx` now uses denser route metadata, tooltip guidance, and `ScrollArea` for long page/thread lists.
+  - `app/chat/components/chat-settings-shell.tsx` now uses horizontal scrolling plus tooltip-backed section cards for settings navigation.
+  - `app/chat/components/chat-page-shell.tsx` now uses tighter responsive shell spacing.
+  - `app/chat/user/page.tsx` and `app/chat/admin/page.tsx` now use tooltip-backed overview cards.
+- Targeted IDE diagnostics are clean for the updated settings routes, panels, workspace page, chat sidebar, and Mastra hook file.
+- `app/chat/components/main-sidebar.tsx` still shows a stale ESLint diagnostic in the editor even after the flagged line no longer contains any effect or state-setting logic; the current file contents suggest this is a cached lint/server issue rather than a live code problem.
+
+# Active Context Update (2026-04-15 - research agent model fallback)
+
+- `src/mastra/agents/researchAgent.ts` no longer pins the route to `google/gemma-4-31b-it:free`.
+- The research agent now uses role-aware runtime model selection:
+  - admin requests use `google.chat('gemini-3.1-pro-preview')`
+  - standard requests use `google.chat('gemini-3.1-flash-lite-preview')`
+- This aligns `researchAgent` with the repo's production-oriented research-agent pattern and avoids the failing free-model default that was breaking `/chat/agents/researchAgent`.
+
+# Active Context Update (2026-04-15 - supervisor split, GitHub channel, browser hooks)
+
+- The shared supervisor scorer layer is now split into two tiers:
+  - `createSupervisorPatternScorer(...)` remains the lower-level coordinator primitive
+  - `createSupervisorAgentPatternScorer(...)` is the higher-level shared helper for supervisor-style agents
+- Additional future-facing shared helpers now exist for channel-oriented and structured-output-oriented supervisors:
+  - `createSupervisorChannelPatternScorer(...)`
+  - `createStructuredOutputSupervisorPatternScorer(...)`
+- `src/mastra/browsers.ts` is now the central browser policy surface for:
+  - deterministic `agentBrowser`
+  - adaptive `stagehandBrowser`
+  - lifecycle logging hooks
+  - environment-driven viewport, timeout, and screencast settings
+- `browserAgent` now has a much stricter verification prompt focused on evidence, deterministic tool sequencing, and non-destructive browsing.
+- `researchAgent` now supports an optional GitHub channel adapter when `GITHUB_WEBHOOK_SECRET` plus PAT or GitHub App credentials are configured; Discord remains enabled as before.
+- `researchAgent` channel handling now uses valid Mastra handler overrides (`onDirectMessage`, `onMention`, `onSubscribedMessage`) instead of a non-existent per-platform `github` handler key.
+- The subscribed-thread path intentionally ignores acknowledgement-only follow-ups to reduce wasted research cycles in long channel threads.
+- The hook layer is now centralized through `handleResearchChannelEvent(...)`, which adds consistent logging and GitHub-thread awareness to the research channel surface.
+- Better Auth Google sign-in now routes through the correct Better Auth callback path (`/api/auth/callback/google`), and the auth client no longer depends on client-side access to private env vars.
+- The login and signup routes now wrap their `useSearchParams()` usage in `Suspense`, which cleared the Next.js 16 blocking-route runtime error and made browser-based auth testing viable again.
+- CLI lint/test execution is still blocked in this session because `pwsh` is unavailable, so browser/research validation relied on targeted IDE diagnostics.
+
+# Active Context Update (2026-04-15 - supervisor/browser rollout)
+
+- `src/mastra/scorers/supervisor-scorers.ts` now exposes `createSupervisorPatternScorer(...)` as the shared primitive for supervisor/coordinator completion scoring.
+- The current supervisor-style agent set and coordinator-network set now use local scorer wrappers on top of that shared primitive instead of duplicating the full scorer preprocessing pipeline in each file.
+- `browserAgent` is now part of the main supervisor surface:
+  - exported from `src/mastra/agents/index.ts`
+  - registered in `src/mastra/index.ts`
+  - mounted in `src/mastra/agents/supervisor-agent.ts`
+- `supervisor-agent` delegation guidance now treats browser work as an opt-in verification path for live claims, page behavior, and browser-state evidence rather than a default research step.
+- Validation could not be executed from the CLI runtime in this session because `pwsh` is unavailable, so follow-up validation should be run in a shell-enabled environment.
+
 # Active Context Update (2026-04-14 - strict typing and inferred tool cleanup)
 
 - `BinanceAvgPrice` is now used in the Binance spot tool via the `BinanceSpotAvgPriceData` type.
@@ -1276,3 +1350,13 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 5. Add loading skeletons throughout
 6. Type MastraClient responses properly
 7. Add unit tests for hooks
+# Active Context Update (2026-04-15 - chat route hardening)
+
+- `app/chat/components/chat.utils.ts` now exposes provider-agnostic thought-summary extraction so chat surfaces no longer assume `providerMetadata.google`.
+- `app/chat/components/chat-messages.tsx` and `app/chat/providers/chat-context.tsx` now tolerate arbitrary provider metadata shapes and suppress validation while streamed assistant messages are still incomplete.
+- `app/chat/providers/chat-context.tsx` no longer raises a false `Messages array must not be empty` error on empty initial chat state.
+- `app/chat/providers/chat-context.tsx`, `app/networks/providers/network-context.tsx`, `app/workflows/providers/workflow-context.tsx`, and `app/chat/components/nested-agent-chat.tsx` now set `credentials: 'include'` on `DefaultChatTransport` so the frontend can authenticate to the cross-origin Mastra server on `http://localhost:4111`.
+- `/chat/agents/researchAgent` was reproduced in a real authenticated browser session by creating a Better Auth test user directly against `/api/auth/sign-up/email`.
+- The protected research-agent route no longer reproduces the original provider-metadata crash or the initial empty-message error; direct browser fetches confirmed the Mastra backend now returns a valid SSE stream start and tool-input chunks when credentials are included.
+- `app/login/page.tsx`, `app/login/signup/page.tsx`, and `app/chat/components/main-sidebar.tsx` now use hydration guards so client-only auth/session/thread UI does not mismatch server HTML during hydration.
+- Final browser re-verification after the last chat-message validation patch is blocked in this session because the local Next.js dev server stopped and this environment cannot restart it without `pwsh` or another shell tool.

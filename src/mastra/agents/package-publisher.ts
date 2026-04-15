@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import {
   getLanguageFromContext,
   getRoleFromContext,
@@ -168,5 +168,5 @@ export const danePackagePublisher = new Agent({
         },
     },
     scorers: {},
-    outputProcessors: [new TokenLimiterProcessor(128000)],
+    //outputProcessors: [new TokenLimiterProcessor(128000)],
 })
