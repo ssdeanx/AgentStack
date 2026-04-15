@@ -10,7 +10,7 @@ import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
 
 export const libsqlstorage = new LibSQLStore({
     id: 'libsql-storage',
-    url:  'file:./database.db',
+    url: process.env.DB ?? 'file:./database.db',
     maxRetries: 5, // Optional retry configuration for transient errors
     initialBackoffMs: 100, // Initial backoff for retries
     //disableInit: process.env.DB_DISABLE_INIT === 'true', // Disable auto-init if specified
@@ -22,7 +22,7 @@ export const libsqlstorage = new LibSQLStore({
 // Create a new vector store instance
 export const libsqlvector = new LibSQLVector({
     id: 'libsql-vector',
-    url:  'file:./database.db',
+    url: process.env.DB ?? 'file:./database.db',
     // Optional: for Turso cloud databases
     authToken: process.env.TURSO_AUTH_TOKEN,
     syncInterval: 10000, // Sync every 10 seconds (optional)
@@ -126,8 +126,8 @@ export const LibsqlMemory = new Memory({
 })
 
 log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
-    storage: 'file:./database.db',
-    vector: 'file:./database.db',
+    storage: process.env.DB ?? 'file:./database.db',
+    vector: process.env.DB ?? 'file:./database.db',
     // schema: process.env.DB_SCHEMA ?? 'mastra',
     // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
     memoryOptions: {
