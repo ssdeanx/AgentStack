@@ -12,13 +12,13 @@ import {
     SelectValue,
 } from '@/ui/select'
 import { Badge } from '@/ui/badge'
-import { useWorkflowContext } from '@/app/workflows/providers/workflow-context'
+import { useWorkflowContext } from '@/app/chat/providers/workflow-context'
 import {
     WORKFLOW_CONFIGS,
     CATEGORY_ORDER,
     CATEGORY_LABELS,
     getWorkflowsByCategory,
-} from '@/app/workflows/config/workflows'
+} from '@/app/chat/config/workflows'
 import {
     ArrowLeftIcon,
     PauseIcon,

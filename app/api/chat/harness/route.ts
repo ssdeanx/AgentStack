@@ -336,7 +336,7 @@ function readGitSnapshot() {
         .map((line) => {
             const statusCode = line.slice(0, 2).trim()
             const filePath = line.slice(3).trim()
-            const status =
+            const status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' =
                 statusCode === 'A'
                     ? 'added'
                     : statusCode === 'D'
@@ -356,15 +356,23 @@ function readGitSnapshot() {
 /**
  * Filter environment variables so the config panel only exposes safe values.
  */
+function isSafeEnvironmentEntry(
+    entry: [string, string | undefined]
+): entry is [string, string] {
+    const [key, value] = entry
+
+    return (
+        typeof value === 'string' &&
+        value.length > 0 &&
+        SAFE_ENV_KEYS.some((prefix) =>
+            prefix.endsWith('_') ? key.startsWith(prefix) : key === prefix
+        )
+    )
+}
+
 function readSafeEnvironmentVariables() {
     return Object.entries(process.env)
-        .filter(([key, value]) =>
-            typeof value === 'string' &&
-            value.length > 0 &&
-            SAFE_ENV_KEYS.some((prefix) =>
-                prefix.endsWith('_') ? key.startsWith(prefix) : key === prefix
-            )
-        )
+        .filter(isSafeEnvironmentEntry)
         .slice(0, MAX_ENV_VARS)
         .map(([name, value]) => ({
             name,

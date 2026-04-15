@@ -2,7 +2,7 @@
 
 import { Panel } from '@/src/components/ai-elements/panel'
 import { ScrollArea } from '@/ui/scroll-area'
-import { useWorkflowContext } from '@/app/workflows/providers/workflow-context'
+import { useWorkflowContext } from '@/app/chat/providers/workflow-context'
 import {
     MessageSquareIcon,
     CheckCircle2Icon,

@@ -8,7 +8,7 @@ import {
     PromptInputSubmit,
 } from '@/src/components/ai-elements/prompt-input'
 import { Button } from '@/ui/button'
-import { useWorkflowContext } from '@/app/workflows/providers/workflow-context'
+import { useWorkflowContext } from '@/app/chat/providers/workflow-context'
 import {
     PlayIcon,
     Loader2Icon,

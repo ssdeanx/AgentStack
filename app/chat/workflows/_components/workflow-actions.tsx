@@ -2,7 +2,7 @@
 
 import { Panel } from '@/src/components/ai-elements/panel'
 import { Button } from '@/ui/button'
-import { useWorkflowContext } from '@/app/workflows/providers/workflow-context'
+import { useWorkflowContext } from '@/app/chat/providers/workflow-context'
 import {
     DownloadIcon,
     CodeIcon,
@@ -19,6 +19,7 @@ export function WorkflowActions() {
 
     let reactFlowInstance: ReturnType<typeof useReactFlow> | null = null
     try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         reactFlowInstance = useReactFlow()
     } catch {
         // Not inside ReactFlow context yet

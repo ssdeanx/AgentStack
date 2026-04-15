@@ -1,6 +1,6 @@
 'use client'
 
-import { useWorkflowContext } from '@/app/workflows/providers/workflow-context'
+import { useWorkflowContext } from '@/app/chat/providers/workflow-context'
 import {
     Dialog,
     DialogContent,

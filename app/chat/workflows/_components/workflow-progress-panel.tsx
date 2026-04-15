@@ -3,7 +3,7 @@
 import {
     useWorkflowContext,
     type WorkflowProgressEvent,
-} from '@/app/workflows/providers/workflow-context'
+} from '@/app/chat/providers/workflow-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Badge } from '@/ui/badge'
 import { ScrollArea } from '@/ui/scroll-area'

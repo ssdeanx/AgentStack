@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     const streamOptions = {
         threadId,
         resourceId,
-        memory: body.memory,
+        memory: body.memory as any,
         requestContext,
     }
 

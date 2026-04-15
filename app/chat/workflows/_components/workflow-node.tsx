@@ -14,8 +14,8 @@ import { Badge } from '@/ui/badge'
 import {
     useWorkflowContext,
     type StepStatus,
-} from '@/app/workflows/providers/workflow-context'
-import type { WorkflowStep } from '@/app/workflows/config/workflows'
+} from '@/app/chat/providers/workflow-context'
+import type { WorkflowStep } from '@/app/chat/config/workflows'
 import {
     InfoIcon,
     PlayIcon,
