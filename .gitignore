@@ -26,6 +26,8 @@ assets/*jpg
 .agent/skills/**/*.md
 .agent/skills/**/*.ts
 .agent/skills/**/*.tsx
+.mastra-project.json
+database.db
 
 .trunk/
 .trunk/**/*
