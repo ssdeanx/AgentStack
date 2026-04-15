@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'

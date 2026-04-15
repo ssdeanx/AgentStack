@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"AgentStack README","version":"1.3.3","applies_to":"/","last_updated":"2026-03-29","status":"stable"} -->
+<!-- AGENTS-META {"title":"AgentStack README","version":"1.0.43","applies_to":"/","last_updated":"2026-04-14","status":"stable"} -->
 
 <div align="center">
 
@@ -74,6 +74,8 @@ AgentStack bridges the gap between basic AI chatbots and enterprise-grade multi-
 | **Financial Intelligence**    | ✅ **Polygon/Finnhub/AlphaVantage (30+ endpoints)**             | ❌ None     | ❌ None    | ❌ None     |
 | **RAG Pipeline**              | ✅ **LibSQL HNSW + rerank + graphRAG**                          | ⚠️ Basic    | ⚠️ Basic   | ✅ External |
 | **Multi-Agent Orchestration** | ✅ **A2A MCP + supervisor networks (25+ agents)**               | ✅ Advanced | ✅ Basic   | ✅ Partial  |
+| **Live Browser Automation**   | ✅ **Local Chrome/CDP browser agent + shared runtime**          | ⚠️ Basic    | ⚠️ Partial | ⚠️ Partial  |
+| **Workspaces / Sandboxes**    | ✅ **AgentFS + Daytona + local sandboxes + persistence**        | ⚠️ Basic    | ❌ None    | ⚠️ Partial  |
 | **Enterprise Security**       | ✅ **Better Auth + RBAC + path traversal protection + HTML sanitization** | ⚠️ Partial  | ⚠️ Partial | ✅ Partial  |
 | **Type Safety**               | ✅ **Zod schemas everywhere (57 tools)**                        | ⚠️ Limited  | ⚠️ Limited | ✅ Partial  |
 | **UI Components**             | ✅ **105 components (AI Elements + shadcn/ui)**                 | ✅ 30+      | ✅ 50+     | ✅ 30+      |
@@ -98,6 +100,8 @@ While other AI agent platforms offer basic chatbot functionality, AgentStack pro
 - **🤖 25+ Agents**: Individual specialized agents (research, stock analysis, copywriting, etc.)
 - **📋 10+ Workflows**: Multi-step orchestrated processes (weather analysis, content creation, financial reports)
 - **🌐 12+ Supervisor Networks**: Coordinator agents that route tasks to specialized agents using delegation hooks (primary router, coding team, financial intelligence, content creation, etc.)
+- **🧭 Live Browser Automation**: Shared Chrome/CDP browser runtime for local verification, screenshots, and interaction testing
+- **🧩 Workspaces & Sandboxes**: AgentFS, Daytona, and local sandbox support with persistent LibSQL-backed state
 - **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report), A2A coordinator for cross-agent communication
 - **🎨 105 UI Components**: AI Elements (50 chat/reasoning/canvas components) + shadcn/ui (55 base primitives)
 - **📊 Enterprise Observability**: Default tracing + Langfuse integration + 10+ custom scorers + middleware logging
@@ -1472,11 +1476,23 @@ AgentStack is engineered for high-performance production workloads with comprehe
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
-xychart-beta
-  title "Requests Per Second (RPS) by Endpoint"
-  x-axis ["/chat", "/workflow", "/rag/query", "/dataset", "/tools/execute", "/observability", "/network", "/workspace"]
-  y-axis "Requests per second" 0 --> 220
-  bar [150, 85, 200, 180, 120, 95, 75, 110]
+sequenceDiagram
+  participant Dev as Developer
+  participant Script as npm run chrome:debug
+  participant Chrome as Local Chrome
+  participant CDP as CDP Endpoint<br/>127.0.0.1:9222
+  participant BrowserAgent as browserAgent
+  participant Browser as Shared Browser Runtime
+  participant App as Target Web App
+
+  Dev->>Script: Start remote-debug Chrome
+  Script->>Chrome: Launch Chrome with CDP enabled
+  Chrome-->>CDP: Publish DevTools endpoint
+  BrowserAgent->>CDP: Connect via CHROME_CDP_URL
+  BrowserAgent->>Browser: Reuse shared browser session
+  BrowserAgent->>App: Navigate, click, type, inspect
+  App-->>BrowserAgent: DOM, console, screenshots
+  BrowserAgent-->>Dev: Structured result
 ```
 
 | Endpoint             | RPS | Avg Latency | Use Case                           |
@@ -1656,7 +1672,8 @@ export const myCustomTool = createTool({
 // src/mastra/agents/my-agent.ts
 import { Agent } from '@mastra/core/agent'
 import { googleAI } from '../config/google'
-import { myCustomTool, pgQueryTool } from '../tools'
+import { myCustomTool } from '../tools'
+import { LibsqlMemory, libsqlQueryTool } from '../config/libsql'
 
 export const myAgent = new Agent({
     id: 'my-agent',
@@ -1669,11 +1686,72 @@ export const myAgent = new Agent({
     model: googleAI, // or openAI, anthropic, openrouter
     tools: {
         myCustomTool,
-        pgQueryTool,
+        libsqlQueryTool,
     },
-    memory: pgMemory, // Enable conversation memory
+    memory: LibsqlMemory, // Enable conversation memory
 })
 ```
+
+### **Live Browser Automation**
+
+AgentStack can attach to a local Chrome session through Chrome DevTools
+Protocol (CDP). This powers the live browser agent and the shared browser
+runtime.
+
+#### Start Chrome in remote-debug mode
+
+```bash
+npm run chrome:debug
+```
+
+That script launches Chrome with:
+
+```bash
+chrome.exe --remote-debugging-port=9222 --user-data-dir="%TEMP%\\chrome-debug"
+```
+
+#### Environment variables
+
+```env
+CHROME_CDP_URL=http://127.0.0.1:9222
+CHROME_REMOTE_DEBUGGING_URL=http://127.0.0.1:9222
+```
+
+#### Browser runtime packages
+
+| Package | Version | Purpose |
+| --- | --- | --- |
+| `@mastra/agent-browser` | `^0.1.0` | Browser agent integration over CDP |
+| `@mastra/stagehand` | `^0.1.0` | Shared browser automation helpers |
+| `playwright` | `^1.59.1` | Browser automation / verification |
+| `@mastra/core` | `^1.24.1` | Agent runtime and browser orchestration |
+
+#### How it works
+
+```mermaid
+sequenceDiagram
+  participant Dev as Developer
+  participant Script as npm run chrome:debug
+  participant Chrome as Local Chrome
+  participant CDP as CHROME_CDP_URL<br/>127.0.0.1:9222
+  participant Agent as browserAgent / shared browser
+  participant Page as Target Web App
+
+  Dev->>Script: Start Chrome in remote-debug mode
+  Script->>Chrome: Launch with remote debugging enabled
+  Chrome-->>CDP: Expose DevTools endpoint
+  Agent->>CDP: Connect through agentBrowser
+  Agent->>Page: Navigate / click / type / inspect
+  Page-->>Agent: DOM, console, screenshots, network state
+  Agent-->>Dev: Structured result
+```
+
+#### Browser agent files
+
+- `src/mastra/agents/browserAgent.ts` uses the shared browser runtime.
+- `src/mastra/browsers.ts` centralizes the Chrome CDP configuration.
+- `src/mastra/config/libsql.ts` provides the shared LibSQL-backed vector and
+  memory utilities used by agents and workflows.
 
 **Agent Development Best Practices:**
 
@@ -1807,8 +1885,8 @@ vi.mock('../config/polygon', () => ({
 }))
 
 // Example: Database mock
-vi.mock('../config/pg-storage', () => ({
-    pgQueryTool: {
+vi.mock('../config/libsql', () => ({
+  libsqlQueryTool: {
         execute: vi.fn().mockResolvedValue({
             data: [{ id: 1, result: 'success' }],
             error: null,
@@ -1917,7 +1995,7 @@ export const fileTool = createTool({
 })
 
 // Mask sensitive data in logs
-import { maskSensitiveMessageData } from '../config/pg-storage'
+import { maskSensitiveMessageData } from '../config/libsql'
 
 logger.info('Processing request', {
     data: maskSensitiveMessageData(requestData),
@@ -2131,12 +2209,14 @@ Interactive workflow visualization (`/workflows`) with AI Elements Canvas:
 ```ts
 // src/mastra/agents/my-agent.ts
 import { Agent } from '@mastra/core/agent'
+import { googleAI } from '../config/google'
+import { LibsqlMemory, libsqlQueryTool } from '../config/libsql'
 export const myAgent = new Agent({
     id: 'my-agent',
-    tools: { polygonStockQuotesTool, pgQueryTool },
+  tools: { polygonStockQuotesTool, libsqlQueryTool },
     instructions: 'Analyze stocks with Polygon + RAG...',
     model: googleAI, // From model registry
-    memory: pgMemory,
+  memory: LibsqlMemory,
 })
 // Auto-registers in index.ts
 ```
@@ -2368,7 +2448,7 @@ We are committed to providing a welcoming and inclusive experience for everyone:
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-_Last updated: 2026-03-17 | v1.3.1_
+_Last updated: 2026-04-14 | v1.0.43_
 
 ## 🧠 **Chat**
 

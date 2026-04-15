@@ -63,6 +63,39 @@ export default function SignupPage() {
         }
     }, [authQuery.data, authQuery.isPending, nextPath, router])
 
+    useEffect(() => {
+        if (authQuery.isPending || authQuery.data) {
+            return
+        }
+
+        void authClient.oneTap({
+            callbackURL: nextPath,
+        })
+    }, [authQuery.data, authQuery.isPending, nextPath])
+
+    /** Starts the Google OAuth flow through Better Auth. */
+    const handleGoogleSignIn = async () => {
+        setIsLoading(true)
+        setErrorMessage('')
+
+        try {
+            const response = await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: nextPath,
+            })
+
+            if (response.error) {
+                setErrorMessage(response.error.message ?? 'Unable to sign in with Google.')
+                setIsLoading(false)
+            }
+        } catch (error) {
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Unable to sign in with Google.',
+            )
+            setIsLoading(false)
+        }
+    }
+
     type SignupSubmitEvent = SyntheticEvent<HTMLFormElement, SubmitEvent>
 
     const handleSignup = async (e: SignupSubmitEvent) => {
@@ -210,6 +243,29 @@ export default function SignupPage() {
                                     Clear steps, spacious controls, and better feedback make the signup form
                                     easier to trust and faster to complete.
                                 </p>
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11 w-full rounded-xl text-sm font-medium"
+                                onClick={handleGoogleSignIn}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 size-4 animate-spin" />
+                                        Signing in with Google...
+                                    </>
+                                ) : (
+                                    'Continue with Google'
+                                )}
+                            </Button>
+
+                            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                <span className="h-px flex-1 bg-border/70" />
+                                <span>Or create an account below</span>
+                                <span className="h-px flex-1 bg-border/70" />
                             </div>
 
                             <form onSubmit={handleSignup} className="space-y-4">

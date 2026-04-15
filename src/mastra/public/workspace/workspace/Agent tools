@@ -59,14 +59,74 @@ This file serves as a source of truth for testing and improving tools used in th
 - **Problems/Issues**: None. Tool handled large content replacement accurately.
 - **Suggestions**: None. Tool is reliable for file edits.
 
+### 7. finnhubQuotesTool
+- **Purpose**: To get real-time quotes for Intel (INTC) and Wells Fargo (WFC).
+- **Parameters Used**:
+  - symbol: "INTC" and "WFC"
+- **Outcome**: Successfully returned quotes: INTC c:65.18 d:2.8 dp:4.4886; WFC c:86.64 d:1.24 dp:1.452.
+- **Problems/Issues**: None.
+- **Suggestions**: Reliable for public stock data.
+
+### 8. fetchTool
+- **Purpose**: To search for stocks with high growth potential in 2026.
+- **Parameters Used**:
+  - query: "stocks with high growth potential 2026"
+  - searchProvider: "google"
+  - maxResults: 5
+  - includeContent: true
+- **Outcome**: Returned empty results (totalResults: 0).
+- **Problems/Issues**: Future-dated query yielded no results.
+- **Suggestions**: Use current year or broader terms.
+
+### 9. mastra_workspace_execute_command
+- **Purpose**: To install Playwright browsers for browser tools.
+- **Parameters Used**:
+  - command: "npx playwright install"
+- **Outcome**: Successfully downloaded and installed Chrome, Firefox, WebKit browsers.
+- **Problems/Issues**: None.
+- **Suggestions**: None.
+
+### 10. stagehand_navigate
+- **Purpose**: To navigate to Yahoo Finance pages for INTC, WFC, and gainers.
+- **Parameters Used**:
+  - url: "https://finance.yahoo.com/quote/INTC", etc.
+- **Outcome**: Mixed; INTC success, WFC and gainers failed with navigation superseded errors.
+- **Problems/Issues**: Browser navigation errors due to superseded requests.
+- **Suggestions**: Retry or use single navigation per session.
+
+### 11. stagehand_extract
+- **Purpose**: To extract stock data from pages.
+- **Parameters Used**:
+  - instruction: "Extract the current stock price, change, and market cap for Intel (INTC)." etc.
+- **Outcome**: INTC: null; WFC: "65.42 +0.85 (1.32%) Market Cap: 228.45B" (but on wrong URL); Gainers: top 5 stocks with changes.
+- **Problems/Issues**: Data extraction inconsistent; null for INTC, wrong URL for WFC.
+- **Suggestions**: Improve extraction accuracy; verify URLs.
+
+### 12. browser_goto
+- **Purpose**: To navigate browser to Yahoo Finance and Google.
+- **Parameters Used**:
+  - url: "https://finance.yahoo.com/quote/INTC", "https://google.com"
+- **Outcome**: Success for INTC and Google; failures for WFC and gainers (ERR_ABORTED).
+- **Problems/Issues**: Navigation failures after initial goto.
+- **Suggestions**: Handle browser state better; avoid multiple navigations.
+
+### 13. browser_snapshot
+- **Purpose**: To get page snapshots.
+- **Parameters Used**:
+  - interactiveOnly: false
+- **Outcome**: Returned empty snapshots (elementCount: 0).
+- **Problems/Issues**: No interactive elements detected; possibly due to page structure.
+- **Suggestions**: Use different parameters or manual extraction.
+
 ## Overall Summary
-- **Total Tools Used**: 6
-- **Success Rate**: 5/6 tools worked without issues. fetchTool and googleScholarTool had failures due to query specificity and schema mismatch, respectively.
+- **Total Tools Used**: 13 (across sessions)
+- **Success Rate**: ~7/13 worked fully. Bugs in googleTrendsTool (date), polygon (auth), googleFinance (empty), fetchTool (empty results), stagehand/browser (navigation/extraction errors).
 - **Key Insights for Improvement**:
-  - **Query Sensitivity**: Tools like fetchTool are sensitive to overly specific or future-oriented queries. Recommend fallback strategies or broader searches.
-  - **Schema Validation**: googleScholarTool needs schema fix for authors field to handle arrays.
-  - **Reliability**: Workspace tools (read, write, edit) are highly reliable. News tools (googleNewsLiteTool) provide excellent real-time data.
-- **Recommendations**: Use this log to prioritize fixes for googleScholarTool schema and enhance search tool fallbacks for predictive queries.
+  - **Browser Tools**: Navigation superseded errors; empty snapshots. Ensure single-threaded usage.
+  - **Search Tools**: Sensitive to queries; fix googleScholarTool schema.
+  - **Financial Tools**: Auth issues in polygon; empty in googleFinance.
+  - **Workspace Tools**: Highly reliable.
+- **Recommendations**: Fix browser navigation stability; update schemas; enhance fallbacks for empty results.
 
 *Date: April 14, 2026*
 *Prepared by: Senior Research Analyst*

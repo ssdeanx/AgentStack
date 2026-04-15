@@ -3,7 +3,6 @@ import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import { pgMemory } from '../config/pg-storage'
 import { fetchTool } from '../tools/fetch.tool'
 import {
   getLanguageFromContext,

@@ -104,24 +104,24 @@ export const LibsqlMemory = new Memory({
             version: 'vnext',
             template: `
 # User Context
+{{#if user.name}}Name: {{user.name}}{{/if}}
+{{#if user.role}}Role: {{user.role}}{{/if}}
+{{#if user.language}}Language: {{user.language}}{{/if}}
 
-## Profile
-    - Name/Role:
-    - Org/Loc:
-    - Style/Level:
-## Active
-    - Goals/Projects:
-    - Recent/Deadlines:
-## Insights
-    - Patterns/Habits:
-    - Session Focus:
-    - Action Items:
+# Conversation Context
+{{#if conversation.topic}}Topic: {{conversation.topic}}{{/if}}
+{{#if conversation.purpose}}Purpose: {{conversation.purpose}}{{/if}}
+
+# Additional Context
+{{#each additionalContext}}
+- {{this}}
 `,
         },
     },
 })
 
 log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
+    url: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
     // schema: process.env.DB_SCHEMA ?? 'mastra',
     // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
     memoryOptions: {

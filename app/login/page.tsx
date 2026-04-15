@@ -55,6 +55,16 @@ export default function LoginPage() {
     }, [authQuery.data, authQuery.isPending, nextPath, router])
 
     useEffect(() => {
+        if (authQuery.isPending || authQuery.data) {
+            return
+        }
+
+        void authClient.oneTap({
+            callbackURL: nextPath,
+        })
+    }, [authQuery.data, authQuery.isPending, nextPath])
+
+    useEffect(() => {
         const savedIdentifier = window.localStorage.getItem(REMEMBERED_IDENTIFIER_KEY)
 
         if (savedIdentifier) {
@@ -64,6 +74,29 @@ export default function LoginPage() {
             })
         }
     }, [])
+
+    /** Starts the Google OAuth flow through Better Auth. */
+    const handleGoogleSignIn = async () => {
+        setIsLoading(true)
+        setErrorMessage('')
+
+        try {
+            const response = await authClient.signIn.social({
+                provider: 'google',
+                callbackURL: nextPath,
+            })
+
+            if (response.error) {
+                setErrorMessage(response.error.message ?? 'Unable to sign in with Google.')
+                setIsLoading(false)
+            }
+        } catch (error) {
+            setErrorMessage(
+                error instanceof Error ? error.message : 'Unable to sign in with Google.',
+            )
+            setIsLoading(false)
+        }
+    }
 
     const handleLogin = async (e: LoginSubmitEvent) => {
         e.preventDefault()
@@ -118,7 +151,7 @@ export default function LoginPage() {
             </div>
 
             <div className="relative mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-                <section className="hidden h-full flex-col justify-between rounded-[2rem] border border-border/40 bg-card/70 p-8 shadow-2xl shadow-black/5 backdrop-blur-xl lg:flex">
+                <section className="hidden h-full flex-col justify-between rounded-4xl border border-border/40 bg-card/70 p-8 shadow-2xl shadow-black/5 backdrop-blur-xl lg:flex">
                     <div className="space-y-8">
                         <Link href="/" className="group inline-flex items-center gap-3">
                             <div className="flex size-14 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-200 group-hover:scale-105">
@@ -204,6 +237,29 @@ export default function LoginPage() {
                                     Clean spacing, strong contrast, and explicit feedback keep the login step
                                     quick and calm.
                                 </p>
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11 w-full rounded-xl text-sm font-medium"
+                                onClick={handleGoogleSignIn}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 size-4 animate-spin" />
+                                        Signing in with Google...
+                                    </>
+                                ) : (
+                                    'Continue with Google'
+                                )}
+                            </Button>
+
+                            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                <span className="h-px flex-1 bg-border/70" />
+                                <span>Or use your account</span>
+                                <span className="h-px flex-1 bg-border/70" />
                             </div>
 
                             <form onSubmit={handleLogin} className="space-y-4">

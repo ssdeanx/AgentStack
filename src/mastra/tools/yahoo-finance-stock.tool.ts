@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
 import {
+    buildYahooQuoteSnapshotFromChart,
     normalizeYahooChartHistory,
     type YahooChartResponse,
     type YahooQuote,
@@ -155,6 +156,7 @@ export const yahooFinanceStockQuotesTool = createTool({
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestFunction = input.function ?? 'quote'
+        const normalizedSymbol = input.symbol.trim().toUpperCase()
         const range = input.range ?? '1mo'
         const interval = input.interval ?? '1d'
         const limit = input.limit ?? 100
@@ -172,7 +174,7 @@ export const yahooFinanceStockQuotesTool = createTool({
             metadata: {
                 'tool.id': 'yahoo-finance-stock-quotes',
                 'tool.input.function': requestFunction,
-                'tool.input.symbol': input.symbol,
+                'tool.input.symbol': normalizedSymbol,
             },
             requestContext: context?.requestContext,
             tracingContext,
@@ -182,7 +184,7 @@ export const yahooFinanceStockQuotesTool = createTool({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `Fetching Yahoo Finance stock data for ${input.symbol}`,
+                message: `Fetching Yahoo Finance stock data for ${normalizedSymbol}`,
                 stage: 'yahoo-finance-stock-quotes',
             },
             id: 'yahoo-finance-stock-quotes',
@@ -191,7 +193,7 @@ export const yahooFinanceStockQuotesTool = createTool({
         try {
             const quoteResponse = await httpFetch(`${YAHOO_BASE_URL}/v7/finance/quote`, {
                 timeout: 30000,
-                params: { symbols: input.symbol },
+                params: { symbols: normalizedSymbol },
                 headers: {
                     Accept: 'application/json',
                     'User-Agent': 'Mozilla/5.0 (compatible; AgentStack/1.0)',
@@ -207,25 +209,51 @@ export const yahooFinanceStockQuotesTool = createTool({
 
             if (requestFunction === 'quote') {
                 const row = quotePayload.quoteResponse?.result?.[0]
-                if (!row) {
-                    throw new Error(`No Yahoo Finance quote returned for ${input.symbol}`)
-                }
+                if (row) {
+                    data = {
+                        symbol: row.symbol ?? normalizedSymbol,
+                        name: row.shortName ?? row.longName ?? null,
+                        currency: row.currency ?? null,
+                        marketPrice: row.regularMarketPrice ?? null,
+                        marketChange: row.regularMarketChange ?? null,
+                        marketChangePercent: row.regularMarketChangePercent ?? null,
+                        marketCap: row.marketCap ?? null,
+                        dayHigh: row.regularMarketDayHigh ?? null,
+                        dayLow: row.regularMarketDayLow ?? null,
+                        regularMarketTime: row.regularMarketTime ?? null,
+                    }
+                } else {
+                    const chartResponse = await httpFetch(
+                        `${YAHOO_BASE_URL}/v8/finance/chart/${encodeURIComponent(normalizedSymbol)}`,
+                        {
+                            timeout: 30000,
+                            params: {
+                                range,
+                                interval,
+                                includePrePost: includePrePost ? 'true' : 'false',
+                                events,
+                            },
+                            headers: {
+                                Accept: 'application/json',
+                                'User-Agent': 'Mozilla/5.0 (compatible; AgentStack/1.0)',
+                            },
+                        }
+                    )
+                    const chartPayload = (await chartResponse.json()) as YahooChartResponse
+                    const fallbackQuote = buildYahooQuoteSnapshotFromChart(
+                        chartPayload,
+                        normalizedSymbol
+                    )
 
-                data = {
-                    symbol: row.symbol ?? input.symbol,
-                    name: row.shortName ?? row.longName ?? null,
-                    currency: row.currency ?? null,
-                    marketPrice: row.regularMarketPrice ?? null,
-                    marketChange: row.regularMarketChange ?? null,
-                    marketChangePercent: row.regularMarketChangePercent ?? null,
-                    marketCap: row.marketCap ?? null,
-                    dayHigh: row.regularMarketDayHigh ?? null,
-                    dayLow: row.regularMarketDayLow ?? null,
-                    regularMarketTime: row.regularMarketTime ?? null,
+                    if (!fallbackQuote) {
+                        throw new Error(`No Yahoo Finance quote returned for ${normalizedSymbol}`)
+                    }
+
+                    data = fallbackQuote
                 }
             } else {
                 const chartResponse = await httpFetch(
-                    `${YAHOO_BASE_URL}/v8/finance/chart/${encodeURIComponent(input.symbol)}`,
+                    `${YAHOO_BASE_URL}/v8/finance/chart/${encodeURIComponent(normalizedSymbol)}`,
                     {
                         timeout: 30000,
                         params: {
@@ -243,13 +271,13 @@ export const yahooFinanceStockQuotesTool = createTool({
                 const chartPayload = (await chartResponse.json()) as YahooChartResponse
                 const row = quotePayload.quoteResponse?.result?.[0]
                 data = {
-                    symbol: input.symbol,
+                    symbol: normalizedSymbol,
                     range,
                     interval,
                     candles: normalizeYahooChartHistory(chartPayload).slice(-limit),
                     quote: row
                         ? {
-                              symbol: row.symbol ?? input.symbol,
+                              symbol: row.symbol ?? normalizedSymbol,
                               name: row.shortName ?? row.longName ?? null,
                               currency: row.currency ?? null,
                               marketPrice: row.regularMarketPrice ?? null,
@@ -260,7 +288,7 @@ export const yahooFinanceStockQuotesTool = createTool({
                               dayLow: row.regularMarketDayLow ?? null,
                               regularMarketTime: row.regularMarketTime ?? null,
                           }
-                        : null,
+                        : buildYahooQuoteSnapshotFromChart(chartPayload, normalizedSymbol),
                 }
             }
 
@@ -269,7 +297,7 @@ export const yahooFinanceStockQuotesTool = createTool({
                 metadata: {
                     source: 'yahoo-finance' as const,
                     function: requestFunction,
-                    symbol: input.symbol,
+                    symbol: normalizedSymbol,
                     market: undefined,
                 },
             }
@@ -286,7 +314,7 @@ export const yahooFinanceStockQuotesTool = createTool({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Yahoo Finance stock data ready for ${input.symbol}`,
+                    message: `✅ Yahoo Finance stock data ready for ${normalizedSymbol}`,
                     stage: 'yahoo-finance-stock-quotes',
                 },
                 id: 'yahoo-finance-stock-quotes',
@@ -312,7 +340,7 @@ export const yahooFinanceStockQuotesTool = createTool({
 
             log.error('Yahoo Finance stock market-data tool failed', {
                 function: requestFunction,
-                symbol: input.symbol,
+                symbol: normalizedSymbol,
                 error: errorMessage,
             })
 

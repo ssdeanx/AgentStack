@@ -1,16 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { keywordCoverageScorer } from '../scorers/keyword-coverage'
-import { createAgentTestRun } from '../scorers/utils'
+import { keywordCoverageScorer } from '../../scorers/keyword-coverage'
+import { createAgentTestRun, createTestMessage } from './utils'
 
 describe('Keyword Coverage Scorer', () => {
     it('returns 1.0 when all required keywords are present in output', async () => {
         const scorer = keywordCoverageScorer
         const run = createAgentTestRun({
             output: [
-                {
+                createTestMessage({
                     role: 'assistant',
-                    content: 'This answer covers React and Vue frameworks.',
-                },
+                    content:
+                        'This answer covers React and Vue frameworks for building interactive dashboards.',
+                }),
             ],
         })
 
@@ -26,7 +27,10 @@ describe('Keyword Coverage Scorer', () => {
         const scorer = keywordCoverageScorer
         const run = createAgentTestRun({
             output: [
-                { role: 'assistant', content: 'I enjoy hiking and pizza.' },
+                createTestMessage({
+                    role: 'assistant',
+                    content: 'I enjoy hiking and pizza.',
+                }),
             ],
         })
 

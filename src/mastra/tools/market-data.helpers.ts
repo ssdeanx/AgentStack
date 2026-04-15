@@ -210,6 +210,37 @@ export interface YahooQuote {
 }
 
 /**
+ * Normalized Stooq quote snapshot used as a fallback when the direct quote endpoint is empty.
+ */
+export interface StooqQuoteSnapshot {
+    symbol: string
+    date: string | null
+    time: string | null
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    volume: number | null
+    name: string | null
+}
+
+/**
+ * Normalized Yahoo Finance quote snapshot used as a fallback when the direct quote endpoint is empty.
+ */
+export interface YahooQuoteSnapshot {
+    symbol: string
+    name: string | null
+    currency: string | null
+    marketPrice: number | null
+    marketChange: number | null
+    marketChangePercent: number | null
+    marketCap: number | null
+    dayHigh: number | null
+    dayLow: number | null
+    regularMarketTime: number | null
+}
+
+/**
  * Builds a Binance spot symbol from a base asset and quote asset.
  *
  * @param symbol - Base asset or already combined trading pair.
@@ -274,6 +305,30 @@ export function parseStooqCsv(csvText: string): Array<Record<string, string>> {
         skip_empty_lines: true,
         trim: true,
     }) as Array<Record<string, string>>
+}
+
+/**
+ * Converts a Stooq CSV row into a normalized quote snapshot.
+ *
+ * @param row - Parsed Stooq CSV row.
+ * @param symbol - Requested symbol used as a fallback if the row does not include one.
+ * @returns Normalized quote snapshot.
+ */
+export function buildStooqQuoteSnapshot(
+    row: Record<string, string>,
+    symbol: string
+): StooqQuoteSnapshot {
+    return {
+        symbol: row.Symbol ?? symbol,
+        date: row.Date ?? null,
+        time: row.Time ?? null,
+        open: row.Open ? Number(row.Open) : null,
+        high: row.High ? Number(row.High) : null,
+        low: row.Low ? Number(row.Low) : null,
+        close: row.Close ? Number(row.Close) : null,
+        volume: row.Volume ? Number(row.Volume) : null,
+        name: row.Name ?? null,
+    }
 }
 
 /**
@@ -343,4 +398,48 @@ export function normalizeYahooChartHistory(
         close: quote?.close?.[index] ?? null,
         volume: quote?.volume?.[index] ?? null,
     }))
+}
+
+/**
+ * Converts a Yahoo Finance chart payload into a normalized quote snapshot.
+ *
+ * @param response - Yahoo Finance chart API response.
+ * @param symbol - Requested symbol used for the snapshot.
+ * @returns Normalized quote snapshot or null if no candles are available.
+ */
+export function buildYahooQuoteSnapshotFromChart(
+    response: YahooChartResponse,
+    symbol: string
+): YahooQuoteSnapshot | null {
+    const candles = normalizeYahooChartHistory(response)
+    const lastCandle = candles.at(-1)
+
+    if (!lastCandle) {
+        return null
+    }
+
+    const previousCandle = candles.at(-2)
+    const marketPrice = lastCandle.close
+    const previousClose = previousCandle?.close ?? null
+    const marketChange =
+        marketPrice !== null && previousClose !== null ? marketPrice - previousClose : null
+    const marketChangePercent =
+        marketChange !== null && previousClose !== null && previousClose !== 0
+            ? (marketChange / previousClose) * 100
+            : null
+
+    return {
+        symbol,
+        name: null,
+        currency: null,
+        marketPrice,
+        marketChange,
+        marketChangePercent,
+        marketCap: null,
+        dayHigh: lastCandle.high,
+        dayLow: lastCandle.low,
+        regularMarketTime: Number.isFinite(Date.parse(lastCandle.timestamp))
+            ? Math.floor(Date.parse(lastCandle.timestamp) / 1000)
+            : null,
+    }
 }

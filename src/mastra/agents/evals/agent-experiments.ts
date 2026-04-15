@@ -5,18 +5,18 @@ import type {
     ScorerRunOutputForAgent,
 } from '@mastra/core/evals'
 import { RequestContext } from '@mastra/core/request-context'
-import { contentStrategistAgent } from '../agents/contentStrategistAgent'
-import { copywriterAgent } from '../agents/copywriterAgent'
-import { scriptWriterAgent } from '../agents/scriptWriterAgent'
-import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
-import { reportAgent } from '../agents/reportAgent'
-import { learningExtractionAgent } from '../agents/learningExtractionAgent'
-import { evaluationAgent } from '../agents/evaluationAgent'
-import { imageToCsvAgent } from '../agents/image_to_csv'
-import { csvToExcalidrawAgent } from '../agents/csv_to_excalidraw'
-import { weatherAgent } from '../agents/weather-agent'
-import { log } from '../config/logger'
-import { researchAgent } from '../agents/researchAgent'
+import { contentStrategistAgent } from '../contentStrategistAgent'
+import { copywriterAgent } from '../copywriterAgent'
+import { scriptWriterAgent } from '../scriptWriterAgent'
+import { stockAnalysisAgent } from '../stockAnalysisAgent'
+import { reportAgent } from '../reportAgent'
+import { learningExtractionAgent } from '../learningExtractionAgent'
+import { evaluationAgent } from '../evaluationAgent'
+import { imageToCsvAgent } from '../image_to_csv'
+import { csvToExcalidrawAgent } from '../csv_to_excalidraw'
+import { weatherAgent } from '../weather-agent'
+import { log } from '../../config/logger'
+import { researchAgent } from '../researchAgent'
 
 type JsonPrimitive = boolean | number | string | null
 type JsonValue = JsonPrimitive | JsonObject | JsonValue[]
@@ -143,13 +143,13 @@ export async function runContentStrategistExperiment() {
         contentStrategistAgent,
         [
             {
-                input: 'Create a content plan for a new AI-powered coffee machine. Focus on tech enthusiasts. Tone: Exciting.',
+                input: 'Build a 30-day cross-channel content plan for a new AI-powered coffee machine. Target two audiences: early adopters and busy remote workers. Include content pillars, channel mix, KPIs, and one risk mitigation idea. Tone: exciting but credible.',
             },
             {
-                input: 'Develop a strategy for a sustainable fashion brand launch. Target audience: Gen Z. Tone: Authentic and urgent.',
+                input: 'Develop a launch strategy for a sustainable fashion brand entering the Gen Z market. Include positioning, audience segments, launch phases, creator strategy, and three measurable outcomes. Tone: authentic, urgent, and modern.',
             },
             {
-                input: 'Plan a blog series for a B2B SaaS accounting tool. Target audience: CFOs. Tone: Professional and authoritative.',
+                input: 'Plan a blog series for a B2B SaaS accounting tool aimed at CFOs. Propose five article titles, the business problem each article solves, SEO intent, and a CTA theme for each. Tone: professional and authoritative.',
             },
         ]
     )
@@ -158,13 +158,13 @@ export async function runContentStrategistExperiment() {
 export async function runCopywriterExperiment() {
     return runAgentExperiment('Copywriter Experiment', copywriterAgent, [
             {
-                input: 'Write a landing page headline for a noise-cancelling headphone. Tone: Punchy and minimalist.',
+                input: 'Write three landing-page headline options for a noise-cancelling headphone launch. One should be punchy, one minimalist, and one premium. Add a one-sentence rationale for each.',
             },
             {
-                input: 'Draft an email subject line for a Black Friday sale. Tone: Urgent and exciting.',
+                input: 'Draft five email subject lines for a Black Friday sale for a premium skincare brand. Keep them under 55 characters, avoid spammy language, and include urgency without sounding pushy.',
             },
             {
-                input: 'Write a product description for a luxury watch. Tone: Sophisticated and elegant.',
+                input: 'Write a product description for a luxury watch. Include craftsmanship, material quality, emotional appeal, and a closing sentence that drives preorders. Tone: sophisticated and elegant.',
             },
         ])
 }
@@ -172,10 +172,10 @@ export async function runCopywriterExperiment() {
 export async function runScriptWriterExperiment() {
     return runAgentExperiment('Script Writer Experiment', scriptWriterAgent, [
             {
-                input: 'Write a 60-second TikTok script about productivity hacks.',
+                input: 'Write a 60-second TikTok script about productivity hacks for remote workers. Include a hook, two concrete tips, an example, and a short CTA for comments.',
             },
             {
-                input: 'Create a YouTube intro for a tech review channel.',
+                input: 'Create a YouTube intro for a tech review channel launching a video about budget laptops. Include the opening line, pacing notes, and a brief tease of the review criteria.',
             },
         ])
 }
@@ -183,10 +183,10 @@ export async function runScriptWriterExperiment() {
 export async function runStockAnalysisExperiment() {
     return runAgentExperiment('Stock Analysis Experiment', stockAnalysisAgent, [
             {
-                input: 'Analyze AAPL stock.',
+                input: 'Analyze AAPL stock for a cautious long-term investor. Summarize the main bullish and bearish factors, mention possible catalysts, and finish with a risk-aware watchlist rather than a buy/sell command.',
             },
             {
-                input: 'Should I buy TSLA right now?',
+                input: 'Should I buy TSLA right now? Compare the current thesis, key risks, and the kind of investor profile for which TSLA might or might not fit. Keep the answer balanced and evidence-oriented.',
             },
         ])
 }
@@ -194,10 +194,10 @@ export async function runStockAnalysisExperiment() {
 export async function runReportAgentExperiment() {
     return runAgentExperiment('Report Agent Experiment', reportAgent, [
             {
-                input: 'Generate a quarterly performance report for a marketing team. Include sections for KPIs, Highlights, and Next Steps.',
+                input: 'Generate a quarterly performance report for a marketing team. Include an executive summary, KPI table, notable wins, root causes behind underperformance, and next-quarter recommendations.',
             },
             {
-                input: 'Summarize the key findings from the user research interviews.',
+                input: 'Summarize the key findings from the user research interviews and group them into themes, friction points, opportunities, and open questions for the product team.',
             },
         ])
 }
@@ -208,7 +208,7 @@ export async function runLearningExtractionExperiment() {
         learningExtractionAgent,
         [
             {
-                input: 'Extract key learning points from this article about Rust ownership.',
+                input: 'Extract the key learning points from an article about Rust ownership. For each point, include a practical implication, a common mistake, and a one-line example.',
             },
         ]
     )
@@ -217,7 +217,7 @@ export async function runLearningExtractionExperiment() {
 export async function runEvaluationAgentExperiment() {
     return runAgentExperiment('Evaluation Agent Experiment', evaluationAgent, [
             {
-                input: 'Evaluate this python code for efficiency: def fib(n): return n if n < 2 else fib(n-1) + fib(n-2)',
+                input: 'Evaluate this Python code for efficiency and maintainability: def fib(n): return n if n < 2 else fib(n-1) + fib(n-2). Call out time complexity, recursion risks, and propose a more production-ready alternative.',
             },
         ])
 }
@@ -236,7 +236,7 @@ export async function runCsvToExcalidrawExperiment() {
         csvToExcalidrawAgent,
         [
             {
-                input: 'id,label,x,y\n1,Start,0,0\n2,Process,100,0\n3,End,200,0',
+                input: 'id,label,x,y\n1,Intake,0,0\n2,Validate,160,0\n3,Enrich,320,0\n4,Review,480,0\n5,Publish,640,0',
             },
         ]
     )
@@ -245,16 +245,16 @@ export async function runCsvToExcalidrawExperiment() {
 export async function runWeatherAgentExperiment() {
     return runAgentExperiment('Weather Agent Experiment', weatherAgent, [
             {
-                input: 'What is the weather in Tokyo?',
+                input: 'What is the weather in Tokyo for the next 48 hours, and what clothing or travel advice should someone use to prepare for a day of meetings there?',
             },
             {
-                input: 'Forecast for London tomorrow.',
+                input: 'Forecast for London tomorrow. Include rain risk, temperature range, and one practical recommendation for an outdoor event organizer.',
             },
         ])
 }
 
 export async function runKeywordCoverageExperiment() {
-    const scorer = await import('./scorers/keyword-coverage').then(
+    const scorer = await import('../../scorers/keyword-coverage').then(
         (m) => m.keywordCoverageScorer
     )
 
@@ -263,11 +263,11 @@ export async function runKeywordCoverageExperiment() {
         researchAgent,
         [
             {
-                input: 'Compare React and Vue frameworks',
+                input: 'Compare React and Vue frameworks for a team building a customer dashboard with long-term maintainability concerns. Focus on rendering model, ecosystem tradeoffs, and team onboarding.',
                 requestContext: { requiredKeywords: ['React', 'Vue'] },
             },
             {
-                input: 'Discuss TypeScript features like generics and interfaces',
+                input: 'Discuss TypeScript features like generics and interfaces in the context of designing reusable API client abstractions for a large frontend codebase.',
                 requestContext: {
                     requiredKeywords: ['TypeScript', 'generics', 'interfaces'],
                 },
@@ -278,7 +278,7 @@ export async function runKeywordCoverageExperiment() {
 }
 
 export async function runTextualDifferenceExperiment() {
-    const scorer = await import('./scorers/prebuilt').then((m) =>
+    const scorer = await import('./prebuilt').then((m) =>
         m.createTextualDifferenceScorer()
     )
 
@@ -287,12 +287,12 @@ export async function runTextualDifferenceExperiment() {
         contentStrategistAgent,
         [
             {
-                input: 'Summarize the concept of recursion',
+                input: 'Summarize the concept of recursion for a junior developer, then give one practical coding example and one warning about when recursion becomes a bad fit.',
                 groundTruth:
                     'Recursion is when a function calls itself to solve a problem by breaking it into smaller subproblems.',
             },
             {
-                input: 'What is the capital of France?',
+                input: 'What is the capital of France? Answer in one sentence and include a short explanation of why the city is politically important.',
                 groundTruth: 'The capital of France is Paris.',
             },
         ],
@@ -301,7 +301,7 @@ export async function runTextualDifferenceExperiment() {
 }
 
 export async function runSourceDiversityExperiment() {
-    const scorer = await import('./scorers/custom-scorers').then(
+    const scorer = await import('../../scorers/custom-scorers').then(
         (m) => m.sourceDiversityScorer
     )
 
@@ -310,7 +310,7 @@ export async function runSourceDiversityExperiment() {
         researchAgent,
         [
             {
-                input: 'Collect sources about climate change',
+                input: 'Collect sources about climate change policy, covering at least one scientific source, one government source, and one recent news source. Summarize how each source contributes a different perspective.',
                 requestContext: {},
             },
         ],

@@ -2,7 +2,8 @@ import { Agent } from '@mastra/core/agent'
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import { googleAIFlashLite, pgMemory } from '../config'
+import { googleAIFlashLite } from '../config'
+import { LibsqlMemory } from '../config/libsql'
 
 const telephone = new Agent({
     id: 'telephone-game-agent',
@@ -10,7 +11,7 @@ const telephone = new Agent({
     description: 'Agent for playing the telephone game',
     instructions: `Telephone game agent`,
     model: googleAIFlashLite,
-    memory: pgMemory,
+    memory: LibsqlMemory,
     //  tools: [],
     scorers: {},
 })

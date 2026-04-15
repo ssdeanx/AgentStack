@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createNoiseSensitivityScorerLLM } from '../scorers/prebuilt'
-import { createAgentTestRun, createTestMessage } from '../scorers/utils'
+import { createNoiseSensitivityScorerLLM } from './prebuilt'
+import { createAgentTestRun, createTestMessage } from './utils'
 
 describe('Noise Sensitivity (heuristic)', () => {
     it('gives high score when output equals baseline', async () => {

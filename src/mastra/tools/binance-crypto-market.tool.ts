@@ -60,7 +60,17 @@ const binanceCryptoInputSchema = z.object({
         ])
         .default('quote')
         .describe('Binance public market-data function'),
-    symbol: z.string().min(1).describe('Base asset symbol, e.g. BTC or ETH'),
+    symbol: z
+        .string()
+        .min(1)
+        .optional()
+        .describe('Base asset symbol, e.g. BTC or ETH'),
+    symbols: z
+        .array(z.string().min(1))
+        .min(1)
+        .max(10)
+        .optional()
+        .describe('Optional list of base asset symbols (1-10 symbols)'),
     quoteAsset: z
         .string()
         .default('USDT')
@@ -71,9 +81,31 @@ const binanceCryptoInputSchema = z.object({
     startTime: z.number().int().positive().optional(),
     endTime: z.number().int().positive().optional(),
     timeZone: z.string().optional(),
+}).superRefine((input, ctx) => {
+    if (!input.symbol && (!input.symbols || input.symbols.length === 0)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Provide either symbol or symbols.',
+            path: ['symbol'],
+        })
+    }
 })
 
 type BinanceCryptoInput = z.infer<typeof binanceCryptoInputSchema>
+type BinanceInterval = z.infer<typeof binanceIntervalSchema>
+type BinanceSymbolSelection = {
+    symbol?: string
+    symbols?: string[]
+    quoteAsset?: string
+}
+type BinanceMarketRequestInput = {
+    limit?: number
+    interval?: BinanceInterval
+    fromId?: number
+    startTime?: number
+    endTime?: number
+    timeZone?: string
+}
 
 type BinanceSpotQuoteData = BinanceQuote
 type BinanceSpotStats24hrData = Binance24hrTicker
@@ -99,6 +131,11 @@ type BinanceSpotAggTradesData = {
 type BinanceSpotAvgPriceData = BinanceAvgPrice & { symbol: string }
 type BinanceSpotExchangeInfoData = BinanceExchangeInfo
 
+type BinanceSpotMarketDataItem = {
+    symbol: string
+    data: BinanceSpotMarketDataData
+}
+
 type BinanceSpotMarketDataData =
     | BinanceSpotQuoteData
     | BinanceSpotStats24hrData
@@ -108,6 +145,7 @@ type BinanceSpotMarketDataData =
     | BinanceSpotAggTradesData
     | BinanceSpotAvgPriceData
     | BinanceSpotExchangeInfoData
+    | Array<BinanceSpotMarketDataItem>
 
 type BinanceSpotMarketDataOutput = {
     data: BinanceSpotMarketDataData
@@ -115,6 +153,7 @@ type BinanceSpotMarketDataOutput = {
         source: 'binance'
         function: string
         symbol: string
+        symbols?: string[]
         market: string
     }
 }
@@ -130,6 +169,13 @@ function countBinanceMarketDataItems(
 ): number {
     if (!payload) {
         return 0
+    }
+
+    if (Array.isArray(payload)) {
+        return payload.reduce(
+            (total, item) => total + countBinanceMarketDataItems(item.data as BinanceSpotMarketDataOutput['data']),
+            0
+        )
     }
 
     if ('candles' in payload) {
@@ -157,13 +203,147 @@ function countBinanceMarketDataItems(
 
 const BINANCE_BASE_URL = 'https://data-api.binance.vision'
 
+function resolveBinanceSymbols(input: BinanceSymbolSelection): string[] {
+    const market = input.quoteAsset ?? 'USDT'
+    const providedSymbols = input.symbols ?? (input.symbol ? [input.symbol] : [])
+
+    return providedSymbols
+        .map((symbol) => buildBinanceSymbol(symbol, market))
+        .filter((symbol, index, symbols) => symbols.indexOf(symbol) === index)
+        .slice(0, 10)
+}
+
+async function fetchBinanceMarketDataForSymbol(
+    symbol: string,
+    requestFunction: NonNullable<BinanceCryptoInput['function']>,
+    input: BinanceMarketRequestInput
+): Promise<BinanceSpotMarketDataData> {
+    const limit = input.limit ?? 100
+    const interval = input.interval ?? '1d'
+
+    switch (requestFunction) {
+        case 'quote': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/ticker/price`, {
+                timeout: 30000,
+                params: { symbol },
+            })
+            return response.json()
+        }
+        case 'stats24hr': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/ticker/24hr`, {
+                timeout: 30000,
+                params: { symbol },
+            })
+            return response.json()
+        }
+        case 'candles': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/klines`, {
+                timeout: 30000,
+                params: {
+                    symbol,
+                    interval,
+                    limit,
+                    ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
+                    ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
+                    ...(input.timeZone !== undefined ? { timeZone: input.timeZone } : {}),
+                },
+            })
+            const rows = (await response.json()) as readonly BinanceKlineRow[]
+            return {
+                symbol,
+                interval,
+                candles: normalizeBinanceKlines(rows).slice(-limit),
+            }
+        }
+        case 'uiKlines': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/uiKlines`, {
+                timeout: 30000,
+                params: {
+                    symbol,
+                    interval,
+                    limit,
+                    ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
+                    ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
+                    ...(input.timeZone !== undefined ? { timeZone: input.timeZone } : {}),
+                },
+            })
+            const rows = (await response.json()) as readonly BinanceKlineRow[]
+            return {
+                symbol,
+                interval,
+                candles: normalizeBinanceKlines(rows).slice(-limit),
+            }
+        }
+        case 'orderbook': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/depth`, {
+                timeout: 30000,
+                params: {
+                    symbol,
+                    limit,
+                },
+            })
+            return (await response.json()) as BinanceSpotOrderBookData
+        }
+        case 'trades': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/trades`, {
+                timeout: 30000,
+                params: {
+                    symbol,
+                    limit,
+                },
+            })
+            const trades = (await response.json()) as BinanceTrade[]
+            return {
+                symbol,
+                trades,
+            }
+        }
+        case 'aggTrades': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/aggTrades`, {
+                timeout: 30000,
+                params: {
+                    symbol,
+                    limit,
+                    ...(input.fromId !== undefined ? { fromId: input.fromId } : {}),
+                    ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
+                    ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
+                },
+            })
+            const aggTrades = (await response.json()) as BinanceAggTrade[]
+            return {
+                symbol,
+                aggTrades,
+            }
+        }
+        case 'avgPrice': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/avgPrice`, {
+                timeout: 30000,
+                params: { symbol },
+            })
+            return {
+                ...(await response.json()),
+                symbol,
+            } as BinanceSpotAvgPriceData
+        }
+        case 'exchangeInfo': {
+            const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/exchangeInfo`, {
+                timeout: 30000,
+                params: { symbol },
+            })
+            return (await response.json()) as BinanceSpotExchangeInfoData
+        }
+        default:
+            throw new Error(`Unsupported Binance function: ${requestFunction}`)
+    }
+}
+
 /**
  * Binance crypto market-data tool.
  */
 export const binanceSpotMarketDataTool = createTool({
     id: 'binance-spot-market-data',
     description:
-        'Fetch free Binance public spot market data including quotes, 24h stats, candles, UI klines, order book, trades, aggregate trades, average price, and exchange info.',
+        'Fetch free Binance public spot market data including quotes, 24h stats, candles, UI klines, order book, trades, aggregate trades, average price, and exchange info. Supports one symbol or a batch of up to 10 symbols.',
     inputSchema: binanceCryptoInputSchema,
     outputSchema: z.custom<BinanceSpotMarketDataOutput>(),
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -198,12 +378,11 @@ export const binanceSpotMarketDataTool = createTool({
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestFunction = input.function ?? 'quote'
-        const limit = input.limit ?? 100
-        const interval = input.interval ?? '1d'
         const market = input.quoteAsset ?? 'USDT'
-        const symbol = buildBinanceSymbol(input.symbol, market)
+        const symbols = resolveBinanceSymbols(input as BinanceCryptoInput)
+        const symbol = symbols[0]
 
-        if (abortSignal?.aborted === true) {
+        if (abortSignal?.aborted) {
             throw new Error('Binance crypto request cancelled')
         }
 
@@ -215,6 +394,7 @@ export const binanceSpotMarketDataTool = createTool({
                 'tool.id': 'binance-spot-market-data',
                 'tool.input.function': requestFunction,
                 'tool.input.symbol': symbol,
+                'tool.input.symbols': symbols.join(','),
             },
             requestContext: context?.requestContext,
             tracingContext,
@@ -224,138 +404,33 @@ export const binanceSpotMarketDataTool = createTool({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `Fetching Binance spot data for ${symbol}`,
+                message: `Fetching Binance spot data for ${symbols.join(', ')}`,
                 stage: 'binance-spot-market-data',
             },
             id: 'binance-spot-market-data',
         })
 
         try {
-            let data: BinanceSpotMarketDataData
+            const results = [] as BinanceSpotMarketDataItem[]
 
-            switch (requestFunction) {
-                case 'quote': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/ticker/price`, {
-                        timeout: 30000,
-                        params: { symbol },
-                    })
-                    data = await response.json()
-                    break
+            for (const currentSymbol of symbols) {
+                if (abortSignal?.aborted) {
+                    throw new Error('Binance crypto request cancelled')
                 }
-                case 'stats24hr': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/ticker/24hr`, {
-                        timeout: 30000,
-                        params: { symbol },
-                    })
-                    data = await response.json()
-                    break
-                }
-                case 'candles': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/klines`, {
-                        timeout: 30000,
-                        params: {
-                            symbol,
-                            interval,
-                            limit,
-                            ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
-                            ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
-                            ...(input.timeZone !== undefined ? { timeZone: input.timeZone } : {}),
-                        },
-                    })
-                    const rows = (await response.json()) as readonly BinanceKlineRow[]
-                    data = {
-                        symbol,
-                        interval,
-                        candles: normalizeBinanceKlines(rows).slice(-limit),
-                    }
-                    break
-                }
-                case 'uiKlines': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/uiKlines`, {
-                        timeout: 30000,
-                        params: {
-                            symbol,
-                            interval,
-                            limit,
-                            ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
-                            ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
-                            ...(input.timeZone !== undefined ? { timeZone: input.timeZone } : {}),
-                        },
-                    })
-                    const rows = (await response.json()) as readonly BinanceKlineRow[]
-                    data = {
-                        symbol,
-                        interval,
-                        candles: normalizeBinanceKlines(rows).slice(-limit),
-                    }
-                    break
-                }
-                case 'orderbook': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/depth`, {
-                        timeout: 30000,
-                        params: {
-                            symbol,
-                            limit,
-                        },
-                    })
-                    data = (await response.json()) as BinanceSpotOrderBookData
-                    break
-                }
-                case 'trades': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/trades`, {
-                        timeout: 30000,
-                        params: {
-                            symbol,
-                            limit,
-                        },
-                    })
-                    const trades = (await response.json()) as BinanceTrade[]
-                    data = {
-                        symbol,
-                        trades,
-                    }
-                    break
-                }
-                case 'aggTrades': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/aggTrades`, {
-                        timeout: 30000,
-                        params: {
-                            symbol,
-                            limit,
-                            ...(input.fromId !== undefined ? { fromId: input.fromId } : {}),
-                            ...(input.startTime !== undefined ? { startTime: input.startTime } : {}),
-                            ...(input.endTime !== undefined ? { endTime: input.endTime } : {}),
-                        },
-                    })
-                    const aggTrades = (await response.json()) as BinanceAggTrade[]
-                    data = {
-                        symbol,
-                        aggTrades,
-                    }
-                    break
-                }
-                case 'avgPrice': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/avgPrice`, {
-                        timeout: 30000,
-                        params: { symbol },
-                    })
-                    data = {
-                        ...(await response.json()),
-                        symbol,
-                    } as BinanceSpotAvgPriceData
-                    break
-                }
-                case 'exchangeInfo': {
-                    const response = await httpFetch(`${BINANCE_BASE_URL}/api/v3/exchangeInfo`, {
-                        timeout: 30000,
-                        params: { symbol },
-                    })
-                    data = (await response.json()) as BinanceSpotExchangeInfoData
-                    break
-                }
-                default:
-                    throw new Error(`Unsupported Binance function: ${requestFunction}`)
+
+                const data = await fetchBinanceMarketDataForSymbol(
+                    currentSymbol,
+                    requestFunction,
+                    input
+                )
+
+                results.push({
+                    symbol: currentSymbol,
+                    data,
+                })
             }
+
+            const data = symbols.length === 1 ? results[0].data : results
 
             const output: BinanceSpotMarketDataOutput = {
                 data,
@@ -363,6 +438,7 @@ export const binanceSpotMarketDataTool = createTool({
                     source: 'binance' as const,
                     function: requestFunction,
                     symbol,
+                    symbols: symbols.length > 1 ? symbols : undefined,
                     market,
                 },
             }
@@ -379,7 +455,7 @@ export const binanceSpotMarketDataTool = createTool({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Binance crypto data ready for ${symbol}`,
+                    message: `✅ Binance crypto data ready for ${symbols.join(', ')}`,
                     stage: 'binance-crypto-market-data',
                 },
                 id: 'binance-crypto-market-data',
@@ -405,7 +481,7 @@ export const binanceSpotMarketDataTool = createTool({
 
             log.error('Binance crypto market-data tool failed', {
                 function: requestFunction,
-                symbol,
+                symbol: symbols.join(','),
                 error: errorMessage,
             })
 
