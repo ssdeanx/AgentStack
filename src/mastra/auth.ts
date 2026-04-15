@@ -2,7 +2,7 @@
 import { MastraAuthBetterAuth } from '@mastra/auth-better-auth'
 import { LibsqlDialect } from '@libsql/kysely-libsql'
 import { betterAuth, type Auth, type BetterAuthOptions } from 'better-auth'
-import { admin, multiSession, oAuthProxy, username } from 'better-auth/plugins'
+import { admin, multiSession, oAuthProxy, oneTap, username } from 'better-auth/plugins'
 import { apiKey } from '@better-auth/api-key'
 import { Kysely, type ColumnType } from 'kysely'
 
@@ -117,6 +117,7 @@ const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim()
 const trustedOrigins = [
   process.env.BETTER_AUTH_TRUSTED_ORIGIN,
   isDevelopment ? 'http://localhost:3000' : undefined,
+  isDevelopment ? 'http://127.0.0.1:3000' : undefined,
 ].filter((origin): origin is string => Boolean(origin))
 
 const baseURL =
@@ -180,6 +181,11 @@ const authOptions: BetterAuthOptions = {
       clientId: process.env.GITHUB_CLIENT_ID ?? '',
       clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
     },
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      redirectURI: process.env.GOOGLE_CLIENT_CALLBACK_URL ?? undefined,
+    }
   },
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET ?? 'supersecret',
@@ -190,9 +196,9 @@ const authOptions: BetterAuthOptions = {
     apiKey({
       enableSessionForAPIKeys: true,
     }),
+    oneTap(),
     oAuthProxy({
-      productionURL:
-        process.env.BETTER_AUTH_PRODUCTION_URL ?? process.env.BETTER_AUTH_URL,
+      productionURL: process.env.BETTER_AUTH_PRODUCTION_URL ?? baseURL,
     }),
   ],
   session: {

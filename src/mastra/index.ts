@@ -173,13 +173,13 @@ import { telephoneGameWorkflow } from './workflows/telephone-game'
 import { weatherWorkflow } from './workflows/weather-workflow'
 //import { OtelBridge } from '@mastra/otel-bridge'
 import { DefaultExporter } from '@mastra/observability'
-import { keywordCoverageScorer } from './evals/scorers/keyword-coverage'
-import { createCompletenessScorer } from './evals/scorers/prebuilt'
+import { keywordCoverageScorer } from './scorers/keyword-coverage'
+import { createCompletenessScorer } from './agents/evals/prebuilt'
 //import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/prebuilt'
 import {
     researchCompletenessScorer,
     sourceDiversityScorer,
-} from './evals/scorers/custom-scorers'
+} from './scorers/custom-scorers'
 // Harness
 import { mainHarness } from './harness'
 import { supervisorAgent } from './agents/supervisor-agent'
@@ -187,12 +187,23 @@ import { mastraAuth } from './auth'
 import { agentFsWorkspace } from './workspaces'
 import { MastraEditor } from '@mastra/editor'
 import { MastraCompositeStore } from '@mastra/core/storage'
+import { ArcadeToolProvider } from '@mastra/editor/arcade'
+import { ComposioToolProvider } from '@mastra/editor/composio'
 
 export const mastra = new Mastra({
     workspace: agentFsWorkspace,
     editor: new MastraEditor(
         {
             logger: log,
+            toolProviders: {
+                composio: new ComposioToolProvider({
+                apiKey: process.env.COMPOSIO_API_KEY!,
+                }),
+                // Add other tool providers here
+                arcade: new ArcadeToolProvider({
+                apiKey: process.env.ARCADE_API_KEY!,
+                }),
+            },
             sandboxes: {
                 // Optional: restrict certain modules or APIs for security
             },

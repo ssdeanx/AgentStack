@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sourceDiversityScorer } from '../evals/scorers/custom-scorers'
+import { sourceDiversityScorer } from '../scorers/custom-scorers'
 
 describe('Custom Scorers', () => {
     describe('sourceDiversityScorer', () => {

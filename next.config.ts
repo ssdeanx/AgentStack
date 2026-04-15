@@ -117,7 +117,7 @@ const withMDX = createMDX({
         // for most docs formatting. Frontmatter parsing can be handled separately
         // if needed (e.g. server-side gray-matter extraction), which avoids
         // depending on unified plugin resolution in the dev bundler.
-        remarkPlugins: ['remark-gfm', 'remark-frontmatter', 'remark-breaks', 'remark-parse', 'remark-rehype', 'remark-highlight'],
+        remarkPlugins: ['remark-gfm', 'remark-frontmatter', 'remark-breaks', 'remark-parse', 'remark-rehype'],
         rehypePlugins: ['rehype-highlight', 'rehype-class-names'],
     },
 })

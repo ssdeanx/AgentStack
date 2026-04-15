@@ -1,46 +1,33 @@
+import type { LoggerTransport } from '@mastra/core/logger'
 import { PinoLogger } from '@mastra/loggers'
+import { FileTransport } from '@mastra/loggers/file'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-// Logger intentionally contains no tracing logic. Observability exporters/bridges handle traces separately.
 
-// Use __dirname directly for CommonJS
-//const __dirname: string = path.resolve(path.dirname(''));
+const agentFsLogsDir = path.join(process.cwd(), 'logs')
+const agentFsLogFile = path.join(agentFsLogsDir, 'app.log')
 
-// Ensure logs directory exists
-const logsDir: string = path.join(process.cwd(), 'data', 'logs')
-if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true })
+if (!fs.existsSync(agentFsLogsDir)) {
+    fs.mkdirSync(agentFsLogsDir, { recursive: true })
 }
-// Enhanced PinoLogger
 
+if (!fs.existsSync(agentFsLogFile)) {
+    fs.writeFileSync(agentFsLogFile, '')
+}
+
+const fileTransport: LoggerTransport = new FileTransport({
+    path: agentFsLogFile,
+})
+
+// Logger intentionally contains no tracing logic. Observability exporters/bridges handle traces separately.
 export const log = new PinoLogger({
     name: 'MastraLogger',
     level: 'info',
-    // Enable pretty printing in development
-    ...(process.env.NODE_ENV === 'development' && {
-        transport: {
-            target: 'pino-pretty',
-            options: {
-                colorize: true,
-                translateTime: 'SYS:standard',
-                ignore: 'pid,hostname',
-            },
-        },
-    }),
+    prettyPrint: true, // Set to false in production to disable pretty printing and output raw JSON
+    transports: {
+        file: fileTransport,
+    },
 })
-
-// Create a simple file logger wrapper
-//
-const logFilePath: string = path.join(logsDir, 'workflow.log')
-const logToFile = (message: string, data?: Record<string, unknown>) => {
-    const timestamp = new Date().toISOString()
-    const logEntry = {
-        timestamp,
-        message,
-        ...data,
-    }
-    fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n')
-}
 
 export const logWorkflowStart = (
     workflowId: string,
@@ -57,7 +44,6 @@ export const logWorkflowStart = (
         timestamp: new Date().toISOString(),
     }
     log.info(message, data)
-    logToFile(message, data)
 }
 
 export const logWorkflowEnd = (
@@ -78,7 +64,6 @@ export const logWorkflowEnd = (
         timestamp: new Date().toISOString(),
     }
     log.info(message, data)
-    logToFile(message, data)
 }
 
 export const logStepStart = (
@@ -96,7 +81,6 @@ export const logStepStart = (
         timestamp: new Date().toISOString(),
     }
     log.info(message, data)
-    logToFile(message, data)
 }
 
 export const logStepEnd = (
@@ -117,7 +101,6 @@ export const logStepEnd = (
         timestamp: new Date().toISOString(),
     }
     log.info(message, data)
-    logToFile(message, data)
 }
 
 export const logToolExecution = (
@@ -138,7 +121,6 @@ export const logToolExecution = (
         timestamp: new Date().toISOString(),
     }
     log.info(message, data)
-    logToFile(message, data)
 }
 
 export const logAgentActivity = (
@@ -159,7 +141,6 @@ export const logAgentActivity = (
         timestamp: new Date().toISOString(),
     }
     log.info(message, data)
-    logToFile(message, data)
 }
 
 export const logError = (
@@ -182,7 +163,6 @@ export const logError = (
         timestamp: new Date().toISOString(),
     }
     log.error(message, data)
-    logToFile(message, data)
 }
 
 export const logProgress = (
@@ -205,5 +185,4 @@ export const logProgress = (
         timestamp: new Date().toISOString(),
     }
     log.info(logMessage, data)
-    logToFile(logMessage, data)
 }

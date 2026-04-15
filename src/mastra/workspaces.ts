@@ -447,7 +447,8 @@ export const agentFsWorkspace = new Workspace({
         readWritePaths: ['/tmp/extra',
       '../.agents/**/skills',
       '/skills',
-      '/'
+      '/',
+      '.agents/skills'
         ], // Additional writable paths
         },
         }),

@@ -5,7 +5,11 @@ import { createTool, type InferUITool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
-import { buildStooqSymbol, parseStooqCsv } from './market-data.helpers'
+import {
+    buildStooqQuoteSnapshot,
+    buildStooqSymbol,
+    parseStooqCsv,
+} from './market-data.helpers'
 
 /**
  * Shared request context for Stooq stock data.
@@ -122,7 +126,8 @@ export const stooqStockQuotesTool = createTool({
         const requestFunction = input.function ?? 'quote'
         const limit = input.limit ?? 100
         const marketSuffix = input.marketSuffix ?? 'us'
-        const stooqSymbol = buildStooqSymbol(input.symbol, marketSuffix)
+        const requestedSymbol = input.symbol.trim()
+        const stooqSymbol = buildStooqSymbol(requestedSymbol, marketSuffix)
 
         if (abortSignal?.aborted === true) {
             throw new Error('Stooq stock request cancelled')
@@ -167,20 +172,26 @@ export const stooqStockQuotesTool = createTool({
                 })
                 const rows = parseStooqCsv(await response.text())
                 const row = rows[0]
-                if (!row) {
-                    throw new Error(`No Stooq quote returned for ${stooqSymbol}`)
-                }
+                if (row) {
+                    data = buildStooqQuoteSnapshot(row, stooqSymbol)
+                } else {
+                    const historyResponse = await httpFetch(`${STOOQ_BASE_URL}/q/d/l/`, {
+                        timeout: 30000,
+                        responseType: 'text',
+                        params: {
+                            s: stooqSymbol,
+                            i: 'd',
+                            e: 'csv',
+                        },
+                    })
+                    const historyRows = parseStooqCsv(await historyResponse.text())
+                    const historyRow = historyRows.at(-1)
 
-                data = {
-                    symbol: row.Symbol ?? stooqSymbol,
-                    date: row.Date ?? null,
-                    time: row.Time ?? null,
-                    open: row.Open ? Number(row.Open) : null,
-                    high: row.High ? Number(row.High) : null,
-                    low: row.Low ? Number(row.Low) : null,
-                    close: row.Close ? Number(row.Close) : null,
-                    volume: row.Volume ? Number(row.Volume) : null,
-                    name: row.Name ?? null,
+                    if (!historyRow) {
+                        throw new Error(`No Stooq quote returned for ${stooqSymbol}`)
+                    }
+
+                    data = buildStooqQuoteSnapshot(historyRow, stooqSymbol)
                 }
             } else {
                 const response = await httpFetch(`${STOOQ_BASE_URL}/q/d/l/`, {
@@ -211,7 +222,7 @@ export const stooqStockQuotesTool = createTool({
                 metadata: {
                     source: 'stooq' as const,
                     function: requestFunction,
-                    symbol: input.symbol,
+                    symbol: requestedSymbol,
                     market: marketSuffix,
                 },
             }

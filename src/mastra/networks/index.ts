@@ -24,7 +24,7 @@ import { seoAgent } from '../agents/seoAgent'
 import { socialMediaAgent } from '../agents/socialMediaAgent'
 import { translationAgent } from '../agents/translationAgent'
 
-import { pgMemory } from '../config'
+import { LibsqlMemory } from '../config/libsql'
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { weatherWorkflow } from '../workflows/weather-workflow'
@@ -206,7 +206,7 @@ export const agentNetwork = new Agent({
      - End with next steps, caveats, or a clarifying ask only when genuinely needed.
    `,
   model: googleAI,
-  memory: pgMemory, // Required for network capabilities
+  memory: LibsqlMemory, // Required for network capabilities
   options: {},
   agents: {
     researchAgent,

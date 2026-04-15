@@ -8,6 +8,7 @@ import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { fetchTool } from '../tools/fetch.tool'
 import { binanceSpotMarketDataTool } from '../tools/binance-crypto-market.tool'
 import { coinbaseExchangeMarketDataTool } from '../tools/coinbase-exchange-crypto.tool'
+import { discordWebhookTool } from '../tools/discord-webhook.tool'
 import { finnhubQuotesTool } from '../tools/finnhub-tools'
 import { polygonStockQuotesTool } from '../tools/polygon-tools'
 import {
@@ -23,6 +24,7 @@ import { yahooFinanceStockQuotesTool } from '../tools/yahoo-finance-stock.tool'
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
+import { AgentChannels } from '@mastra/core/channels'
 import { mainWorkspace } from '../workspaces'
 import {
   getLanguageFromContext,
@@ -33,7 +35,15 @@ import { researchArxivDownloadWorkflow } from '../workflows/research/research-ar
 import { researchArxivSearchWorkflow } from '../workflows/research/research-arxiv-search.workflow'
 import { LibsqlMemory } from '../config/libsql'
 import { listRepositories } from '../tools/github';
-import { stagehand } from '../browsers';
+import { agentBrowser } from '../browsers';
+//import { createGitHubAdapter } from "@chat-adapter/github";
+import { createDiscordAdapter } from '@chat-adapter/discord'
+
+//const github = createGitHubAdapter({
+//  //appId: process.env.GITHUB_APP_ID!,
+//  //privateKey: process.env.GITHUB_PRIVATE_KEY!,
+// // webhookSecret: process.env.GITHUB_WEBHOOK_SECRET!,
+//});
 
 type ResearchPhase = 'initial' | 'followup' | 'validation'
 const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
@@ -71,6 +81,7 @@ const researchAgentTools = {
   googleFinanceTool,
   binanceSpotMarketDataTool,
   coinbaseExchangeMarketDataTool,
+  discordWebhookTool,
   stooqStockQuotesTool,
   yahooFinanceStockQuotesTool,
 }
@@ -109,9 +120,10 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 - **News/Trends**: 'googleNewsTool', 'googleTrendsTool', 'googleFinanceTool'.
 - **Academic**: 'googleScholarTool'.
 - **Financial**: Use 'polygon*' for stocks/crypto.
-- **Financial**: Use 'polygon*' for stocks/crypto when you need paid/commercial feeds; use 'binanceSpotMarketDataTool', 'coinbaseExchangeMarketDataTool', 'stooqStockQuotesTool', and 'yahooFinanceStockQuotesTool' for free public market data.
+- **Financial**: Use 'polygon*' for stocks/crypto when you need paid/commercial feeds; use 'binanceSpotMarketDataTool' for free crypto spot data and batch lookups of 1-10 symbols; use 'coinbaseExchangeMarketDataTool', 'stooqStockQuotesTool', and 'yahooFinanceStockQuotesTool' for free public market data.
 - **Internal**: 'libsqlChunker' for embedding any information, 'libsqlQueryTool' for querying embedded knowledge. 'libsqlgraphQueryTool' for complex relational queries.
 - **Processing**: use workspace document tools for PDFs, Markdown, and any other filetype in the workspace;
+- **Discord**: use 'discordWebhookTool' to post short notifications or summaries to the configured Discord webhook URL.
 
 ## Rules
 - **Efficiency**: No repetitive or back-to-back tool calls for the same query.
@@ -159,7 +171,15 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     //     }),
   ],
   workspace: mainWorkspace,
-  browser: stagehand,
+  browser: agentBrowser,
+  channels: new AgentChannels({
+    adapters: {
+      discord: {
+        adapter: createDiscordAdapter(),
+        gateway: false,
+      },
+    },
+  }),
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },

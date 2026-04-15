@@ -18,7 +18,7 @@ import {
     logStepStart,
     logToolExecution,
 } from '../config/logger'
-import { pgVector } from '../config/pg-storage'
+import { libsqlvector as pgVector } from '../config/libsql'
 import { libsqlvector } from '../config/libsql'
 
 import type { RequestContext } from '@mastra/core/request-context'

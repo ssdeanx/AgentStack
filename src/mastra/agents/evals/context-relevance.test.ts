@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createContextRelevanceScorerLLM } from '../scorers/prebuilt'
-import { createAgentTestRun } from '../scorers/utils'
+import { createContextRelevanceScorerLLM } from './prebuilt'
+import { createAgentTestRun, createTestMessage } from './utils'
 
 describe('Context Relevance Scorer (heuristic)', () => {
     it('penalizes unused high relevance context', async () => {
@@ -13,8 +13,19 @@ describe('Context Relevance Scorer (heuristic)', () => {
             context: ['Important fact', 'Other detail'],
         })
         const run = createAgentTestRun({
-            inputMessages: [{ role: 'user', content: 'Query' }],
-            output: [{ role: 'assistant', content: 'Other detail' }],
+            inputMessages: [
+                createTestMessage({
+                    role: 'user',
+                    content:
+                        'Use only the most relevant context to explain which factors should appear in a follow-up summary.',
+                }),
+            ],
+            output: [
+                createTestMessage({
+                    role: 'assistant',
+                    content: 'Other detail',
+                }),
+            ],
         })
         const res = await scorer.run(run)
         expect(res.score).toBeLessThan(1)
