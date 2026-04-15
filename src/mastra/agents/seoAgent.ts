@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
@@ -22,6 +11,7 @@ import {
   getRoleFromContext,
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
+import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
 
 log.info('Initializing SEO Agent...')
 
@@ -29,207 +19,89 @@ log.info('Initializing SEO Agent...')
  * Evaluates whether an SEO response covers research-backed optimization guidance,
  * prioritization, and concrete implementation detail.
  */
-const seoTaskCompleteScorer = createScorer({
+const seoTaskCompleteScorer = createSupervisorAgentPatternScorer({
   id: 'seo-task-complete',
   name: 'SEO Task Completeness',
   description:
     'Checks whether an SEO response includes keyword or SERP insight, actionable optimization guidance, and prioritization.',
-  type: 'agent',
+  label: 'SEO completeness',
+  emptyReason: 'No usable SEO response was produced.',
+  weakReason: 'The response is present but still lacks optimization depth.',
+  strongReasonPrefix: 'This SEO response is strong because',
+  responseLengthThresholds: [
+    { min: 160, weight: 0.15 },
+    { min: 350, weight: 0.15 },
+  ],
+  minParagraphsForStructure: 3,
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it includes keyword or SERP insight',
+      regex: /keyword|serp|search intent|competitor/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it covers on-page optimization',
+      regex: /title|meta|header|internal link|content/i,
+      weight: 0.15,
+    },
+    {
+      label: 'it addresses technical SEO',
+      regex: /technical|core web vitals|schema|crawl|index/i,
+      weight: 0.15,
+    },
+    {
+      label: 'it prioritizes the recommendations',
+      regex: /priority|impact|effort|next step/i,
+      weight: 0.15,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasKeyword:
-        /keyword|serp|search intent|competitor/i.test(responseText),
-      hasOnPage:
-        /title|meta|header|internal link|content/i.test(responseText),
-      hasTechnical:
-        /technical|core web vitals|schema|crawl|index/i.test(responseText),
-      hasPriority:
-        /priority|impact|effort|next step/i.test(responseText),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText) ||
-        responseText.split(/\n\s*\n/).filter(Boolean).length >= 3,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.responseLength >= 160) score += 0.15
-    if (analysis.responseLength >= 350) score += 0.15
-    if (analysis.hasKeyword) score += 0.2
-    if (analysis.hasOnPage) score += 0.15
-    if (analysis.hasTechnical) score += 0.15
-    if (analysis.hasPriority) score += 0.15
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-    if (analysis.hasStructure) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable SEO response was produced.'
-    }
-
-    if (analysis.hasKeyword) parts.push('it includes keyword or SERP insight')
-    if (analysis.hasOnPage) parts.push('it covers on-page optimization')
-    if (analysis.hasTechnical) parts.push('it addresses technical SEO')
-    if (analysis.hasPriority) parts.push('it prioritizes the recommendations')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This SEO response is strong because ${parts.join(', ')}.` : 'The response is present but still lacks optimization depth.'}`
-  })
 
 /**
  * Evaluates whether the SEO response is execution-ready, prioritized, and tied
  * to measurable search performance outcomes.
  */
-const seoActionabilityScorer = createScorer({
+const seoActionabilityScorer = createSupervisorAgentPatternScorer({
   id: 'seo-actionability-readiness',
   name: 'SEO Actionability Readiness',
   description:
     'Checks whether an SEO response is prioritized, measurable, and easy to implement.',
-  type: 'agent',
+  label: 'SEO actionability',
+  emptyReason: 'No usable SEO actionability response was produced.',
+  weakReason: 'The response is present but still lacks implementable detail.',
+  strongReasonPrefix: 'This SEO plan is strong because',
+  responseLengthThresholds: [
+    { min: 140, weight: 0.15 },
+    { min: 260, weight: 0.1 },
+  ],
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it prioritizes by impact or effort',
+      regex: /priority|high impact|quick win|effort|impact/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it ties changes to metrics',
+      regex: /ranking|ctr|traffic|conversion|metric|measure/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it gives actionable implementation steps',
+      regex: /next step|implement|update|add|fix/i,
+      weight: 0.2,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasImpact: /priority|high impact|quick win|effort|impact/i.test(responseText),
-      hasMetrics:
-        /ranking|ctr|traffic|conversion|metric|measure/i.test(responseText),
-      hasAction:
-        /next step|implement|update|add|fix/i.test(responseText),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.responseLength >= 140) score += 0.15
-    if (analysis.responseLength >= 260) score += 0.1
-    if (analysis.hasImpact) score += 0.25
-    if (analysis.hasMetrics) score += 0.2
-    if (analysis.hasAction) score += 0.2
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-    if (analysis.hasStructure) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable SEO actionability response was produced.'
-    }
-
-    if (analysis.hasImpact) parts.push('it prioritizes by impact or effort')
-    if (analysis.hasMetrics) parts.push('it ties changes to metrics')
-    if (analysis.hasAction) parts.push('it gives actionable implementation steps')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This SEO plan is strong because ${parts.join(', ')}.` : 'The response is present but still lacks implementable detail.'}`
-  })
 
 export const seoAgent = new Agent({
   id: 'seo-agent',

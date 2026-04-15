@@ -30,6 +30,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/ui/tooltip'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 import {
     Dialog,
     DialogContent,
@@ -343,6 +346,14 @@ export default function DatasetPage() {
     )
 
     return (
+        <ChatProvider>
+            <ChatPageShell
+                title="Datasets"
+                description="Manage datasets, items, and experiment data from the shared chat shell."
+                sidebar={<MainSidebar />}
+                hideHeader
+                contentClassName="p-0"
+            >
         <TooltipProvider delayDuration={150}>
             <div className="relative flex h-full min-h-0 gap-0">
                 {showHelpPanel ? (
@@ -1489,5 +1500,7 @@ export default function DatasetPage() {
             </div>
         </div>
         </TooltipProvider>
+            </ChatPageShell>
+        </ChatProvider>
     )
 }

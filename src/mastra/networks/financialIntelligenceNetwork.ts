@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import {
   chartDataProcessorAgent,
   chartGeneratorAgent,
@@ -21,6 +10,7 @@ import { researchAgent } from '../agents/researchAgent'
 import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
 import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow'
 import { LibsqlMemory } from '../config/libsql'
@@ -31,100 +21,66 @@ log.info('Initializing Financial Intelligence Network...')
  * Checks that the financial-intelligence network returns actionable market
  * analysis, chart guidance, or reporting output.
  */
-const financialIntelligenceNetworkTaskCompleteScorer = createScorer({
-  id: 'financial-intelligence-network-task-complete',
-  name: 'Financial Intelligence Network Task Completeness',
-  description:
-    'Checks whether the network returned a substantive financial analysis or report.',
-  type: 'agent',
-})
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const { response, responseMessages, reasoning, tools, toolCallInfos } =
-      results.preprocessStepResult
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasResponse: responseText.length > 0,
-      responseLength: responseText.length,
-      hasFinanceLanguage:
-        /price|valuation|risk|chart|market|financial|report|trend|portfolio|disclaimer/i.test(
-          responseText
-        ),
-      hasStructure: /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 80) score += 0.3
-    if (analysis.hasFinanceLanguage) score += 0.4
-    if (analysis.hasStructure) score += 0.15
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable financial intelligence response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasFinanceLanguage) parts.push('it includes financial analysis language')
-    if (analysis.hasStructure) parts.push('it is structured for review')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This financial response is strong because ${parts.join(', ')}.` : 'The response is present but still needs more financial detail.'}`
+const financialIntelligenceNetworkTaskCompleteScorer =
+  createSupervisorPatternScorer({
+    id: 'financial-intelligence-network-task-complete',
+    name: 'Financial Intelligence Network Task Completeness',
+    description:
+      'Checks whether the network returned a substantive financial analysis or report.',
+    label: 'Financial intelligence response',
+    emptyReason: 'No usable financial intelligence response was produced.',
+    weakReason:
+      'The response is present but still needs more financial detail.',
+    strongReasonPrefix: 'This financial response is strong because',
+    signals: [
+      {
+        label: 'it includes financial analysis language',
+        regex:
+          /price|valuation|risk|chart|market|financial|report|trend|portfolio|disclaimer/i,
+        weight: 0.4,
+      },
+    ],
+    responseLengthThresholds: [{ min: 80, weight: 0.3 }],
+    minParagraphsForStructure: 999,
+    structureWeight: 0.15,
+    reasoningWeight: 0.05,
+    toolWeight: 0.05,
   })
 
 /**
  * Checks that the financial-intelligence answer is investor-ready with thesis,
  * risk framing, and a clear next action or caveat.
  */
-const financialIntelligenceNetworkDecisionScorer = createScorer({
-  id: 'financial-intelligence-network-decision-readiness',
-  name: 'Financial Intelligence Network Decision Readiness',
-  description:
-    'Checks whether the financial response includes thesis, risks, and decision-ready follow-up guidance.',
-  type: 'agent',
-}).generateScore(async context => {
-  const normalizedText = (
-    getAssistantMessageFromRunOutput(context.run.output) ??
-    String(context.run.output ?? '')
-  ).trim()
-  const categoryMatches = [
-    /thesis|outlook|valuation|trend|support|resistance/i.test(normalizedText),
-    /risk|downside|volatility|uncertain|disclaimer/i.test(normalizedText),
-    /next step|watch|monitor|consider|review/i.test(normalizedText),
-  ].filter(Boolean).length
-
-  return normalizedText.length >= 160 && categoryMatches >= 2 ? 1 : 0
-})
+const financialIntelligenceNetworkDecisionScorer =
+  createSupervisorPatternScorer({
+    id: 'financial-intelligence-network-decision-readiness',
+    name: 'Financial Intelligence Network Decision Readiness',
+    description:
+      'Checks whether the financial response includes thesis, risks, and decision-ready follow-up guidance.',
+    label: 'Financial decision response',
+    emptyReason: 'No investor-ready financial response was produced.',
+    weakReason:
+      'The response is present but still needs clearer thesis, risk framing, or follow-up guidance.',
+    strongReasonPrefix: 'This financial decision response is strong because',
+    signals: [
+      {
+        label: 'it includes an investment thesis or outlook',
+        regex: /thesis|outlook|valuation|trend|support|resistance/i,
+        weight: 0.25,
+      },
+      {
+        label: 'it frames risks or uncertainty',
+        regex: /risk|downside|volatility|uncertain|disclaimer/i,
+        weight: 0.25,
+      },
+      {
+        label: 'it includes a clear follow-up action',
+        regex: /next step|watch|monitor|consider|review/i,
+        weight: 0.25,
+      },
+    ],
+    responseLengthThresholds: [{ min: 160, weight: 0.2 }],
+  })
 
 export const financialIntelligenceNetwork = new Agent({
   id: 'financial-intelligence-network',

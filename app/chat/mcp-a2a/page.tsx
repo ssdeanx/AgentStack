@@ -27,6 +27,9 @@ import {
   TooltipTrigger,
 } from '@/ui/tooltip'
 import { Panel } from '@/src/components/ai-elements/panel'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 import {
   BotIcon,
   CircleHelpIcon,
@@ -105,6 +108,14 @@ export default function McpA2APage() {
     agents.find((agent) => agent.id === activeAgentId) ?? agents[0]
 
   return (
+    <ChatProvider>
+      <ChatPageShell
+        title="MCP / A2A"
+        description="Inspect MCP servers, toolkits, and agent cards from the shared chat shell."
+        sidebar={<MainSidebar />}
+        hideHeader
+        contentClassName="p-0"
+      >
     <TooltipProvider delayDuration={150}>
       <div className="flex min-h-screen flex-col bg-background px-4 py-6 md:px-6">
         <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 rounded-3xl border border-border/60 bg-card/70 px-5 py-4 shadow-sm backdrop-blur">
@@ -384,5 +395,7 @@ export default function McpA2APage() {
         </main>
       </div>
     </TooltipProvider>
+      </ChatPageShell>
+    </ChatProvider>
   )
 }

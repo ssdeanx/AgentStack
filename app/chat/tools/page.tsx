@@ -37,6 +37,9 @@ import {
     SparklesIcon,
     WrenchIcon,
 } from 'lucide-react'
+import { ChatPageShell } from '../components/chat-page-shell'
+import { MainSidebar } from '../components/main-sidebar'
+import { ChatProvider } from '../providers/chat-context'
 
 type ToolRecord = {
     id: string
@@ -145,6 +148,14 @@ export default function ChatToolsPage() {
     const selectedToolDetails = toolDetailsQuery.data ?? selectedTool
 
     return (
+        <ChatProvider>
+            <ChatPageShell
+                title="Tools"
+                description="Inspect tools, providers, toolkits, and schemas from the shared chat shell."
+                sidebar={<MainSidebar />}
+                hideHeader
+                contentClassName="p-0"
+            >
         <TooltipProvider delayDuration={150}>
             <div className="flex min-h-screen flex-col bg-background">
             <header className="border-b bg-card/60 backdrop-blur">
@@ -505,5 +516,7 @@ export default function ChatToolsPage() {
             </main>
             </div>
         </TooltipProvider>
+            </ChatPageShell>
+        </ChatProvider>
     )
 }

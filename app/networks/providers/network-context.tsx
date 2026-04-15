@@ -272,6 +272,7 @@ export function NetworkProvider({
     } = useChat({
         transport: new DefaultChatTransport({
             api: `${MASTRA_API_URL}/network/${selectedNetwork}`,
+            credentials: 'include',
             prepareSendMessagesRequest({ messages: msgs }) {
                 const last = msgs[msgs.length - 1]
                 const textPart = last?.parts?.find(

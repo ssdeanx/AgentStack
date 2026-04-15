@@ -8,6 +8,7 @@ export function NestedAgentChat() {
     const { messages, sendMessage, status } = useChat({
         transport: new DefaultChatTransport({
             api: 'http://localhost:4111/chat/weatherAgent',
+            credentials: 'include',
         }),
     })
 

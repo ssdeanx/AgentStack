@@ -2,7 +2,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { fetchTool } from '../tools/fetch.tool'
 import {
   getLanguageFromContext,
@@ -72,7 +72,7 @@ User: ${userTier} | Lang: ${language}
   },
   scorers: {},
   tools: scriptWriterTools,
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+ // outputProcessors: [new TokenLimiterProcessor(1048576)],
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },

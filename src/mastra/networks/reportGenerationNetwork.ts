@@ -1,25 +1,11 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
-
-import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
 import { reportAgent } from '../agents/reportAgent'
 import { researchAgent } from '../agents/researchAgent'
 import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
@@ -32,185 +18,73 @@ log.info('Initializing Report Generation Network...')
  * Checks whether the report-generation coordinator returned a concrete report
  * artifact, synthesis, or actionable report plan.
  */
-const reportGenerationNetworkTaskCompleteScorer = createScorer({
-  id: 'report-generation-network-task-complete',
-  name: 'Report Generation Network Task Completeness',
-  description:
-    'Checks whether the network returned a structured report outcome with findings or next actions.',
-  type: 'agent',
-}).generateScore(async context => {
-  const normalizedText = (
-    getAssistantMessageFromRunOutput(context.run.output) ??
-    String(context.run.output ?? '')
-  ).trim()
-  const hasReportLanguage =
-    /report|summary|findings|sources|analysis|recommendation|executive/i.test(
-      normalizedText
-    )
-  const paragraphCount = normalizedText
-    .split(/\n\s*\n/)
-    .filter(Boolean).length
-
-  return normalizedText.length >= 80 && (hasReportLanguage || paragraphCount >= 2)
-    ? 1
-    : 0
-})
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const { response, responseMessages, reasoning, tools, toolCallInfos } =
-      results.preprocessStepResult
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasResponse: responseText.length > 0,
-      responseLength: responseText.length,
-      hasReportLanguage:
-        /report|summary|findings|sources|analysis|recommendation|executive/i.test(
-          responseText
-        ),
-      paragraphCount: responseText.split(/\n\s*\n/).filter(Boolean).length,
-      hasStructure: /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 80) score += 0.25
-    if (analysis.hasReportLanguage) score += 0.35
-    if (analysis.paragraphCount >= 2) score += 0.15
-    if (analysis.hasStructure) score += 0.1
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable report-generation response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasReportLanguage) parts.push('it includes report or synthesis language')
-    if (analysis.hasStructure) parts.push('it is structured and readable')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This report response is strong because ${parts.join(', ')}.` : 'The response is present but still needs more report detail.'}`
+const reportGenerationNetworkTaskCompleteScorer =
+  createSupervisorPatternScorer({
+    id: 'report-generation-network-task-complete',
+    name: 'Report Generation Network Task Completeness',
+    description:
+      'Checks whether the network returned a structured report outcome with findings or next actions.',
+    label: 'Report generation response',
+    emptyReason: 'No usable report-generation response was produced.',
+    weakReason: 'The response is present but still needs more report detail.',
+    strongReasonPrefix: 'This report response is strong because',
+    signals: [
+      {
+        label: 'it includes report or synthesis language',
+        regex:
+          /report|summary|findings|sources|analysis|recommendation|executive/i,
+        weight: 0.35,
+      },
+      {
+        label: 'it spans multiple report sections',
+        regex: /\n\s*\n/,
+        weight: 0.15,
+      },
+    ],
+    responseLengthThresholds: [{ min: 80, weight: 0.25 }],
+    minParagraphsForStructure: 999,
+    structureWeight: 0.1,
+    reasoningWeight: 0.05,
+    toolWeight: 0.05,
   })
 
 /**
  * Checks that the report-generation answer is synthesis-ready with findings,
  * evidence framing, and clear follow-up guidance.
  */
-const reportGenerationNetworkSynthesisScorer = createScorer({
-  id: 'report-generation-network-synthesis-readiness',
-  name: 'Report Generation Network Synthesis Readiness',
-  description:
-    'Checks whether the report answer contains findings, supporting rationale, and next actions.',
-  type: 'agent',
-}).generateScore(async context => {
-  const normalizedText = (
-    getAssistantMessageFromRunOutput(context.run.output) ??
-    String(context.run.output ?? '')
-  ).trim()
-  const categoryMatches = [
-    /finding|insight|summary|executive/i.test(normalizedText),
-    /source|evidence|data|based on/i.test(normalizedText),
-    /next step|recommend|follow-up|decision/i.test(normalizedText),
-  ].filter(Boolean).length
-
-  return normalizedText.length >= 150 && categoryMatches >= 2 ? 1 : 0
-})
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const { response, responseMessages, reasoning, tools, toolCallInfos } =
-      results.preprocessStepResult
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasResponse: responseText.length > 0,
-      responseLength: responseText.length,
-      hasReportLanguage:
-        /finding|insight|summary|executive/i.test(responseText),
-      hasEvidence:
-        /source|evidence|data|based on/i.test(responseText),
-      hasNextAction:
-        /next step|recommend|follow-up|decision/i.test(responseText),
-      hasStructure: /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 150) score += 0.25
-    if (analysis.hasReportLanguage) score += 0.25
-    if (analysis.hasEvidence) score += 0.2
-    if (analysis.hasNextAction) score += 0.15
-    if (analysis.hasStructure) score += 0.05
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable pipeline execution result was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasReportLanguage) parts.push('it communicates report-ready output')
-    if (analysis.hasEvidence) parts.push('it includes evidence or data grounding')
-    if (analysis.hasNextAction) parts.push('it includes clear next actions')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution response is strong because ${parts.join(', ')}.` : 'The response is present but still needs more execution detail.'}`
+const reportGenerationNetworkSynthesisScorer =
+  createSupervisorPatternScorer({
+    id: 'report-generation-network-synthesis-readiness',
+    name: 'Report Generation Network Synthesis Readiness',
+    description:
+      'Checks whether the report answer contains findings, supporting rationale, and next actions.',
+    label: 'Report synthesis response',
+    emptyReason: 'No usable report synthesis response was produced.',
+    weakReason:
+      'The response is present but still needs findings, evidence, or next-action detail.',
+    strongReasonPrefix: 'This report synthesis response is strong because',
+    signals: [
+      {
+        label: 'it communicates report-ready output',
+        regex: /finding|insight|summary|executive/i,
+        weight: 0.25,
+      },
+      {
+        label: 'it includes evidence or data grounding',
+        regex: /source|evidence|data|based on/i,
+        weight: 0.2,
+      },
+      {
+        label: 'it includes clear next actions',
+        regex: /next step|recommend|follow-up|decision/i,
+        weight: 0.15,
+      },
+    ],
+    responseLengthThresholds: [{ min: 150, weight: 0.25 }],
+    minParagraphsForStructure: 999,
+    structureWeight: 0.05,
+    reasoningWeight: 0.05,
+    toolWeight: 0.05,
   })
 
 export const reportGenerationNetwork = new Agent({
@@ -336,14 +210,6 @@ export const reportGenerationNetwork = new Agent({
     researchSynthesisWorkflow,
     learningExtractionWorkflow,
   },
-  outputProcessors: [
-    new TokenLimiterProcessor(128000),
-    //    new BatchPartsProcessor({
-    //        batchSize: 20,
-    //        maxWaitTime: 100,
-    //         emitOnNonText: true,
-    //     }),
-  ],
   defaultOptions: {
     maxSteps: 20,
     delegation: {

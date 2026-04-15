@@ -47,7 +47,7 @@ export const LibsqlMemory = new Memory({
                 logOutputs: true,
             },
         },
-        maxParallelCalls: 5, // Limit parallel embedding calls to avoid rate limits
+        //maxParallelCalls: 10, // Limit parallel embedding calls to avoid rate limits
         providerOptions: {
             google: {
                 outputDimensions: 3072,
@@ -121,7 +121,8 @@ export const LibsqlMemory = new Memory({
 })
 
 log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
-    url: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
+    storage: process.env.TURSO_DATABASE_URL ?? 'file:./database.db',
+    vector: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
     // schema: process.env.DB_SCHEMA ?? 'mastra',
     // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
     memoryOptions: {

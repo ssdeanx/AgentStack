@@ -38,12 +38,12 @@ export const daneCommitMessage = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT'],
+          responseModalities: ['TEXT', 'IMAGE'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
-  model: "google/gemini-3.1-flash-lite-preview",
+  model: "google/gemma-4-31b-it",
   memory: LibsqlMemory,
   options: {
     tracingPolicy: {
@@ -83,12 +83,12 @@ export const daneIssueLabeler = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT'],
+          responseModalities: ['TEXT', 'IMAGE'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
-  model: "google/gemini-3.1-flash-lite-preview",
+  model: "google/gemma-4-31b-it",
   memory: LibsqlMemory,
   outputProcessors: [
    // new TokenLimiterProcessor(128576),
@@ -136,12 +136,12 @@ export const daneLinkChecker = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT'],
+          responseModalities: ['TEXT', 'IMAGE'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
-  model: "google/gemini-3.1-flash-lite-preview",
+  model: "google/gemma-4-31b-it",
   memory: LibsqlMemory,
   options: {
     tracingPolicy: {
@@ -188,12 +188,12 @@ export const daneChangeLog = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT'],
+          responseModalities: ['TEXT', 'IMAGE'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
-  model: "google/gemini-3.1-flash-lite-preview",
+  model: "google/gemma-4-31b-it",
   memory: LibsqlMemory,
   defaultOptions: {
     autoResumeSuspendedTools: true,
@@ -258,12 +258,12 @@ export const dane = new Agent({
             includeThoughts: true,
             thinkingLevel: 'low',
           },
-          responseModalities: ['TEXT'],
+          responseModalities: ['TEXT', 'IMAGE'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
-  model: 'google/gemini-3.1-flash-preview',
+  model: 'google/gemma-4-31b-it',
   memory: LibsqlMemory,
   tools: {
     browserTool,

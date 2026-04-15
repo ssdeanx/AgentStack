@@ -196,7 +196,7 @@ Networks are routing agents that coordinate multiple specialized agents to handl
 - Preserve context when passing between agents
 - Log routing decisions for debugging
 - When a network delegates to child agents, prefer inline `defaultOptions.delegation` hooks in that network file to refine prompts, handle delegation failure feedback, and trim parent message context before handoff.
-- Keep network completion checks local to the network file with a network-scoped `createScorer(...)` rather than relying on shared coordinator abstractions.
+- Keep network completion checks local to the network file, but prefer building them with shared primitives such as `createSupervisorPatternScorer(...)` from `src/mastra/scorers/supervisor-scorers.ts` so the network keeps auditable local signals without duplicating scorer plumbing.
 - Prefer multiple local scorers when a network can validly finish through different answer shapes (for example, a broad completeness scorer plus a shorter decision-readiness or execution-readiness scorer).
 - Add an explicit final-answer contract in long coordinator instructions so the network knows what a user-ready synthesis should look like after delegation.
 - Do **not** rely on `nestedAgents` adapters or broad parent-side casts when wiring child agents.
@@ -208,6 +208,7 @@ Networks are routing agents that coordinate multiple specialized agents to handl
 
 | Version | Date (UTC) | Changes                                                       |
 | ------- | ---------- | ------------------------------------------------------------- |
+| 2.0.5   | 2026-04-15 | Standardized coordinator networks on local `createSupervisorPatternScorer(...)` wrappers so they keep auditable network-specific signals while sharing the common scorer pipeline. |
 | 2.0.4   | 2026-03-28 | Added the current standard for dual local completion scorers and explicit final-answer contracts in coordinator networks. |
 | 2.0.3   | 2026-03-27 | Added the current standard for inline network delegation hooks and network-local completion scorers. |
 | 2.0.2   | 2026-03-17 | Replaced adapter guidance with the current source-level child-agent typing standard (`unknown` public request context, internal runtime parsing). |

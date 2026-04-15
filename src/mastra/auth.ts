@@ -5,6 +5,7 @@ import { betterAuth, type Auth, type BetterAuthOptions } from 'better-auth'
 import { admin, multiSession, oAuthProxy, oneTap, username } from 'better-auth/plugins'
 import { apiKey } from '@better-auth/api-key'
 import { Kysely, type ColumnType } from 'kysely'
+import { log } from './config/logger'
 
 type AuthDateColumn = ColumnType<Date, Date | string, Date | string>;
 type AuthNullableDateColumn = ColumnType<
@@ -111,24 +112,65 @@ interface BetterAuthDatabase {
 }
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
-const githubClientId = process.env.GITHUB_CLIENT_ID?.trim()
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim()
 
-const trustedOrigins = [
-  process.env.BETTER_AUTH_TRUSTED_ORIGIN,
-  isDevelopment ? 'http://localhost:3000' : undefined,
-  isDevelopment ? 'http://127.0.0.1:3000' : undefined,
-].filter((origin): origin is string => Boolean(origin))
+function trimTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, '')
+}
+
+/**
+ * Normalizes legacy OAuth callback env values onto Better Auth's default
+ * Next.js callback route so older local env files do not break Google sign-in.
+ */
+function resolveGoogleRedirectUri(baseUrl: string): string {
+  const configuredRedirectUri = process.env.GOOGLE_CLIENT_CALLBACK_URL?.trim()
+  const defaultRedirectUri = `${trimTrailingSlash(baseUrl)}/api/auth/callback/google`
+
+  if (!configuredRedirectUri) {
+    return defaultRedirectUri
+  }
+
+  if (/\/api\/callback\/?$/.test(configuredRedirectUri)) {
+    log.warn('Normalizing legacy Google callback URL', {
+      configuredRedirectUri,
+      normalizedRedirectUri: defaultRedirectUri,
+    })
+    return defaultRedirectUri
+  }
+
+  return configuredRedirectUri
+}
 
 const baseURL =
-  process.env.BETTER_AUTH_URL ?? (isDevelopment ? 'http://localhost:3000' : undefined)
+  process.env.BETTER_AUTH_URL?.trim() ??
+  process.env.NEXT_PUBLIC_BETTER_AUTH_URL?.trim() ??
+  (isDevelopment ? 'http://localhost:3000' : undefined)
+
+const trustedOrigins = [
+  process.env.BETTER_AUTH_TRUSTED_ORIGIN?.trim(),
+  process.env.NEXT_PUBLIC_BETTER_AUTH_URL?.trim(),
+  baseURL,
+  isDevelopment ? 'http://localhost:3000' : undefined,
+  isDevelopment ? 'http://127.0.0.1:3000' : undefined,
+].filter((origin, index, values): origin is string => Boolean(origin) && values.indexOf(origin) === index)
 
 const socialProviders: BetterAuthOptions['socialProviders'] = {}
+const githubClientId = process.env.GITHUB_CLIENT_ID?.trim()
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim()
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim()
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim()
 
 if (githubClientId && githubClientSecret) {
   socialProviders.github = {
     clientId: githubClientId,
     clientSecret: githubClientSecret,
+  }
+}
+
+if (googleClientId && googleClientSecret && baseURL) {
+  socialProviders.google = {
+    clientId: googleClientId,
+    clientSecret: googleClientSecret,
+    redirectURI: resolveGoogleRedirectUri(baseURL),
   }
 }
 
@@ -176,17 +218,7 @@ const authOptions: BetterAuthOptions = {
     db: authDatabase,
     type: 'sqlite',
   },
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID ?? '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
-    },
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-      redirectURI: process.env.GOOGLE_CLIENT_CALLBACK_URL ?? undefined,
-    }
-  },
+  socialProviders,
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET ?? 'supersecret',
   plugins: [
@@ -220,5 +252,4 @@ export const mastraAuth = new MastraAuthBetterAuth({
   auth,
   signUpEnabled: true,
 })
-
 

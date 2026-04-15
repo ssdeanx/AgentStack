@@ -3,7 +3,7 @@ import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { USER_ID_CONTEXT_KEY, type AgentRequestContext } from './request-context'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 import { LibsqlMemory } from '../config/libsql'
@@ -65,7 +65,7 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //outputProcessors: [new TokenLimiterProcessor(1048576)],
   //   defaultOptions: {
   //       autoResumeSuspendedTools: true,
   //  },

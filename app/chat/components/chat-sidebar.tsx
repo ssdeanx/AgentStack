@@ -2,6 +2,7 @@
 
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
 import {
+    DEFAULT_VECTOR_STORE_NAME,
     useAgent,
     useAgentEnhanceInstructionsMutation,
     useAgents,
@@ -10,6 +11,7 @@ import {
     useTools,
     useTraces,
     useVectorIndexes,
+    useVectors,
     useWorkflows,
     useProcessors,
     useScorers,
@@ -66,6 +68,11 @@ type TabKey =
     | 'config'
 
 type TraceRecord = Record<string, unknown>
+type WorkspaceRecord = {
+    id?: string
+    name?: string
+    agentName?: string
+}
 
 const TRACE_STATUS_COLORS: Record<string, string> = {
     ok: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
@@ -233,7 +240,7 @@ export function ChatSidebar() {
     const workflowsQuery = useWorkflows()
     const tracesQuery = useTraces({ pagination: { page: 1, perPage: 20 } })
     const threadsQuery = useThreads({ resourceId })
-    const vectorsQuery = useVectorIndexes()
+    const vectorStoresQuery = useVectors()
     const memoryStatusQuery = useMemoryStatus(agentConfig?.id ?? '')
     const agentDetailsQuery = useAgent(selectedAgent)
 
@@ -252,10 +259,6 @@ export function ChatSidebar() {
     const onRefreshTraces = useCallback(() => {
         void tracesQuery.refetch()
     }, [tracesQuery])
-
-    const onRefreshVectors = useCallback(() => {
-        void vectorsQuery.refetch()
-    }, [vectorsQuery])
 
 
     const onRefreshThreads = useCallback(() => {
@@ -281,18 +284,27 @@ export function ChatSidebar() {
     const threads = threadsQuery.data ?? []
     const loadingThreads = threadsQuery.isLoading
 
-    const vectors = vectorsQuery.data ?? []
-    const loadingVectors = vectorsQuery.isLoading
-
     const workspacesQuery = useWorkspaces()
     const workspaceSkillsQuery = useWorkspaceSkills(resourceId)
     const storedSkillsQuery = useStoredSkills()
     const processorsQuery = useProcessors()
     const scorersQuery = useScorers()
 
-    const workspaceLabels = useMemo(
-        () => normalizeCollection(workspacesQuery.data),
+    const workspaceItems = useMemo<WorkspaceRecord[]>(
+        () => (workspacesQuery.data ?? []) as WorkspaceRecord[],
         [workspacesQuery.data]
+    )
+    const workspaceLabels = useMemo(
+        () =>
+            workspaceItems
+                .map((workspace) =>
+                    safeString(
+                        workspace.name ?? workspace.agentName ?? workspace.id,
+                        ''
+                    )
+                )
+                .filter((label) => label.length > 0),
+        [workspaceItems]
     )
     const workspaceSkillLabels = useMemo(
         () => normalizeCollection(workspaceSkillsQuery.data),
@@ -316,8 +328,47 @@ export function ChatSidebar() {
         [workflows]
     )
 
+    const activeWorkspace = useMemo(
+        () => workspaceItems.find((workspace) => workspace.id === resourceId) ?? null,
+        [resourceId, workspaceItems]
+    )
+    const preferredVectorStoreName = useMemo(() => {
+        const vectorStores = Array.isArray(vectorStoresQuery.data)
+            ? vectorStoresQuery.data
+            : []
+        const vectorNames: string[] = vectorStores
+            .map((vectorStore) => {
+                if (typeof vectorStore === 'string') {
+                    return vectorStore
+                }
+
+                if (isRecord(vectorStore)) {
+                    return safeString(vectorStore.name ?? vectorStore.id, '')
+                }
+
+                return ''
+            })
+            .filter((name: string) => name.length > 0)
+
+        return (
+            vectorNames.find((name) => name === DEFAULT_VECTOR_STORE_NAME) ??
+            vectorNames[0] ??
+            DEFAULT_VECTOR_STORE_NAME
+        )
+    }, [vectorStoresQuery.data])
+    const vectorsQuery = useVectorIndexes(preferredVectorStoreName)
+    const vectors = vectorsQuery.data ?? []
+    const loadingVectors = vectorsQuery.isLoading || vectorStoresQuery.isLoading
+
+    const onRefreshVectors = useCallback(() => {
+        void Promise.all([vectorStoresQuery.refetch(), vectorsQuery.refetch()])
+    }, [vectorStoresQuery, vectorsQuery])
+
     const workspaceName =
-        workspaceLabels[0] ?? safeString(resourceId, 'Current workspace')
+        safeString(
+            activeWorkspace?.name ?? activeWorkspace?.agentName ?? activeWorkspace?.id,
+            safeString(resourceId, 'Current workspace')
+        )
 
 
     const memoryStatusRes = memoryStatusQuery.data
@@ -434,7 +485,7 @@ export function ChatSidebar() {
             <Tabs
                 value={activeTab}
                 onValueChange={(v) => { setActiveTab(v as TabKey); }}
-                className="flex flex-col flex-1 overflow-hidden"
+                className="flex flex-col flex-1 min-h-0 overflow-hidden"
             >
                 <div className="px-4 py-3 border-b border-white/5 bg-white/5 backdrop-blur-xl shrink-0">
                     <TabsList className="w-full grid grid-cols-8 gap-0.5 p-1 bg-black/40 rounded-xl h-auto border border-white/10 shadow-inner overflow-x-auto no-scrollbar">
@@ -497,8 +548,8 @@ export function ChatSidebar() {
                     </TabsList>
                 </div>
 
-                <ScrollArea className="flex-1">
-                    <div className="flex flex-col min-h-full">
+                <ScrollArea className="flex-1 min-h-0">
+                    <div className="flex min-h-full flex-col">
                     {/* ──── Threads Tab ──── */}
                     <TabsContent
                         value="threads"
@@ -1097,11 +1148,11 @@ export function ChatSidebar() {
                 >
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <LayersIcon className="size-4 text-primary" />
-                                <h3 className="font-semibold text-sm">
-                                    Vector Indexes
-                                </h3>
+                                    <div className="flex items-center gap-2">
+                                        <LayersIcon className="size-4 text-primary" />
+                                        <h3 className="font-semibold text-sm">
+                                            Vector Indexes
+                                        </h3>
                             </div>
                             <Button
                                 variant="ghost"
@@ -1126,6 +1177,9 @@ export function ChatSidebar() {
                             </p>
                         ) : (
                             <div className="space-y-2">
+                                <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-[0.2em]">
+                                    {preferredVectorStoreName}
+                                </Badge>
                                 {vectors.map((vector) => (
                                     <div
                                         key={vector.name}

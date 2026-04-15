@@ -81,6 +81,7 @@ type PasswordFormState = {
 }
 
 type AdminRole = 'user' | 'admin'
+export type AdminSettingsPanelSection = 'all' | 'runtime' | 'users'
 
 const pageSize = 20
 
@@ -183,7 +184,11 @@ function mapUserToEditForm(user: AdminUser | null | undefined): EditUserFormStat
 /**
  * Admin user-management panel powered entirely by Better Auth hooks.
  */
-export function AdminSettingsPanel() {
+export function AdminSettingsPanel({
+    section = 'all',
+}: {
+    section?: AdminSettingsPanelSection
+}) {
     const { data: authSession } = useAuthQuery()
     const { data: modelProvidersData } = useAgentModelProviders()
     const [search, setSearch] = React.useState('')
@@ -366,6 +371,8 @@ export function AdminSettingsPanel() {
 
     const refreshDisabled = usersQuery.isFetching
     const detailBusy = selectedUserQuery.isLoading || selectedSessionsQuery.isLoading
+    const showRuntime = section === 'all' || section === 'runtime'
+    const showUsers = section === 'all' || section === 'users'
 
     return (
         <TooltipProvider>
@@ -549,7 +556,8 @@ export function AdminSettingsPanel() {
                     </div>
                 </section>
 
-                <Card>
+                {showUsers ? (
+                    <Card>
                     <CardHeader>
                         <CardTitle>Find users</CardTitle>
                         <CardDescription>
@@ -626,9 +634,11 @@ export function AdminSettingsPanel() {
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                    </Card>
+                ) : null}
 
-                <Card>
+                {showRuntime ? (
+                    <Card>
                     <CardHeader>
                         <CardTitle>Runtime context</CardTitle>
                         <CardDescription>
@@ -672,9 +682,11 @@ export function AdminSettingsPanel() {
                             </Tooltip>
                         ))}
                     </CardContent>
-                </Card>
+                    </Card>
+                ) : null}
 
-                <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                {showUsers ? (
+                    <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                     <Card>
                         <CardHeader>
                             <CardTitle>Users</CardTitle>
@@ -1041,7 +1053,8 @@ export function AdminSettingsPanel() {
                             </CardContent>
                         </Card>
                     </div>
-                </section>
+                    </section>
+                ) : null}
             </div>
         </TooltipProvider>
     )

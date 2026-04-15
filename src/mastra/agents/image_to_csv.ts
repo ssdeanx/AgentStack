@@ -3,7 +3,7 @@ import { googleAI } from '../config'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
@@ -157,5 +157,5 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
     },
     workflows: {},
     maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //  outputProcessors: [new TokenLimiterProcessor(1048576)],
 })

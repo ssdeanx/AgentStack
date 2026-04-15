@@ -56,7 +56,7 @@ Current user: ${userId ?? 'anonymous'}`,
       },
     }
   },
-  model: "google/gemini-3.1-flash-lite-preview",
+  model: "google/gemma-4-31b-it",
   memory: LibsqlMemory,
   tools: {
     listEvents,

@@ -2,7 +2,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 
 import {
-  TokenLimiterProcessor,
+  //TokenLimiterProcessor,
   UnicodeNormalizer,
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -246,7 +246,7 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //outputProcessors: [new TokenLimiterProcessor(1048576)],
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },
@@ -419,7 +419,7 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //outputProcessors: [new TokenLimiterProcessor(1048576)],
   //defaultOptions: {
   //      autoResumeSuspendedTools: true,
   // },

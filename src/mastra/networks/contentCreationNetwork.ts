@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { copywriterAgent } from '../agents/copywriterAgent'
@@ -18,6 +7,7 @@ import { evaluationAgent } from '../agents/evaluationAgent'
 import { scriptWriterAgent } from '../agents/scriptWriterAgent'
 import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 
 import { contentReviewWorkflow } from '../workflows/content-review-workflow'
 import { contentStudioWorkflow } from '../workflows/content-studio-workflow'
@@ -29,187 +19,73 @@ log.info('Initializing Content Creation Network...')
  * Checks that the content-creation network produces a usable content deliverable
  * or a concrete editorial plan.
  */
-const contentCreationNetworkTaskCompleteScorer = createScorer({
-  id: 'content-creation-network-task-complete',
-  name: 'Content Creation Network Task Completeness',
-  description:
-    'Checks whether the network returned a substantial draft, edit, strategy, or quality review.',
-  type: 'agent',
-})
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasContentLanguage:
-        /headline|audience|draft|edit|tone|script|cta|content|strategy|quality/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 70) score += 0.2
-    if (analysis.responseLength >= 140) score += 0.1
-    if (analysis.hasContentLanguage) score += 0.4
-    if (analysis.hasStructure) score += 0.15
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable content creation response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasContentLanguage) parts.push('it includes content or editorial language')
-    if (analysis.hasStructure) parts.push('it is structured for handoff')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This content response is strong because ${parts.join(', ')}.` : 'The response is present but still needs creative detail.'}`
+const contentCreationNetworkTaskCompleteScorer =
+  createSupervisorPatternScorer({
+    id: 'content-creation-network-task-complete',
+    name: 'Content Creation Network Task Completeness',
+    description:
+      'Checks whether the network returned a substantial draft, edit, strategy, or quality review.',
+    label: 'Content creation response',
+    emptyReason: 'No usable content creation response was produced.',
+    weakReason: 'The response is present but still needs creative detail.',
+    strongReasonPrefix: 'This content response is strong because',
+    signals: [
+      {
+        label: 'it includes content or editorial language',
+        regex:
+          /headline|audience|draft|edit|tone|script|cta|content|strategy|quality/i,
+        weight: 0.4,
+      },
+    ],
+    responseLengthThresholds: [
+      { min: 70, weight: 0.2 },
+      { min: 140, weight: 0.1 },
+    ],
+    minParagraphsForStructure: 999,
+    structureWeight: 0.15,
+    reasoningWeight: 0.05,
+    toolWeight: 0.05,
   })
 
 /**
  * Checks that the content-creation answer is delivery-ready with a draft,
  * editorial direction, or clear revision guidance.
  */
-const contentCreationNetworkDeliveryScorer = createScorer({
-  id: 'content-creation-network-delivery-readiness',
-  name: 'Content Creation Network Delivery Readiness',
-  description:
-    'Checks whether the content response is ready to publish, revise, or hand off to the next editorial step.',
-  type: 'agent',
-})
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasDraft:
-        /draft|outline|headline|script|copy/i.test(responseText),
-      hasVoice:
-        /tone|audience|positioning|voice/i.test(responseText),
-      hasDelivery:
-        /next step|revise|publish|review|qa/i.test(responseText),
-      hasStructure:
-        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 140) score += 0.2
-    if (analysis.responseLength >= 240) score += 0.1
-    if (analysis.hasDraft) score += 0.25
-    if (analysis.hasVoice) score += 0.2
-    if (analysis.hasDelivery) score += 0.2
-    if (analysis.hasStructure) score += 0.05
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable content delivery response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasDraft) parts.push('it includes draft or outline language')
-    if (analysis.hasVoice) parts.push('it addresses tone, audience, or positioning')
-    if (analysis.hasDelivery) parts.push('it includes delivery or revision guidance')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This delivery response is strong because ${parts.join(', ')}.` : 'The response is present but still needs handoff detail.'}`
+const contentCreationNetworkDeliveryScorer =
+  createSupervisorPatternScorer({
+    id: 'content-creation-network-delivery-readiness',
+    name: 'Content Creation Network Delivery Readiness',
+    description:
+      'Checks whether the content response is ready to publish, revise, or hand off to the next editorial step.',
+    label: 'Content delivery response',
+    emptyReason: 'No usable content delivery response was produced.',
+    weakReason: 'The response is present but still needs handoff detail.',
+    strongReasonPrefix: 'This delivery response is strong because',
+    signals: [
+      {
+        label: 'it includes draft or outline language',
+        regex: /draft|outline|headline|script|copy/i,
+        weight: 0.25,
+      },
+      {
+        label: 'it addresses tone, audience, or positioning',
+        regex: /tone|audience|positioning|voice/i,
+        weight: 0.2,
+      },
+      {
+        label: 'it includes delivery or revision guidance',
+        regex: /next step|revise|publish|review|qa/i,
+        weight: 0.2,
+      },
+    ],
+    responseLengthThresholds: [
+      { min: 140, weight: 0.2 },
+      { min: 240, weight: 0.1 },
+    ],
+    minParagraphsForStructure: 999,
+    structureWeight: 0.05,
+    reasoningWeight: 0.03,
+    toolWeight: 0.02,
   })
 
 export const contentCreationNetwork = new Agent({

@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import {
   codeArchitectAgent,
   codeReviewerAgent,
@@ -20,6 +9,7 @@ import { evaluationAgent } from '../agents/evaluationAgent'
 import { danePackagePublisher } from '../agents/package-publisher'
 import { projectManagementAgent } from '../agents/projectManagementAgent'
 import { log } from '../config/logger'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 import { confirmationTool } from '../tools/confirmation.tool'
 import { LibsqlMemory } from '../config/libsql'
 log.info('Initializing DevOps Network...')
@@ -28,192 +18,77 @@ log.info('Initializing DevOps Network...')
  * Checks that the DevOps network returns a deployable, testable, or operable
  * recommendation set instead of generic platform advice.
  */
-const devopsNetworkTaskCompleteScorer = createScorer({
+const devopsNetworkTaskCompleteScorer = createSupervisorPatternScorer({
   id: 'devops-network-task-complete',
   name: 'DevOps Network Task Completeness',
   description:
     'Checks whether the DevOps network returned a concrete delivery, deployment, or operations result.',
-  type: 'agent',
+  label: 'DevOps response',
+  emptyReason: 'No usable DevOps response was produced.',
+  weakReason: 'The response is present but still needs delivery detail.',
+  strongReasonPrefix: 'This DevOps response is strong because',
+  signals: [
+    {
+      label: 'it includes DevOps-specific guidance',
+      regex:
+        /deploy|pipeline|release|monitor|infrastructure|ci\/cd|incident|rollback|test|package/i,
+      weight: 0.35,
+    },
+    {
+      label: 'it includes operational or rollout detail',
+      regex: /monitor|rollback|incident|deploy|release|rollback|health|validation/i,
+      weight: 0.1,
+    },
+  ],
+  responseLengthThresholds: [
+    { min: 80, weight: 0.2 },
+    { min: 160, weight: 0.1 },
+  ],
+  minParagraphsForStructure: 999,
+  structureWeight: 0.15,
+  reasoningWeight: 0.05,
+  toolWeight: 0.05,
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasDevopsLanguage:
-        /deploy|pipeline|release|monitor|infrastructure|ci\/cd|incident|rollback|test|package/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-      hasOps:
-        /monitor|rollback|incident|deploy|release|rollback|health|validation/i.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 80) score += 0.2
-    if (analysis.responseLength >= 160) score += 0.1
-    if (analysis.hasDevopsLanguage) score += 0.35
-    if (analysis.hasStructure) score += 0.15
-    if (analysis.hasOps) score += 0.1
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable DevOps response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasDevopsLanguage) parts.push('it includes DevOps-specific guidance')
-    if (analysis.hasStructure) parts.push('it is structured for execution')
-    if (analysis.hasOps) parts.push('it includes operational or rollout detail')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This DevOps response is strong because ${parts.join(', ')}.` : 'The response is present but still needs delivery detail.'}`
-  })
 
 /**
  * Checks that the DevOps answer is operationally actionable with rollout,
  * validation, and risk-management guidance.
  */
-const devopsNetworkExecutionScorer = createScorer({
+const devopsNetworkExecutionScorer = createSupervisorPatternScorer({
   id: 'devops-network-execution-readiness',
   name: 'DevOps Network Execution Readiness',
   description:
     'Checks whether the DevOps response includes rollout steps, validation gates, and operational risk guidance.',
-  type: 'agent',
+  label: 'DevOps execution response',
+  emptyReason: 'No usable DevOps execution response was produced.',
+  weakReason: 'The response is present but still lacks operational detail.',
+  strongReasonPrefix: 'This execution plan is strong because',
+  signals: [
+    {
+      label: 'it includes deployment or rollout guidance',
+      regex: /deploy|release|rollout|pipeline|gate/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it includes validation gates or checks',
+      regex: /monitor|verify|smoke test|rollback|incident/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it names owners, milestones, or risks',
+      regex: /next step|owner|milestone|risk/i,
+      weight: 0.2,
+    },
+  ],
+  responseLengthThresholds: [
+    { min: 160, weight: 0.2 },
+    { min: 280, weight: 0.1 },
+  ],
+  minParagraphsForStructure: 999,
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasDeploy:
-        /deploy|release|rollout|pipeline|gate/i.test(responseText),
-      hasValidation:
-        /monitor|verify|smoke test|rollback|incident/i.test(responseText),
-      hasRisk:
-        /next step|owner|milestone|risk/i.test(responseText),
-      hasStructure:
-        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 160) score += 0.2
-    if (analysis.responseLength >= 280) score += 0.1
-    if (analysis.hasDeploy) score += 0.25
-    if (analysis.hasValidation) score += 0.2
-    if (analysis.hasRisk) score += 0.2
-    if (analysis.hasStructure) score += 0.05
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable DevOps execution response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasDeploy) parts.push('it includes deployment or rollout guidance')
-    if (analysis.hasValidation) parts.push('it includes validation gates or checks')
-    if (analysis.hasRisk) parts.push('it names owners, milestones, or risks')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution plan is strong because ${parts.join(', ')}.` : 'The response is present but still lacks operational detail.'}`
-  })
 
 export const devopsNetwork = new Agent({
   id: 'devops-network',

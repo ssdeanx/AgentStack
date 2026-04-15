@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
 import { reportAgent } from '../agents/reportAgent'
@@ -27,6 +16,7 @@ import { translationAgent } from '../agents/translationAgent'
 import { LibsqlMemory } from '../config/libsql'
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 import { weatherWorkflow } from '../workflows/weather-workflow'
 
 // CSV/Data Pipeline Networks
@@ -68,101 +58,67 @@ import {
  * Checks that the primary network returns a useful routed answer instead of
  * stopping at a vague handoff explanation.
  */
-const agentNetworkTaskCompleteScorer = createScorer({
+const agentNetworkTaskCompleteScorer = createSupervisorPatternScorer({
   id: 'primary-network-task-complete',
   name: 'Primary Network Task Completeness',
   description:
     'Checks whether the primary network returned a concrete answer or actionable routed result.',
-  type: 'agent',
+  label: 'Primary network response',
+  emptyReason: 'No usable routed answer was produced.',
+  weakReason: 'The response is present but still needs more routing detail.',
+  strongReasonPrefix: 'This primary network response is strong because',
+  signals: [
+    {
+      label: 'it includes useful routing language',
+      regex:
+        /recommend|summary|analysis|report|plan|translation|support|seo|next step/i,
+      weight: 0.3,
+    },
+    {
+      label: 'it reads like a complete routed answer',
+      regex: /(?:[^.!?]+[.!?]){2,}/s,
+      weight: 0.2,
+    },
+  ],
+  responseLengthThresholds: [{ min: 40, weight: 0.2 }],
+  minParagraphsForStructure: 999,
+  structureWeight: 0.1,
+  reasoningWeight: 0.05,
+  toolWeight: 0.05,
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const { response, responseMessages, reasoning, tools, toolCallInfos } =
-      results.preprocessStepResult
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasResponse: responseText.length > 0,
-      responseLength: responseText.length,
-      hasUsefulRouting:
-        /recommend|summary|analysis|report|plan|translation|support|seo|next step/i.test(
-          responseText
-        ),
-      sentenceCount: responseText.match(/[^.!?]+/g)?.length ?? 0,
-      hasStructure: /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText),
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 40) score += 0.2
-    if (analysis.sentenceCount >= 2) score += 0.2
-    if (analysis.hasUsefulRouting) score += 0.3
-    if (analysis.hasStructure) score += 0.1
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable routed answer was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasUsefulRouting) parts.push('it includes useful routing language')
-    if (analysis.hasStructure) parts.push('it is structured and readable')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This primary network response is strong because ${parts.join(', ')}.` : 'The response is present but still needs more routing detail.'}`
-  })
 
 /**
  * Checks that the primary network answer is user-ready, concise, and ends with
  * a clear resolution path or next action.
  */
-const agentNetworkResolutionScorer = createScorer({
+const agentNetworkResolutionScorer = createSupervisorPatternScorer({
   id: 'primary-network-resolution-readiness',
   name: 'Primary Network Resolution Readiness',
   description:
     'Checks whether the primary network returned a direct answer with clear next steps or decision guidance.',
-  type: 'agent',
-}).generateScore(async context => {
-  const normalizedText = (
-    getAssistantMessageFromRunOutput(context.run.output) ??
-    String(context.run.output ?? '')
-  ).trim()
-  const categoryMatches = [
-    /recommend|suggest|best option|answer/i.test(normalizedText),
-    /next step|follow-up|if needed|you can/i.test(normalizedText),
-    /because|based on|given that/i.test(normalizedText),
-  ].filter(Boolean).length
-
-  return normalizedText.length >= 120 && categoryMatches >= 2 ? 1 : 0
+  label: 'Primary network resolution',
+  emptyReason: 'No resolution-ready response was produced.',
+  weakReason:
+    'The response is present but still needs clearer next steps or decision guidance.',
+  strongReasonPrefix: 'This primary network resolution is strong because',
+  signals: [
+    {
+      label: 'it includes a direct answer or recommendation',
+      regex: /recommend|suggest|best option|answer/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it includes next-step guidance',
+      regex: /next step|follow-up|if needed|you can/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it explains the reasoning behind the recommendation',
+      regex: /because|based on|given that/i,
+      weight: 0.25,
+    },
+  ],
+  responseLengthThresholds: [{ min: 120, weight: 0.2 }],
 })
 
 export const agentNetwork = new Agent({

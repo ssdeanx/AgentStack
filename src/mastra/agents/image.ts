@@ -56,7 +56,7 @@ export const imageAgent = new Agent({
             },
         }
     },
-    model: googleAINanoBanana,
+    model: 'google/gemma-4-31b-it',
     memory: LibsqlMemory,
     options: {
         tracingPolicy: {

@@ -1,8 +1,5 @@
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
-import {
-    TokenLimiterProcessor,
-} from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 
 import { google } from '../config/google'

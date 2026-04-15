@@ -354,6 +354,7 @@ export function WorkflowProvider({
     const { messages, sendMessage, stop, status } = useChat({
         transport: new DefaultChatTransport({
             api: `${MASTRA_API_URL}/workflow/${selectedWorkflow}`,
+            credentials: 'include',
             prepareSendMessagesRequest({ messages: msgs }) {
                 const last = msgs[msgs.length - 1]
                 const textPart = last?.parts?.find(

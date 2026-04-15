@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+//import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
@@ -100,13 +100,13 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
                         includeThoughts: true,
                         thinkingBudget: -1,
                     },
-                    responseModalities: ['TEXT'],
+                    responseModalities: ['TEXT', 'IMAGE'],
                     mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
                 } satisfies GoogleGenerativeAIProviderOptions,
             },
         }
     },
-    model: "google/gemini-3.1-flash-lite-preview",
+    model: "google/gemma-4-31b-it",
     memory: LibsqlMemory,
     tools: {},
     scorers: {},
@@ -117,5 +117,5 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
         },
     },
     maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+    //outputProcessors: [new TokenLimiterProcessor(1048576)],
 })

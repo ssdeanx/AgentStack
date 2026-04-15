@@ -169,6 +169,50 @@ export function tokenizeInlineCitations(
     return parts.length ? parts : [{ type: 'text', text: content }]
 }
 
+/**
+ * Extracts a reasoning/thought summary from provider metadata without assuming
+ * a specific provider key like `google`.
+ */
+export function extractThoughtSummaryFromProviderMetadata(
+    providerMetadata: unknown
+): string {
+    if (
+        providerMetadata === undefined ||
+        providerMetadata === null ||
+        typeof providerMetadata !== 'object'
+    ) {
+        return ''
+    }
+
+    const metadataRecord = providerMetadata as Record<string, unknown>
+    const candidateRecords: Array<Record<string, unknown>> = [metadataRecord]
+
+    for (const value of Object.values(metadataRecord)) {
+        if (value !== null && value !== undefined && typeof value === 'object') {
+            candidateRecords.push(value as Record<string, unknown>)
+        }
+    }
+
+    for (const record of candidateRecords) {
+        const candidates = [
+            record.thoughtSummary,
+            record.thoughts,
+            record.thinkingSummary,
+        ]
+
+        for (const candidate of candidates) {
+            if (
+                typeof candidate === 'string' &&
+                candidate.trim().length > 0
+            ) {
+                return candidate
+            }
+        }
+    }
+
+    return ''
+}
+
 export const DEFAULT_SUGGESTIONS: Record<string, string[]> = {
     weatherAgent: [
         "What's the weather in Tokyo?",

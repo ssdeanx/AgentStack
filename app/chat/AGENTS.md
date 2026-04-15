@@ -2,6 +2,20 @@
 
 # App/Chat
 
+## Recent Update (2026-04-15)
+
+- Settings pages are now modular route groups instead of two monolithic screens:
+  - `/chat/user` overview + focused routes for profile, security, sessions, API keys, and danger zone
+  - `/chat/admin` overview + focused routes for runtime and user operations
+- Use `app/chat/components/chat-settings-shell.tsx` when a chat route needs the shared `ChatProvider` + `ChatPageShell` + `MainSidebar` composition plus an in-section settings nav.
+- Use the same shared shell composition for non-settings dashboard surfaces that need the persistent chat sidebar; the current wrapped set includes datasets, evaluation, observability, tools, logs, harness, MCP/A2A, workflows, and workflow detail pages.
+- `UserSettingsPanel` and `AdminSettingsPanel` now support section-based rendering so new routes can reuse the same Better Auth mutations without duplicating form logic.
+- `useWorkspaces()` in `lib/hooks/use-mastra-query.ts` now returns normalized `WorkspaceItem[]`; new chat UI code should consume that array directly instead of re-decoding `{ workspaces: [...] }` response shapes in components.
+- Prefer shared tooltip and scroll affordances on high-density chat surfaces:
+  - add tooltip descriptions for navigation items and overview cards when a route’s purpose is not obvious
+  - use `ScrollArea` for long sidebars, thread lists, or horizontally dense settings navs rather than letting layout overflow
+  - keep shell spacing consistent through `ChatPageShell` instead of per-page padding drift
+
 ## Overview
 
 The `/chat` route provides a rich AI chat interface built with **AI Elements** (52 components) integrated with **26+ Mastra agents**. Uses `@ai-sdk/react` with `useChat` and `DefaultChatTransport` to stream responses from Mastra's `/chat` route.

@@ -22,6 +22,7 @@ export type { CalendarContext } from './calendarAgent'
 export type { ScriptWriterRuntimeContext } from './scriptWriterAgent'
 
 export { acpAgent } from './acpAgent'
+export { browserAgent } from './browserAgent'
 export {
     legalResearchAgent,
     contractAnalysisAgent,

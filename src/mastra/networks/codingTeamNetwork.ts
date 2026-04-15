@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import type {
   Processor,
   ProcessorMessageResult,
@@ -31,6 +20,7 @@ import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
 import { LibsqlMemory } from '../config/libsql'
+import { createSupervisorPatternScorer } from '../scorers/supervisor-scorers'
 
 log.info('Initializing Coding Team Network...')
 
@@ -38,187 +28,72 @@ log.info('Initializing Coding Team Network...')
  * Checks that the coding network returns a concrete engineering deliverable,
  * review, or plan instead of only stating that specialists are available.
  */
-const codingTeamNetworkTaskCompleteScorer = createScorer({
+const codingTeamNetworkTaskCompleteScorer = createSupervisorPatternScorer({
   id: 'coding-team-network-task-complete',
   name: 'Coding Team Network Task Completeness',
   description:
     'Checks whether the coding network returned actionable engineering guidance or output.',
-  type: 'agent',
+  label: 'Coding team response',
+  emptyReason: 'No usable engineering response was produced.',
+  weakReason: 'The response is present but still needs engineering depth.',
+  strongReasonPrefix: 'This coding response is strong because',
+  signals: [
+    {
+      label: 'it includes engineering-specific guidance',
+      regex:
+        /architecture|review|test|refactor|implementation|risk|trade-off|code|plan/i,
+      weight: 0.4,
+    },
+  ],
+  responseLengthThresholds: [
+    { min: 80, weight: 0.2 },
+    { min: 160, weight: 0.1 },
+  ],
+  minParagraphsForStructure: 999,
+  structureWeight: 0.15,
+  reasoningWeight: 0.05,
+  toolWeight: 0.05,
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasEngineeringLanguage:
-        /architecture|review|test|refactor|implementation|risk|trade-off|code|plan/i.test(
-          responseText
-        ),
-      hasStructure:
-        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 80) score += 0.2
-    if (analysis.responseLength >= 160) score += 0.1
-    if (analysis.hasEngineeringLanguage) score += 0.4
-    if (analysis.hasStructure) score += 0.15
-    if (analysis.hasReasoning) score += 0.05
-    if (analysis.toolCount > 0) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable engineering response was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasEngineeringLanguage) parts.push('it includes engineering-specific guidance')
-    if (analysis.hasStructure) parts.push('it is structured and actionable')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This coding response is strong because ${parts.join(', ')}.` : 'The response is present but still needs engineering depth.'}`
-  })
 
 /**
  * Checks that the coding-team answer is execution-ready with priorities,
  * engineering rationale, and concrete next actions.
  */
-const codingTeamNetworkExecutionScorer = createScorer({
+const codingTeamNetworkExecutionScorer = createSupervisorPatternScorer({
   id: 'coding-team-network-execution-readiness',
   name: 'Coding Team Network Execution Readiness',
   description:
     'Checks whether the coding-team response includes implementation order, validation guidance, or risk-aware next steps.',
-  type: 'agent',
+  label: 'Coding team execution response',
+  emptyReason: 'No usable execution-ready coding plan was produced.',
+  weakReason: 'The response is present but still lacks execution detail.',
+  strongReasonPrefix: 'This execution plan is strong because',
+  signals: [
+    {
+      label: 'it clarifies ordering or phases',
+      regex: /priority|sequence|phase|first|then/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it names risks or constraints',
+      regex: /trade-off|risk|assumption|constraint/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it includes validation or next-step guidance',
+      regex: /test|validate|review|next step|implement/i,
+      weight: 0.2,
+    },
+  ],
+  responseLengthThresholds: [
+    { min: 160, weight: 0.2 },
+    { min: 280, weight: 0.1 },
+  ],
+  minParagraphsForStructure: 999,
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasPriority: /priority|sequence|phase|first|then/i.test(responseText),
-      hasRisk:
-        /trade-off|risk|assumption|constraint/i.test(responseText),
-      hasValidation:
-        /test|validate|review|next step|implement/i.test(responseText),
-      hasStructure:
-        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 0
-
-    let score = 0
-    if (analysis.responseLength >= 160) score += 0.2
-    if (analysis.responseLength >= 280) score += 0.1
-    if (analysis.hasPriority) score += 0.25
-    if (analysis.hasRisk) score += 0.2
-    if (analysis.hasValidation) score += 0.2
-    if (analysis.hasStructure) score += 0.05
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) return 'No usable execution-ready coding plan was produced.'
-
-    const parts: string[] = []
-    if (analysis.hasPriority) parts.push('it clarifies ordering or phases')
-    if (analysis.hasRisk) parts.push('it names risks or constraints')
-    if (analysis.hasValidation) parts.push('it includes validation or next-step guidance')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution plan is strong because ${parts.join(', ')}.` : 'The response is present but still lacks execution detail.'}`
-  })
 export class QualityChecker implements Processor {
   id = 'quality-checker'
 

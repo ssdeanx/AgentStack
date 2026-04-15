@@ -3,9 +3,6 @@ import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
 import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
-import {
   arxivPaperDownloaderTool,
   arxivPdfParserTool,
   arxivTool,
@@ -78,14 +75,14 @@ User: ${role} | Lang: ${language}
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [
-    new TokenLimiterProcessor(128000),
-    //    new BatchPartsProcessor({
-    //        batchSize: 5,
-    //        maxWaitTime: 75,
-    //        emitOnNonText: true,
+  // outputProcessors: [
+  //   new TokenLimiterProcessor(128000),
+  //   //    new BatchPartsProcessor({
+  //   //        batchSize: 5,
+  //   //        maxWaitTime: 75,
+  //   //        emitOnNonText: true,
     //    }),
-  ],
+  //],
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },

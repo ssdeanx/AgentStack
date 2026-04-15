@@ -140,7 +140,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     "knowledgeIndexingAgent": {
         id: 'knowledgeIndexingAgent',
         name: 'Knowledge Indexing Agent',
-        description: 'Index documents into PgVector for semantic search',
+        description: 'Index documents into the live vector store for semantic search',
         category: 'research',
         features: {
             ...defaultFeatures,

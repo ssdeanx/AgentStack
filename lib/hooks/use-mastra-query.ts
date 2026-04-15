@@ -102,9 +102,9 @@ import type {
   WorkspaceFsListResponse,
   WorkspaceFsReadResponse,
   WorkspaceFsStatResponse,
-  ListWorkspacesResponse,
   WorkspaceIndexParams,
   WorkspaceInfoResponse,
+  WorkspaceItem,
   WorkspaceSearchParams,
   WorkspaceSearchResponse,
   WorkflowRunResult,
@@ -173,6 +173,7 @@ type TracesResponse = CoreListTracesResponse
 type TraceTrajectoryResponse = Trajectory
 type ObservabilityLogsResponse = CoreListLogsResponse
 type VectorIndex = GetVectorIndexResponse & { name: string }
+export const DEFAULT_VECTOR_STORE_NAME = 'libsqlvector' as const
 type McpToolExecuteArgs = Parameters<
   ReturnType<typeof mastraClient.getMcpServerTool>['execute']
 >[0]
@@ -1838,7 +1839,7 @@ export const useLogTransports: () => UseQueryResult<string[]> = () =>
 
 export const useVectorIndexes: (
   vectorName?: string
-) => UseQueryResult<VectorIndex[]> = (vectorName = 'pgVector') =>
+) => UseQueryResult<VectorIndex[]> = (vectorName = DEFAULT_VECTOR_STORE_NAME) =>
   useQuery<VectorIndex[]>({
     queryKey: mastraQueryKeys.vectors.indexes(vectorName),
     queryFn: async () => {
@@ -1876,9 +1877,12 @@ export const useEmbedders = () =>
 // --- WORKSPACES ---
 
 export const useWorkspaces = () =>
-  useQuery<ListWorkspacesResponse>({
+  useQuery<WorkspaceItem[]>({
     queryKey: mastraQueryKeys.workspaces.list(),
-    queryFn: () => mastraClient.listWorkspaces(),
+    queryFn: async () => {
+      const result = await mastraClient.listWorkspaces()
+      return Array.isArray(result) ? result : result.workspaces ?? []
+    },
   })
 
 export const useWorkspace = (id: string) =>

@@ -13,7 +13,7 @@ export const noteTakerAgent = new Agent({
     instructions: instructions1,
     memory: LibsqlMemory,
     //  tools: [],
-    model: 'google/gemini-3.1-flash-lite-preview',
+    model: 'google/gemma-4-31b-it',
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

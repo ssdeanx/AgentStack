@@ -1,7 +1,7 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
-  TokenLimiterProcessor,
+  //TokenLimiterProcessor,
   UnicodeNormalizer,
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -141,7 +141,7 @@ Rules and best practices:
   },
   inputProcessors: [
     new UnicodeNormalizer({
-      stripControlChars: false,
+      stripControlChars: true,
       collapseWhitespace: true,
       preserveEmojis: true,
       trim: true,
@@ -274,7 +274,7 @@ export const fetchAgent = new Agent({
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(32768)],
+  //outputProcessors: [new TokenLimiterProcessor(32768)],
 })
 
 /**

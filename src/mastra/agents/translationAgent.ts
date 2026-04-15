@@ -1,15 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { createScorer } from '@mastra/core/evals'
-import {
-  extractAgentResponseMessages,
-  extractInputMessages,
-  extractToolCalls,
-  getAssistantMessageFromRunOutput,
-  getCombinedSystemPrompt,
-  getReasoningFromRunOutput,
-  getSystemMessagesFromRunInput,
-  getUserMessageFromRunInput,
-} from '@mastra/evals/scorers/utils'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
@@ -21,6 +10,7 @@ import {
   getRoleFromContext,
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
+import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
 
 log.info('Initializing Translation Agent...')
 
@@ -28,204 +18,84 @@ log.info('Initializing Translation Agent...')
  * Evaluates whether a translation response includes the translated result,
  * localization reasoning, and quality-assurance guidance.
  */
-const translationTaskCompleteScorer = createScorer({
+const translationTaskCompleteScorer = createSupervisorAgentPatternScorer({
   id: 'translation-task-complete',
   name: 'Translation Task Completeness',
   description:
     'Checks whether a translation response covers translation output, cultural adaptation, and review notes.',
-  type: 'agent',
+  label: 'translation completeness',
+  emptyReason: 'No usable translation response was produced.',
+  weakReason: 'The response is present but still needs translation detail.',
+  strongReasonPrefix: 'This translation response is strong because',
+  responseLengthThresholds: [
+    { min: 120, weight: 0.15 },
+    { min: 250, weight: 0.15 },
+  ],
+  minParagraphsForStructure: 2,
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it identifies the source or target language',
+      regex: /source language|target language|translate|translation/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it explains localization or tone choices',
+      regex: /localization|cultural|tone|audience/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it includes QA or proofreading guidance',
+      regex: /quality|review|qa|proofread|validation/i,
+      weight: 0.15,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasLanguagePair:
-        /source language|target language|translate|translation/i.test(responseText),
-      hasLocalization:
-        /localization|cultural|tone|audience/i.test(responseText),
-      hasQA:
-        /quality|review|qa|proofread|validation/i.test(responseText),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText) ||
-        responseText.split(/\n\s*\n/).filter(Boolean).length >= 2,
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.responseLength >= 120) score += 0.15
-    if (analysis.responseLength >= 250) score += 0.15
-    if (analysis.hasLanguagePair) score += 0.25
-    if (analysis.hasLocalization) score += 0.2
-    if (analysis.hasQA) score += 0.15
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-    if (analysis.hasStructure) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable translation response was produced.'
-    }
-
-    if (analysis.hasLanguagePair) parts.push('it identifies the source or target language')
-    if (analysis.hasLocalization) parts.push('it explains localization or tone choices')
-    if (analysis.hasQA) parts.push('it includes QA or proofreading guidance')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This translation response is strong because ${parts.join(', ')}.` : 'The response is present but still needs translation detail.'}`
-  })
 
 /**
  * Evaluates whether the translation response is delivery-ready with a clear
  * translated result and notes on localization trade-offs.
  */
-const translationDeliveryScorer = createScorer({
+const translationDeliveryScorer = createSupervisorAgentPatternScorer({
   id: 'translation-delivery-readiness',
   name: 'Translation Delivery Readiness',
   description:
     'Checks whether a translation response contains a usable translation plus localization notes or alternatives.',
-  type: 'agent',
+  label: 'translation delivery',
+  emptyReason: 'No usable translation delivery response was produced.',
+  weakReason: 'The response is present but still lacks delivery-ready detail.',
+  strongReasonPrefix: 'This delivery response is strong because',
+  responseLengthThresholds: [
+    { min: 100, weight: 0.15 },
+    { min: 200, weight: 0.1 },
+  ],
+  structureWeight: 0.05,
+  reasoningWeight: 0.03,
+  toolWeight: 0.02,
+  userMessageWeight: 0.05,
+  systemMessageWeight: 0.05,
+  signals: [
+    {
+      label: 'it includes the translated or localized text',
+      regex: /translation|translated text|localized version|target text/i,
+      weight: 0.25,
+    },
+    {
+      label: 'it adds notes about nuance or terminology',
+      regex: /note|alternative|nuance|idiom|terminology/i,
+      weight: 0.2,
+    },
+    {
+      label: 'it reflects the target audience or locale',
+      regex: /audience|tone|region|locale/i,
+      weight: 0.15,
+    },
+  ],
 })
-  .preprocess(({ run }) => {
-    const userMessage = getUserMessageFromRunInput(run.input)
-    const inputMessages = extractInputMessages(run.input)
-    const systemMessages = getSystemMessagesFromRunInput(run.input)
-    const systemPrompt = getCombinedSystemPrompt(run.input)
-    const response = getAssistantMessageFromRunOutput(run.output)
-    const responseMessages = extractAgentResponseMessages(run.output)
-    const reasoning = getReasoningFromRunOutput(run.output)
-    const { tools, toolCallInfos } = extractToolCalls(run.output)
-
-    return {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    }
-  })
-  .analyze(({ results }) => {
-    const {
-      userMessage,
-      inputMessages,
-      systemMessages,
-      systemPrompt,
-      response,
-      responseMessages,
-      reasoning,
-      tools,
-      toolCallInfos,
-    } = results.preprocessStepResult
-
-    const responseText = (response ?? responseMessages.join('\n')).trim()
-
-    return {
-      hasUserMessage: Boolean(userMessage),
-      inputMessageCount: inputMessages.length,
-      systemMessageCount: systemMessages.length,
-      systemPromptLength: systemPrompt.length,
-      responseLength: responseText.length,
-      hasResponse: responseText.length > 0,
-      hasReasoning: Boolean(reasoning),
-      toolCount: tools.length,
-      toolCallCount: toolCallInfos.length,
-      hasTranslation:
-        /translation|translated text|localized version|target text/i.test(responseText),
-      hasNotes:
-        /note|alternative|nuance|idiom|terminology/i.test(responseText),
-      hasLocale:
-        /audience|tone|region|locale/i.test(responseText),
-      hasStructure:
-        /^#{1,6}\s|^[-*]\s|^\d+\.\s/m.test(responseText),
-    }
-  })
-  .generateScore(({ results }) => {
-    const analysis = results.analyzeStepResult
-    if (!analysis?.hasResponse) {
-      return 0
-    }
-
-    let score = 0
-    if (analysis.responseLength >= 100) score += 0.15
-    if (analysis.responseLength >= 200) score += 0.1
-    if (analysis.hasTranslation) score += 0.25
-    if (analysis.hasNotes) score += 0.2
-    if (analysis.hasLocale) score += 0.15
-    if (analysis.hasReasoning) score += 0.03
-    if (analysis.toolCount > 0) score += 0.02
-    if (analysis.hasStructure) score += 0.05
-
-    return Math.max(0, Math.min(1, score))
-  })
-  .generateReason(({ results, score }) => {
-    const analysis = results.analyzeStepResult
-    const parts: string[] = []
-
-    if (!analysis?.hasResponse) {
-      return 'No usable translation delivery response was produced.'
-    }
-
-    if (analysis.hasTranslation) parts.push('it includes the translated or localized text')
-    if (analysis.hasNotes) parts.push('it adds notes about nuance or terminology')
-    if (analysis.hasLocale) parts.push('it reflects the target audience or locale')
-
-    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This delivery response is strong because ${parts.join(', ')}.` : 'The response is present but still lacks delivery-ready detail.'}`
-  })
 
 export const translationAgent = new Agent({
   id: 'translation-agent',
