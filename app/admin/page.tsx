@@ -3,11 +3,10 @@ import type { Route } from 'next'
 import { AdminPageShell } from './_components/page-shell'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Badge } from '@/ui/badge'
-import { listAgents, listNetworks, listWorkflows } from './config/registry'
+import { listAgents, listWorkflows } from './config/registry'
 
 export default function AdminHomePage() {
     const agents = listAgents()
-    const networks = listNetworks()
     const workflows = listWorkflows()
 
     return (
@@ -25,19 +24,13 @@ export default function AdminHomePage() {
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                         <Link
-                            href={'/chat' as Route}
+                            href={'/chat/agents' as Route}
                             className="block underline-offset-4 hover:underline"
                         >
                             Open Chat
                         </Link>
                         <Link
-                            href={'/networks' as Route}
-                            className="block underline-offset-4 hover:underline"
-                        >
-                            Open Networks
-                        </Link>
-                        <Link
-                            href={'/workflows' as Route}
+                            href={'/chat/workflows' as Route}
                             className="block underline-offset-4 hover:underline"
                         >
                             Open Workflows
@@ -59,10 +52,6 @@ export default function AdminHomePage() {
                             <Badge variant="secondary">
                                 {workflows.length}
                             </Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span>Networks</span>
-                            <Badge variant="secondary">{networks.length}</Badge>
                         </div>
                     </CardContent>
                 </Card>
