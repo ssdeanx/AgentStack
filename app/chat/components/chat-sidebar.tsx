@@ -487,63 +487,63 @@ export function ChatSidebar() {
                 onValueChange={(v) => { setActiveTab(v as TabKey); }}
                 className="flex flex-col flex-1 min-h-0 overflow-hidden"
             >
-                <div className="px-4 py-3 border-b border-white/5 bg-white/5 backdrop-blur-xl shrink-0">
-                    <TabsList className="w-full grid grid-cols-8 gap-0.5 p-1 bg-black/40 rounded-xl h-auto border border-white/10 shadow-inner overflow-x-auto no-scrollbar">
+                <div className="shrink-0 border-b border-white/5 bg-white/5 px-4 py-3 backdrop-blur-xl">
+                    <TabsList className="grid h-auto w-full grid-cols-4 gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-black/40 p-1.5 shadow-inner no-scrollbar sm:grid-cols-8">
                         <TabsTrigger
                             value="threads"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <MessageSquareIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Threads</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Threads</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="agents"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <BotIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Agents</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Agents</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="tools"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <CpuIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Tools</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Tools</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="workflows"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <WorkflowIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Flows</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Flows</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="traces"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <ActivityIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Traces</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Traces</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="vectors"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <LayersIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Vectors</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Vectors</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="memory"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <BrainIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Memory</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Memory</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="config"
-                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
+                            className="group/tab flex flex-col items-center gap-1 rounded-lg border border-transparent py-2 text-[9px] transition-all duration-300 data-[state=active]:border-primary/20 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                         >
                             <SettingsIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
-                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Config</span>
+                            <span className="font-semibold tracking-tight opacity-70 group-data-[state=active]:opacity-100">Config</span>
                         </TabsTrigger>
                     </TabsList>
                 </div>

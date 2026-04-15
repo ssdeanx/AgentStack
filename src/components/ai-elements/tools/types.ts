@@ -1,5 +1,4 @@
 import type {
-  addIssueComment,
   alphaVantageCryptoTool,
   alphaVantageStockTool,
   alphaVantageTool,
@@ -16,9 +15,6 @@ import type {
   clickAndExtractTool,
   colorChangeTool,
 //  copywriterTool,
-  createIssue,
-  createPullRequest,
-  createRelease,
   csvToJsonTool,
   documentRerankerTool,
   editorTool,
@@ -34,11 +30,6 @@ import type {
   finnhubFinancialsTool,
   finnhubQuotesTool,
   finnhubTechnicalTool,
-  getFileContent,
-  getIssue,
-  getPullRequest,
-  getRepoFileTree,
-  getRepositoryInfo,
   getTodayEvents,
   getUpcomingEvents,
   googleAiOverviewTool,
@@ -53,15 +44,10 @@ import type {
   homeDepotSearchTool,
   jsonToCsvTool,
   jwtAuthTool,
-  listCommits,
   listEvents,
-  listIssues,
-  listPullRequests,
-  listRepositories,
   mastraChunker,
   matrixCalculatorTool,
   mdocumentChunker,
-  mergePullRequest,
   monitorPageTool,
   pdfGeneratorTool,
   polygonCryptoAggregatesTool,
@@ -69,15 +55,75 @@ import type {
   polygonStockAggregatesTool,
   polygonStockFundamentalsTool,
   polygonStockQuotesTool,
+  polygonCryptoSnapshotsTool,
+  coinbaseExchangeMarketDataTool,
+  yahooFinanceStockQuotesTool,
+  scheduledFetchTool,
+  stooqStockQuotesTool,
+  urlValidationTool,
+  urlManipulationTool,
+  textAnalysisTool,
+  textProcessingTool,
+  dateTimeTool,
+  timeZoneTool,
+  chartJsTool,
+  cytoscapeTool,
+  downsampleTool,
+  discordWebhookTool,
+  leafletTool,
+  //ocrTool,
+  //imageProcessorTool,
+  //imageToMarkdownTool,
+  randomGeneratorTool,
+  spatialIndexTool,
+  binanceSpotMarketDataTool,
+  walmartSearchTool,
+  ebaySearchTool,
+  gitStatusTool,
+  gitDiffTool,
+  gitCommitTool,
+  gitLogTool,
+  gitBranchTool,
+  gitStashTool,
+  gitConfigTool,
+  ichimokuCloudTool,
+  fibonacciTool,
+  pivotPointsTool,
+  trendAnalysisTool,
+  momentumAnalysisTool,
+  volatilityAnalysisTool,
+  volumeAnalysisTool,
+  statisticalAnalysisTool,
+  heikinAshiTool,
+  marketSummaryTool,
+  candlestickPatternTool,
+  technicalAnalysisTool,
   readPDF,
   screenshotTool,
-  searchCode,
   unitConverterTool,
   weatherTool,
   writeNoteTool,
   yelpSearchTool,
 } from '@/src/mastra/tools'
+import type {
+  addIssueComment,
+  createIssue,
+  createPullRequest,
+  createRelease,
+  getFileContent,
+  getIssue,
+  getPullRequest,
+  getRepoFileTree,
+  getRepositoryInfo,
+  listCommits,
+  listIssues,
+  listPullRequests,
+  listRepositories,
+  mergePullRequest,
+  searchCode,
+} from '@/src/mastra/tools/github'
 import type { InferUITool } from '@mastra/core/tools'
+
 
 //export type ActiveDistTagUITool = InferUITool<typeof activeDistTag>
 export type AddIssueCommentUITool = InferUITool<typeof addIssueComment>
@@ -167,6 +213,19 @@ export type PolygonStockFundamentalsUITool = InferUITool<
 export type PolygonStockQuotesUITool = InferUITool<
   typeof polygonStockQuotesTool
 >
+export type PolygonCryptoSnapshotsUITool = InferUITool<
+  typeof polygonCryptoSnapshotsTool
+>
+export type CoinbaseExchangeMarketDataUITool = InferUITool<
+  typeof coinbaseExchangeMarketDataTool
+>
+export type YahooFinanceStockQuotesUITool = InferUITool<
+  typeof yahooFinanceStockQuotesTool
+>
+export type ScheduledFetchUITool = InferUITool<
+  typeof scheduledFetchTool
+>
+
 export type ReadPDFUITool = InferUITool<typeof readPDF>
 export type CalculatorUITool = InferUITool<typeof calculatorTool>
 export type UnitConverterUITool = InferUITool<typeof unitConverterTool>
@@ -176,3 +235,42 @@ export type SearchCodeUITool = InferUITool<typeof searchCode>
 export type WeatherUITool = InferUITool<typeof weatherTool>
 export type WriteNoteUITool = InferUITool<typeof writeNoteTool>
 export type YelpSearchUITool = InferUITool<typeof yelpSearchTool>
+export type BinanceSpotMarketDataUITool = InferUITool<typeof binanceSpotMarketDataTool>
+export type ChartJsUITool = InferUITool<typeof chartJsTool>
+export type CytoscapeUITool = InferUITool<typeof cytoscapeTool>
+export type DownsampleUITool = InferUITool<typeof downsampleTool>
+export type DiscordWebhookUITool = InferUITool<typeof discordWebhookTool>
+export type DateTimeUITool = InferUITool<typeof dateTimeTool>
+export type TimeZoneUITool = InferUITool<typeof timeZoneTool>
+//export type OcrUITool = InferUITool<typeof ocrTool>
+//export type ImageProcessorUITool = InferUITool<typeof imageProcessorTool>
+//export type ImageToMarkdownUITool = InferUITool<typeof imageToMarkdownTool>
+export type GitStatusUITool = InferUITool<typeof gitStatusTool>
+export type GitDiffUITool = InferUITool<typeof gitDiffTool>
+export type GitCommitUITool = InferUITool<typeof gitCommitTool>
+export type GitLogUITool = InferUITool<typeof gitLogTool>
+export type GitBranchUITool = InferUITool<typeof gitBranchTool>
+export type GitStashUITool = InferUITool<typeof gitStashTool>
+export type GitConfigUITool = InferUITool<typeof gitConfigTool>
+export type RandomGeneratorUITool = InferUITool<typeof randomGeneratorTool>
+export type LeafletUITool = InferUITool<typeof leafletTool>
+export type WalmartSearchUITool = InferUITool<typeof walmartSearchTool>
+export type EbaySearchUITool = InferUITool<typeof ebaySearchTool>
+export type SpatialIndexUITool = InferUITool<typeof spatialIndexTool>
+export type StooqStockQuotesUITool = InferUITool<typeof stooqStockQuotesTool>
+export type IchimokuCloudUITool = InferUITool<typeof ichimokuCloudTool>
+export type FibonacciUITool = InferUITool<typeof fibonacciTool>
+export type PivotPointsUITool = InferUITool<typeof pivotPointsTool>
+export type TrendAnalysisUITool = InferUITool<typeof trendAnalysisTool>
+export type MomentumAnalysisUITool = InferUITool<typeof momentumAnalysisTool>
+export type VolatilityAnalysisUITool = InferUITool<typeof volatilityAnalysisTool>
+export type VolumeAnalysisUITool = InferUITool<typeof volumeAnalysisTool>
+export type StatisticalAnalysisUITool = InferUITool<typeof statisticalAnalysisTool>
+export type HeikinAshiUITool = InferUITool<typeof heikinAshiTool>
+export type MarketSummaryUITool = InferUITool<typeof marketSummaryTool>
+export type CandlestickPatternUITool = InferUITool<typeof candlestickPatternTool>
+export type TechnicalAnalysisUITool = InferUITool<typeof technicalAnalysisTool>
+export type TextAnalysisUITool = InferUITool<typeof textAnalysisTool>
+export type TextProcessingUITool = InferUITool<typeof textProcessingTool>
+export type UrlValidationUITool = InferUITool<typeof urlValidationTool>
+export type UrlManipulationUITool = InferUITool<typeof urlManipulationTool>

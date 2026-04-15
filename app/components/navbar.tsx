@@ -175,20 +175,20 @@ export function Navbar() {
                                 <NavigationMenuTrigger asChild>
                                     <Button
                                         variant="ghost"
-                                        className={`relative group overflow-hidden h-9 px-4 transition-all duration-200 ${pathname === '/chat' || pathname === '/chat/user' || pathname === '/chat/admin' || pathname === '/docs' || pathname === '/pricing' ? 'bg-primary/10 shadow-sm' : ''}`}
+                                        className={`relative group overflow-hidden h-9 px-4 transition-all duration-200 ${pathname === '/chat' || pathname === '/chat/user' || pathname === '/chat/admin' || pathname === '/chat/workflows' || pathname === '/docs' || pathname === '/pricing' ? 'bg-primary/10 shadow-sm' : ''}`}
                                     >
                                         <span className="font-medium">
                                             Products
                                         </span>
                                         <ChevronDownIcon className="ml-2 size-3" />
                                         <span
-                                            className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${pathname === '/chat' || pathname === '/chat/user' || pathname === '/chat/admin' || pathname === '/docs' || pathname === '/pricing' ? 'scale-x-100' : 'scale-x-0'} group-hover:scale-x-100`}
+                                            className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${pathname === '/chat' || pathname === '/chat/user' || pathname === '/chat/admin' || pathname === '/chat/workflows' || pathname === '/docs' || pathname === '/pricing' ? 'scale-x-100' : 'scale-x-0'} group-hover:scale-x-100`}
                                         />
                                     </Button>
                                 </NavigationMenuTrigger>
 
                                 <NavigationMenuContent>
-                                    <div className="flex flex-col md:flex-row gap-8 p-6 min-w-max">
+                                    <div className="flex max-h-[calc(100vh-7rem)] w-[min(72rem,calc(100vw-2rem))] flex-col gap-8 overflow-y-auto overflow-x-hidden rounded-3xl border border-border/60 bg-background/95 p-6 shadow-2xl backdrop-blur-xl md:flex-row">
                                         <div className="flex flex-col gap-3 w-64">
                                             <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
                                                 Products
@@ -265,8 +265,8 @@ export function Navbar() {
                                             </Link>
 
                                             <Link
-                                                href="/chat/admin"
-                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/admin' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
+                                                href="/chat/workflows"
+                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/workflows' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
                                             >
                                                 <svg
                                                     className="size-5 text-red-500"
@@ -292,7 +292,7 @@ export function Navbar() {
 
                                             <Link
                                                 href="/chat/admin"
-                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/admin' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
+                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/workflows' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
                                             >
                                                 <svg
                                                     className="size-5 text-red-500"
@@ -497,7 +497,7 @@ export function Navbar() {
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.2 }}
                         id="mobile-menu"
-                        className="fixed inset-0 top-16 z-40 bg-background/95 backdrop-blur-3xl border-t p-6 md:hidden flex flex-col gap-4"
+                        className="fixed inset-0 top-16 z-40 flex flex-col gap-4 overflow-y-auto border-t bg-background/95 p-6 backdrop-blur-3xl md:hidden"
                     >
                         <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
                             Products

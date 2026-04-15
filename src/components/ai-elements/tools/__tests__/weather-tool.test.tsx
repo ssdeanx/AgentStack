@@ -12,12 +12,28 @@ describe('ForecastView', () => {
             input: { location: 'London', days: 3 },
             output: {
                 data: {
+                    current: {
+                        temp_c: 20,
+                        condition: {
+                            text: 'Partly cloudy',
+                            icon: '//cdn.weatherapi.com/icon.png',
+                        },
+                        humidity: 65,
+                        wind_kph: 12,
+                    },
+                    location: {
+                        name: 'London',
+                        country: 'UK',
+                        localtime: '2023-01-02 12:00',
+                    },
                     forecast: {
                         forecastday: [
                             {
                                 date: '2023-01-02',
                                 day: {
                                     avgtemp_c: 22,
+                                    mintemp_c: 16,
+                                    maxtemp_c: 24,
                                     condition: {
                                         text: 'Partly cloudy',
                                         icon: '//cdn.weatherapi.com/icon.png',
@@ -28,6 +44,8 @@ describe('ForecastView', () => {
                                 date: '2023-01-03',
                                 day: {
                                     avgtemp_c: 18,
+                                    mintemp_c: 12,
+                                    maxtemp_c: 20,
                                     condition: {
                                         text: 'Rain',
                                         icon: '//cdn.weatherapi.com/rain.png',
@@ -36,7 +54,6 @@ describe('ForecastView', () => {
                             },
                         ],
                     },
-                    location: { name: 'London' },
                 },
             },
         }

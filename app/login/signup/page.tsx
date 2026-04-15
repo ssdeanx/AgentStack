@@ -48,7 +48,6 @@ function SignupPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const authQuery = useAuthQuery()
-    const isHydrated = true
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
     const [name, setName] = useState('')
@@ -77,10 +76,6 @@ function SignupPageContent() {
         !isLoading
 
     useEffect(() => {
-        if (!isHydrated) {
-            return
-        }
-
         if (authQuery.isPending) {
             return
         }
@@ -88,13 +83,9 @@ function SignupPageContent() {
         if (authQuery.data) {
             router.replace(nextPath)
         }
-    }, [authQuery.data, authQuery.isPending, isHydrated, nextPath, router])
+    }, [authQuery.data, authQuery.isPending, nextPath, router])
 
     useEffect(() => {
-        if (!isHydrated) {
-            return
-        }
-
         if (authQuery.isPending || authQuery.data || !hasGoogleOneTapClient) {
             return
         }
@@ -102,7 +93,7 @@ function SignupPageContent() {
         void startGoogleOneTap({
             callbackURL: nextPath,
         })
-    }, [authQuery.data, authQuery.isPending, isHydrated, nextPath])
+    }, [authQuery.data, authQuery.isPending, nextPath])
 
     /** Starts the Google OAuth flow through Better Auth. */
     const handleGoogleSignIn = async () => {
@@ -168,7 +159,7 @@ function SignupPageContent() {
         router.replace(nextPath)
     }
 
-    if (!isHydrated || authQuery.isPending || authQuery.data) {
+    if (authQuery.isPending || authQuery.data) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background via-background to-muted/30 p-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
