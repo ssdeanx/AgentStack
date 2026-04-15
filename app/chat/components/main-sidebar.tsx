@@ -2,11 +2,11 @@
 
 import { useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
 import { useAuthQuery } from '@/lib/hooks/use-auth-query'
-import { useThreads } from '@/lib/hooks/use-mastra-query'
+import { useAgent, useThreads } from '@/lib/hooks/use-mastra-query'
 import { LogoutButton } from '../_components/logout-button'
 import {
     Sidebar,
@@ -42,7 +42,6 @@ import {
     WrenchIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import router from 'next/router'
 
 interface SidebarThread {
     id?: string
@@ -87,11 +86,40 @@ const formatThreadMeta = (thread: SidebarThread) => {
  */
 export function MainSidebar() {
     const pathname = usePathname()
+    const router = useRouter()
     const { data: session } = useAuthQuery()
     const { selectedAgent, setThreadId, threadId } = useChatContext()
+    const selectedAgentQuery = useAgent(selectedAgent)
     const threadsResult = useThreads({ agentId: selectedAgent })
 
     const threads = (threadsResult.data ?? []) as unknown as SidebarThread[]
+    const selectedAgentSummary = useMemo(() => {
+        const agent = selectedAgentQuery.data as Record<string, unknown> | undefined
+        if (!agent) {
+            return `Loading details for ${selectedAgent}...`
+        }
+
+        const agentName =
+            typeof agent.name === 'string' && agent.name.trim().length > 0
+                ? agent.name
+                : selectedAgent
+        const modelId =
+            typeof agent.modelId === 'string' && agent.modelId.trim().length > 0
+                ? agent.modelId
+                : typeof agent.model === 'string' && agent.model.trim().length > 0
+                  ? agent.model
+                  : ''
+        const provider =
+            typeof agent.provider === 'string' && agent.provider.trim().length > 0
+                ? agent.provider
+                : typeof agent.modelProvider === 'string' && agent.modelProvider.trim().length > 0
+                  ? agent.modelProvider
+                  : ''
+
+        return [agentName, provider ? `Provider: ${provider}` : '', modelId ? `Model: ${modelId}` : '']
+            .filter((part) => part.length > 0)
+            .join(' • ')
+    }, [selectedAgent, selectedAgentQuery.data])
 
     const pageItems = useMemo(
         () => [
@@ -210,7 +238,7 @@ export function MainSidebar() {
             setThreadId(nextThreadId)
             router.push(`/chat/agents/${selectedAgent}`)
         },
-        [selectedAgent, setThreadId]
+        [router, selectedAgent, setThreadId]
     )
 
     return (
@@ -244,7 +272,15 @@ export function MainSidebar() {
                             </button>
                         </TooltipTrigger>
                         <TooltipContent side="right">
-                            Return to the main chat dashboard.
+                            <div className="space-y-1">
+                                <div className="font-medium">Return to the main chat dashboard.</div>
+                                <div className="max-w-xs text-xs text-muted-foreground">
+                                    {selectedAgentSummary}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    {threads.length} thread{threads.length === 1 ? '' : 's'} loaded
+                                </div>
+                            </div>
                         </TooltipContent>
                     </Tooltip>
                 </SidebarHeader>

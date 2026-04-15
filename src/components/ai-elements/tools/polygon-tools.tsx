@@ -1,9 +1,11 @@
 'use client'
 
+import * as React from 'react'
+import type { InferUITool } from '@mastra/core/tools'
 import type {
   PolygonCryptoAggregatesUITool,
   PolygonCryptoQuotesUITool,
-
+  PolygonCryptoSnapshotsUITool,
   PolygonStockAggregatesUITool,
   PolygonStockFundamentalsUITool,
   PolygonStockQuotesUITool,
@@ -30,7 +32,7 @@ import { CodeBlock, CodeBlockCopyButton } from '../code-block'
 
 /* Utility helpers */
 function formatNumber(n?: number | string) {
-  if (n == null) {return 'N/A'}
+  if (n === null || n === undefined) {return 'N/A'}
   const num = typeof n === 'string' ? Number(n) : n
   if (Number.isNaN(num)) {return String(n)}
   return num >= 1000 ? num.toLocaleString() : num.toString()
@@ -384,15 +386,15 @@ export function PolygonCryptoSnapshotsCard({
   errorText?: string
 }) {
   if (errorText) {return <ErrorCard title="Crypto Snapshots Failed" message={errorText} />}
-  if (!output) {return <LoadingCard title={`Fetching snapshots for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if (!output) {return <LoadingCard title="Fetching crypto snapshots" icon={<Loader2 className="size-4 animate-spin" />} />}
   if ('error' in output) {return <ErrorCard title="Crypto Snapshots Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? []
   return (
     <Card>
       <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Crypto Snapshots: {(input as any).symbol}</CardTitle>
-        <div><Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-snapshots.json`, data)}><Download className="size-4" /></Button></div>
+        <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Crypto Snapshots</CardTitle>
+        <div><Button size="sm" variant="ghost" onClick={() => downloadJSON('crypto-snapshots.json', data)}><Download className="size-4" /></Button></div>
       </CardHeader>
       <CardContent>
         {Array.isArray(data) ? (

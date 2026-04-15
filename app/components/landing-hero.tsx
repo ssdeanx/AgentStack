@@ -74,7 +74,7 @@ export function LandingHero() {
     return (
         <section
             ref={sectionRef}
-            className="relative h-[100vh] min-h-[800px] w-full overflow-hidden bg-background"
+            className="relative min-h-[min(100vh,900px)] w-full overflow-hidden bg-background py-16 sm:py-20 lg:py-24"
         >
             {/* Network Architectural Background (Strict Grid) */}
             <NetworkBackground className="opacity-40" />
@@ -86,11 +86,11 @@ export function LandingHero() {
 
             <div
                 ref={containerRef}
-                className="container relative z-10 mx-auto grid h-full grid-cols-1 lg:grid-cols-2 items-center gap-16 px-6 pt-24"
+                className="container relative z-10 mx-auto grid h-full grid-cols-1 items-center gap-12 px-6 lg:grid-cols-2 lg:gap-16"
             >
                 {/* Left: Logical Architecture */}
                 <div className="relative z-10 max-w-2xl">
-                    <div className="mb-12 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 backdrop-blur-2xl hero-reveal">
+                    <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 backdrop-blur-2xl hero-reveal sm:px-5">
                         <div className="relative flex h-2 w-2">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/40 opacity-75"></span>
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
@@ -100,7 +100,7 @@ export function LandingHero() {
                         </span>
                     </div>
 
-                    <h1 className="mb-8 text-7xl font-black tracking-tight text-foreground sm:text-9xl leading-[0.8] hero-reveal">
+                    <h1 className="mb-6 text-5xl font-black leading-[0.85] tracking-tight text-foreground sm:text-7xl lg:text-8xl hero-reveal">
                         AGENT
                         <br />
                         <span className="text-transparent bg-clip-text bg-linear-to-b from-foreground via-foreground/90 to-primary/60">
@@ -108,25 +108,25 @@ export function LandingHero() {
                         </span>
                     </h1>
 
-                    <p className="mb-14 max-w-xl text-balance text-xl leading-relaxed text-muted-foreground/80 font-medium md:text-2xl hero-reveal">
+                    <p className="mb-10 max-w-xl text-balance text-lg leading-relaxed text-muted-foreground/80 font-medium sm:text-xl md:text-2xl hero-reveal">
                         The framework for high-precision multi-agent systems.
                         Engineered for
                         <span className="text-foreground"> architectural stability</span>,
                         observability, and production deployment at scale.
                     </p>
 
-                    <div className="flex flex-col gap-6 sm:flex-row hero-reveal">
-                        <button className="group relative h-16 w-full overflow-hidden rounded-2xl bg-primary px-12 text-lg font-bold text-primary-foreground shadow-2xl transition-all hover:scale-[1.02] active:scale-95 sm:w-auto">
+                    <div className="flex flex-col gap-4 sm:flex-row hero-reveal">
+                        <button className="group relative h-14 w-full overflow-hidden rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground shadow-2xl transition-all hover:scale-[1.02] active:scale-95 sm:w-auto sm:px-10 sm:text-lg">
                             <span className="relative z-10 flex items-center justify-center gap-4">
                                 Deployment Start
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="size-5 transition-transform group-hover:translate-x-1">
                                     <path d="M5 12h14M12 5l7 7-7 7" />
                                 </svg>
                             </span>
-                            <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:duration-700 group-hover:translate-x-[100%] transition-transform" />
+                            <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:duration-700 group-hover:translate-x-full transition-transform" />
                         </button>
 
-                        <button className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 px-12 text-lg font-bold text-foreground/80 backdrop-blur-3xl transition-all hover:bg-white/10 hover:border-white/20 sm:w-auto">
+                        <button className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 px-8 text-base font-bold text-foreground/80 backdrop-blur-3xl transition-all hover:bg-white/10 hover:border-white/20 sm:w-auto sm:px-10 sm:text-lg">
                             System Docs
                         </button>
                     </div>

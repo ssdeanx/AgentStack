@@ -10,14 +10,19 @@ import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
 
 export const libsqlstorage = new LibSQLStore({
     id: 'libsql-storage',
-    url: process.env.TURSO_DATABASE_URL ?? 'file:./database.db',
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    url:  'file:./database.db',
+    maxRetries: 5, // Optional retry configuration for transient errors
+    initialBackoffMs: 100, // Initial backoff for retries
+    //disableInit: process.env.DB_DISABLE_INIT === 'true', // Disable auto-init if specified
+    authToken: process.env.TURSO_AUTH_TOKEN, // Optional: for Turso cloud databases
+    // Additional options can be added here as needed
 })
+
 
 // Create a new vector store instance
 export const libsqlvector = new LibSQLVector({
     id: 'libsql-vector',
-    url: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
+    url:  'file:./database.db',
     // Optional: for Turso cloud databases
     authToken: process.env.TURSO_AUTH_TOKEN,
     syncInterval: 10000, // Sync every 10 seconds (optional)
@@ -27,11 +32,11 @@ export const libsqlvector = new LibSQLVector({
 })
 
 // Create an index
-await libsqlvector.createIndex({
-    indexName: 'memory_messages_3072',
-    dimension: 3072,
-    metric: 'cosine',
-})
+//await libsqlvector.createIndex({
+//    indexName: 'memory_messages_3072',
+//    dimension: 3072,
+//    metric: 'cosine',
+//})
 
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
@@ -121,8 +126,8 @@ export const LibsqlMemory = new Memory({
 })
 
 log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
-    storage: process.env.TURSO_DATABASE_URL ?? 'file:./database.db',
-    vector: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
+    storage: 'file:./database.db',
+    vector: 'file:./database.db',
     // schema: process.env.DB_SCHEMA ?? 'mastra',
     // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
     memoryOptions: {
