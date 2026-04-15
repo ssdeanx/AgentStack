@@ -1,7 +1,7 @@
 'use client'
 
 import { Panel } from '@/src/components/ai-elements/panel'
-import { useWorkflowContext } from '@/app/workflows/providers/workflow-context'
+import { useWorkflowContext } from '@/app/chat/providers/workflow-context'
 import {
     CircleIcon,
     CircleDotIcon,

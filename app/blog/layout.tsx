@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Navbar } from '@/app/components/navbar'
 import { Footer } from '@/app/components/footer'
 import { Sidebar } from '@/app/components/sidebar'
