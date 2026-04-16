@@ -56,19 +56,25 @@ export const LibsqlMemory = new Memory({
                 logOutputs: true,
             },
         },
-        maxParallelCalls: 50, // Limit parallel embedding calls to avoid rate limits
+    maxParallelCalls: 20, // Limit parallel embedding calls to avoid rate limits
     },
     options: {
         // Message management
         readOnly: false,
         observationalMemory: {
             enabled: true,
-            scope: 'thread', // 'resource' | 'thread'
+            scope: 'resource', // 'resource' | 'thread'
             model: 'google/gemini-2.5-flash',
-            shareTokenBudget: false, // Don't share token budget between observation and reflection to preserve context
+            retrieval: { vector: true, scope: 'resource' },
+            shareTokenBudget: true, // Don't share token budget between observation and reflection to preserve context
             observation: {
                 instruction: 'You are an assistant that observes and remembers important information from the conversation. Pay attention to details, context, and any information that might be useful for future reference.',
-                messageTokens: 60_000,
+                messageTokens: 50_000,
+                bufferTokens: 5_000,
+                // Activate to retain 30% of threshold
+                bufferActivation: 0.85,
+                // Force synchronous observation at 1.5x threshold
+                blockAfter: 1.5,
                 modelSettings: {
                     temperature: 0.3,
                     maxOutputTokens: 64_000,
@@ -77,6 +83,9 @@ export const LibsqlMemory = new Memory({
                 },
             },
             reflection: {
+                bufferActivation: 0.5,
+                // Force synchronous reflection at 1.2x threshold
+                blockAfter: 1.2,
                 instruction: 'Based on the observations, generate concise and informative reflections that capture important details, context, and insights from the conversation. These reflections should be useful for future reference and help provide context for the assistant.',
                 modelSettings: {
                     temperature: 0.3,
@@ -84,7 +93,7 @@ export const LibsqlMemory = new Memory({
                     topK: 40,
                     topP: 0.95,
                 },
-                observationTokens: 50_000,
+                observationTokens: 40_000,
             },
         },
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
@@ -115,6 +124,7 @@ export const LibsqlMemory = new Memory({
 {{#if user.organization}}Organization: {{user.organization}}{{/if}}
 {{#if user.preferences}}Preferences: {{user.preferences}}{{/if}}
 {{#if user.history}}History: {{user.history}}{{/if}}
+{{#if user.other}}Other: {{user.other}}{{/if}}
 
 # Conversation Context
 {{#if conversation.topic}}Topic: {{conversation.topic}}{{/if}}
@@ -123,7 +133,12 @@ export const LibsqlMemory = new Memory({
 # Additional Context
 {{#each additionalContext}}
 - {{this}}
-- {{/each}}
+{{/each}}
+
+## Important Information
+{{#each importantInfo}}
+- {{this}}
+{{/each}}
 `,
         },
     },
