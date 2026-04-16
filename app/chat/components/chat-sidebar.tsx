@@ -54,8 +54,8 @@ import {
     Loader2Icon,
 } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
-import { CATEGORY_LABELS } from '../config/agents'
 import { cn } from '@/lib/utils'
+import { RUNTIME_AGENT_CATEGORY_LABELS } from '../lib/runtime-chat-catalog'
 
 type TabKey =
     | 'threads'
@@ -582,7 +582,7 @@ export function ChatSidebar() {
                                         variant="outline"
                                         className="border-primary/20 bg-primary/5 text-[10px] uppercase tracking-wider text-primary"
                                     >
-                                        {CATEGORY_LABELS[agentConfig.category]}
+                                        {RUNTIME_AGENT_CATEGORY_LABELS[agentConfig.category]}
                                     </Badge>
                                     <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
                                         {memoryStatusRes ? 'Memory On' : 'Memory Off'}
@@ -595,6 +595,15 @@ export function ChatSidebar() {
                                     </Badge>
                                     <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
                                         {workflowLabels.length} Workflows
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {agentConfig.browserTools.length} Browser
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {agentConfig.workspaceTools.length} Workspace
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {agentConfig.skillNames.length} Skills
                                     </Badge>
                                 </div>
                             </div>

@@ -76,7 +76,7 @@ export function AgentCheckpoint({
             : `Checkpoint ${messageIndex + 1}`)
 
     return (
-        <Checkpoint className={cn('group', className)}>
+        <Checkpoint className={cn('group rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-black/5', className)}>
             <CheckpointIcon>
                 <div className="relative">
                     <BookmarkIcon
@@ -87,7 +87,7 @@ export function AgentCheckpoint({
                 </div>
             </CheckpointIcon>
 
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
                 <span className="text-xs text-muted-foreground truncate">
                     {displayLabel}
                 </span>
@@ -117,7 +117,7 @@ export function AgentCheckpoint({
                 onClick={onRestore}
                 tooltip={`Restore to ${displayLabel}`}
                 aria-label={`Restore to ${displayLabel}`}
-                className="gap-1.5 opacity-60 hover:opacity-100 transition-opacity"
+                className="gap-1.5 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 opacity-70 shadow-sm transition-opacity hover:opacity-100"
             >
                 <RotateCcwIcon className="size-3" aria-hidden="true" />
                 <span className="text-xs hidden sm:inline">Restore</span>

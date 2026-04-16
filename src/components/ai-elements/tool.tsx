@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -8,24 +7,22 @@ import {
 } from "@/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import {
-  CheckCircleIcon,
-  ChevronDownIcon,
-  CircleIcon,
-  ClockIcon,
-  WrenchIcon,
-  XCircleIcon,
-} from "lucide-react";
+import { ChevronDownIcon, WrenchIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
 
 import { CodeBlock } from "./code-block";
 
+import { getStatusBadge } from "./tool-status";
+
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
   <Collapsible
-    className={cn("group not-prose mb-4 w-full rounded-md border", className)}
+    className={cn(
+      "group not-prose mb-4 w-full rounded-2xl border border-border/60 bg-card/80 shadow-sm shadow-black/5 backdrop-blur-sm transition-all duration-300",
+      className
+    )}
     {...props}
   />
 );
@@ -44,33 +41,6 @@ export type ToolHeaderProps = {
     }
 );
 
-const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "Awaiting Approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
-};
-
-const statusIcons: Record<ToolPart["state"], ReactNode> = {
-  "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
-  "approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
-  "input-available": <ClockIcon className="size-4 animate-pulse" />,
-  "input-streaming": <CircleIcon className="size-4" />,
-  "output-available": <CheckCircleIcon className="size-4 text-green-600" />,
-  "output-denied": <XCircleIcon className="size-4 text-orange-600" />,
-  "output-error": <XCircleIcon className="size-4 text-red-600" />,
-};
-
-export const getStatusBadge = (status: ToolPart["state"]) => (
-  <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
-    {statusIcons[status]}
-    {statusLabels[status]}
-  </Badge>
-);
-
 export const ToolHeader = ({
   className,
   title,
@@ -85,7 +55,7 @@ export const ToolHeader = ({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex w-full items-center justify-between gap-4 p-3",
+        "flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3 transition-colors hover:bg-muted/40",
         className
       )}
       {...props}
@@ -105,7 +75,7 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 p-4 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "closed:fade-out-0 closed:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 space-y-4 px-4 pb-4 pt-2 text-popover-foreground outline-none closed:animate-out data-[state=open]:animate-in",
       className
     )}
     {...props}
@@ -121,7 +91,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
       Parameters
     </h4>
-    <div className="rounded-md bg-muted/50">
+    <div className="rounded-xl border border-border/60 bg-muted/40 shadow-inner">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
@@ -159,10 +129,10 @@ export const ToolOutput = ({
       </h4>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
+          "overflow-x-auto rounded-xl border border-border/60 text-xs shadow-inner [&_table]:w-full",
           errorText
             ? "bg-destructive/10 text-destructive"
-            : "bg-muted/50 text-foreground"
+            : "bg-muted/40 text-foreground"
         )}
       >
         {errorText && <div>{errorText}</div>}

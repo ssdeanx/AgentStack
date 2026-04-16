@@ -7,6 +7,11 @@ import {
     ModelRouterLanguageModel,
 } from '@mastra/core/llm'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
+import { fastembed, warmup } from '@mastra/fastembed'
+
+const LIBSQL_EMBEDDING_MODEL = fastembed.base
+const LIBSQL_EMBEDDING_DIMENSION = 768
+const LIBSQL_INDEX_NAME = `memory_messages_${LIBSQL_EMBEDDING_DIMENSION}`
 
 export const libsqlstorage = new LibSQLStore({
     id: 'libsql-storage',
@@ -31,19 +36,18 @@ export const libsqlvector = new LibSQLVector({
     initialBackoffMs: 50, // Initial backoff for retries
 })
 
-// Create an index
-//await libsqlvector.createIndex({
-//    indexName: 'memory_messages_3072',
-//    dimension: 3072,
-//    metric: 'cosine',
-//})
+// Pre-download the FastEmbed model before Memory starts embedding messages.
+await warmup()
+
+await libsqlvector.createIndex({
+    indexName: LIBSQL_INDEX_NAME,
+    dimension: LIBSQL_EMBEDDING_DIMENSION,
+})
 
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
     vector: libsqlvector,
-    embedder: new ModelRouterEmbeddingModel(
-        'google/gemini-embedding-2-preview'
-    ),
+    embedder: LIBSQL_EMBEDDING_MODEL,
     embedderOptions: {
         telemetry: {
             request: {
@@ -52,25 +56,19 @@ export const LibsqlMemory = new Memory({
                 logOutputs: true,
             },
         },
-        //maxParallelCalls: 10, // Limit parallel embedding calls to avoid rate limits
-        providerOptions: {
-            google: {
-                outputDimensions: 3072,
-                taskType: 'RETRIEVAL_DOCUMENT',
-            },
-        },
+        maxParallelCalls: 50, // Limit parallel embedding calls to avoid rate limits
     },
     options: {
         // Message management
         readOnly: false,
         observationalMemory: {
             enabled: true,
-            scope: 'resource', // 'resource' | 'thread'
-            model: 'google/gemini-3.1-flash-lite-preview',
+            scope: 'thread', // 'resource' | 'thread'
+            model: 'google/gemini-2.5-flash',
             shareTokenBudget: false, // Don't share token budget between observation and reflection to preserve context
             observation: {
                 instruction: 'You are an assistant that observes and remembers important information from the conversation. Pay attention to details, context, and any information that might be useful for future reference.',
-                messageTokens: 75_000,
+                messageTokens: 60_000,
                 modelSettings: {
                     temperature: 0.3,
                     maxOutputTokens: 64_000,
@@ -100,7 +98,7 @@ export const LibsqlMemory = new Memory({
             },
             scope: 'resource', // 'resource' | 'thread'
             threshold: 0.75, // Similarity threshold for semantic recall
-            indexName: 'memory_messages_3072', // Index name for semantic recall
+            indexName: LIBSQL_INDEX_NAME, // Index name for semantic recall
         },
         // Enhanced working memory with supported template
         workingMemory: {
@@ -112,6 +110,11 @@ export const LibsqlMemory = new Memory({
 {{#if user.name}}Name: {{user.name}}{{/if}}
 {{#if user.role}}Role: {{user.role}}{{/if}}
 {{#if user.language}}Language: {{user.language}}{{/if}}
+{{#if user.location}}Location: {{user.location}}{{/if}}
+{{#if user.email}}Email: {{user.email}}{{/if}}
+{{#if user.organization}}Organization: {{user.organization}}{{/if}}
+{{#if user.preferences}}Preferences: {{user.preferences}}{{/if}}
+{{#if user.history}}History: {{user.history}}{{/if}}
 
 # Conversation Context
 {{#if conversation.topic}}Topic: {{conversation.topic}}{{/if}}
@@ -120,6 +123,7 @@ export const LibsqlMemory = new Memory({
 # Additional Context
 {{#each additionalContext}}
 - {{this}}
+- {{/each}}
 `,
         },
     },
@@ -128,29 +132,9 @@ export const LibsqlMemory = new Memory({
 log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
     storage: process.env.DB ?? 'file:./database.db',
     vector: process.env.DB ?? 'file:./database.db',
+    outputDimensions: LIBSQL_EMBEDDING_DIMENSION,
     // schema: process.env.DB_SCHEMA ?? 'mastra',
     // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
-    memoryOptions: {
-        observationMemory: true,
-        lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
-        semanticRecall: {
-            topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
-            messageRange: {
-                before: parseInt(process.env.SEMANTIC_RANGE_BEFORE ?? '3'),
-                after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
-            },
-            scope: 'resource',
-            indexConfig: {
-                type: 'ivfflat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
-                metric: 'cosine', // Distance metric for normalized embeddings
-            },
-        },
-        workingMemory: {
-            enabled: true,
-            scope: 'resource',
-            version: 'vnext',
-        },
-    },
 })
 
 export const libsqlgraphQueryTool = createGraphRAGTool({
@@ -160,17 +144,11 @@ export const libsqlgraphQueryTool = createGraphRAGTool({
     // Supported vector store and index options
     vectorStore: libsqlvector,
     vectorStoreName: 'libsql-vector',
-    indexName: 'memory_messages_3072',
-    model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
-    providerOptions: {
-        google: {
-            outputDimensions: 3072,
-            taskType: 'RETRIEVAL_DOCUMENT',
-        },
-    },
-    // Supported graph options (updated for 3072 dimensions)
+    indexName: LIBSQL_INDEX_NAME,
+    model: LIBSQL_EMBEDDING_MODEL,
+    // Supported graph options (updated for 768 dimensions)
     graphOptions: {
-        dimension: 3072, // gemini-embedding-2-preview dimension (3072)
+        dimension: LIBSQL_EMBEDDING_DIMENSION, // FastEmbed base dimension (768)
         threshold: parseFloat(process.env.GRAPH_THRESHOLD ?? '0.7'),
         randomWalkSteps: parseInt(process.env.GRAPH_RANDOM_WALK_STEPS ?? '10'),
         restartProb: parseFloat(process.env.GRAPH_RESTART_PROB ?? '0.15'),
@@ -189,14 +167,8 @@ export const libsqlQueryTool = createVectorQueryTool({
     // Supported vector store and index options
     vectorStore: libsqlvector,
     vectorStoreName: 'libsql-vector',
-    indexName: 'memory_messages_3072',
-    model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
-    providerOptions: {
-        google: {
-            outputDimensions: 3072,
-            taskType: 'RETRIEVAL_DOCUMENT',
-        },
-    },
+    indexName: LIBSQL_INDEX_NAME,
+    model: LIBSQL_EMBEDDING_MODEL,
     includeVectors: true,
     // Advanced filtering
     enableFilter: true,

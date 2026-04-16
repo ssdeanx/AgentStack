@@ -1,3 +1,102 @@
+# Progress Update (2026-04-16 - FastEmbed bootstrap hardening)
+
+- Added `warmup()` from `@mastra/fastembed` to `src/mastra/config/libsql.ts` so the base model cache is preloaded before memory semantic recall starts.
+- Kept the LibSQL vector setup intact while aligning it to the `fastembed.base` 768-dimension model path and shared `memory_messages_768` index name.
+- Remaining risk: if the local FastEmbed cache is already corrupted from a previous failed download, the cached model directory under `C:\Users\ssdsk\.cache\mastra\fastembed-models\fast-bge-base-en-v1.5` may still need to be cleared once.
+
+# Progress Update (2026-04-16 - chat shell redesign and theme cleanup)
+
+- Reworked the highest-leverage shared chat surfaces instead of styling routes in isolation:
+  - `app/chat/components/chat-page-shell.tsx` now supports a cleaner shared header, wider centered content rhythm, and `fullBleed` mode for immersive routes.
+  - `app/chat/components/chat-settings-shell.tsx` now uses the same calmer panel treatment for user/admin section navigation.
+  - `app/chat/components/main-sidebar.tsx` now uses the refined sidebar surface, denser navigation cards, and consistent dataset iconography.
+- Brought the two remaining shell outliers onto the shared chat system:
+  - `app/chat/builder/page.tsx` now renders inside `ChatPageShell` + `MainSidebar` instead of custom chrome.
+  - `app/chat/workflows/page.tsx` now renders inside the shared shell with `fullBleed` mode so the workflow canvas keeps its immersive layout without losing the persistent sidebar.
+- Softened the most aggressive visual effects that were driving the “greenish / bento / glassy” feel:
+  - `app/layout.tsx` no longer applies `mesh-gradient` to the entire app body.
+  - `app/globals.css` now defines calmer chat shell, sidebar, panel, toolbar, and canvas utilities and removes the old green/yellow mesh tint.
+  - `chat-input.tsx`, `chat-messages.tsx`, `chat-layout.tsx`, `code-layout.tsx`, and workflow canvas/header surfaces now use the more restrained treatment.
+- Fixed two runtime regressions discovered during live verification:
+  - restored `MASTRA_API_BASE_URL` export from `lib/mastra-client.ts`
+  - fixed `ChatProvider` to derive runtime agent ids from `useAgents()` array items instead of `Object.keys(...)`, which was incorrectly producing `"0"` and causing `/api/agents/0` requests
+- Validation:
+  - ✅ targeted IDE diagnostics are clean for the edited shell, workflow, builder, layout, and client/hook files
+  - ✅ targeted ESLint passes for the edited chat UI files plus `chat-context.tsx`, `use-mastra-query.ts`, and `lib/mastra-client.ts`
+  - ✅ Next.js dev-server errors are clear after the fixes
+  - ✅ browser verification confirms `/chat/workflows` no longer throws the React Flow parent-height warning
+  - ⚠️ browser verification of `/chat/builder` still depends on the Mastra backend at `http://localhost:4111`; with that service offline the page shows expected connection-refused errors for live runtime data
+
+# Progress Update (2026-04-15 - runtime chat metadata cutover)
+
+- Replaced the chat shell’s hardcoded agent/model presentation dependency with a runtime-first layer in `app/chat/lib/runtime-chat-catalog.ts`.
+- `app/chat/providers/chat-context.tsx` no longer builds `agentConfig` from `app/chat/config/agents.ts`; it now derives a runtime agent surface from live `useAgent(...)` data.
+- `app/chat/components/chat-header.tsx` now renders agent groups from live `useAgents()` data and model groups from live `useAgentModelProviders()` data instead of `app/chat/config/agents.ts` / `app/chat/config/models.ts`.
+- `app/chat/components/chat-sidebar.tsx` now uses the runtime category labels and exposes live browser/workspace/skill counts from the active agent surface.
+- The chat input/messages surfaces continue to consume `agentConfig`, but that contract is now runtime-derived rather than backed by the local config registry.
+- Current limitation:
+  - the installed `@mastra/client-js` surface exposes browser capability metadata (`browserTools`) and related runtime-adjacent fields, but not a first-class browser/editor runtime-control resource comparable to tool providers, so this pass surfaces capabilities rather than implementing new browser/editor control endpoints.
+- Validation:
+  - ✅ targeted IDE diagnostics are clean for:
+    - `app/chat/lib/runtime-chat-catalog.ts`
+    - `app/chat/providers/chat-context.tsx`
+    - `app/chat/providers/chat-context-types.ts`
+    - `app/chat/components/chat-header.tsx`
+    - `app/chat/components/chat-input.tsx`
+    - `app/chat/components/chat-messages.tsx`
+    - `app/chat/components/agent-launchpad.tsx`
+    - `app/chat/providers/chat-context-hooks.ts`
+  - ⚠️ `app/chat/components/chat-header.tsx` and `app/chat/components/chat-sidebar.tsx` still show existing editor hints about missing button `type` attributes on untouched buttons.
+
+# Progress Update (2026-04-15 - Mastra client hook parity hardening)
+
+- Tightened `lib/hooks/use-mastra-query.ts` to match the installed `@mastra/client-js` surface more precisely instead of relying on guessed wrappers or loose mutation signatures.
+- `useToolProvider(...)` no longer incorrectly aliases `listToolkits()`; it now returns the actual tool-provider resource handle so provider-specific hooks can map to the real resource methods without semantic drift.
+- Stored-resource mutation hooks now accept explicit `{ params, requestContext }` inputs for update/version operations where the client resource supports optional request context:
+  - stored agents
+  - stored prompt blocks
+  - stored scorers
+  - stored MCP clients
+  - stored skills
+- Workspace skill hooks now support the installed client’s optional `skillPath` parameter so duplicate skill names can be addressed correctly:
+  - `useWorkspaceSkill(...)`
+  - `useWorkspaceSkillReferences(...)`
+  - `useWorkspaceSkillReference(...)`
+- `useCompareStoredScorerVersions(...)` now uses the scorer-specific compare response type from `@mastra/client-js`.
+- Validation:
+  - ✅ `npx eslint lib/hooks/use-mastra-query.ts --max-warnings=0`
+  - ⚠️ `npm run typecheck` is currently blocked by pre-existing repo/tooling issues unrelated to this hook pass:
+    - unsupported `tsconfig.json` compiler options (`libReplacement`, `noUncheckedSideEffectImports`)
+    - `@mdx-js/loader` declaration parsing under the current TypeScript toolchain
+
+# Progress Update (2026-04-15 - chat provider UX + builder contract cleanup)
+
+- `app/chat/providers/chat-context.tsx` now derives the active agent from live `useAgents()` data and reuses the shared Mastra API base URL from `lib/mastra-client.ts` instead of maintaining a duplicate local fallback.
+- The chat context now exposes provider readiness metadata from `useAgentModelProviders()`:
+  - `selectedProviderConnected`
+  - `selectedProviderEnvVar`
+  - `selectedProviderDocUrl`
+- The selected-model picker now stays scoped to models actually available for the active agent/provider combination instead of showing the provider's entire global model catalog.
+- `app/chat/components/chat-input.tsx` now shows provider readiness directly in the composer:
+  - green/amber provider light
+  - active/disconnected provider badge text
+  - env-var hint in the provider picker when a provider is missing credentials
+- `app/chat/components/chat-messages.tsx` now surfaces runtime context more clearly above the conversation:
+  - provider/model readiness badge
+  - browser/workspace capability badges
+  - actionable empty-state/provider-warning copy
+- `app/chat/builder/page.tsx` now uses the exact `CreateStoredAgentParams` contract from `@mastra/client-js`:
+  - removed the `unknown` payload cast
+  - replaced hardcoded Gemini options with live provider/model data
+  - converts selected tools into `Record<string, StoredAgentToolConfig>`
+  - blocks save when the selected provider is not connected
+- `src/mastra/tools/fetch.tool.ts` now forwards the tool execution `abortSignal` into every downstream `httpFetch` call and no longer reads a fake module-level controller.
+- `lib/mastra-client.ts` no longer exports a shared startup-time abort controller; it now exposes a `createMastraClient(abortSignal?)` helper so cancellation can be request-scoped later.
+- Validation:
+  - ✅ targeted IDE diagnostics are clean for `chat-context.tsx`, `chat-input.tsx`, `chat-messages.tsx`, `builder/page.tsx`, and `lib/mastra-client.ts`
+  - ✅ `npx eslint app/chat/providers/chat-context.tsx app/chat/components/chat-input.tsx app/chat/components/chat-messages.tsx app/chat/builder/page.tsx lib/mastra-client.ts --max-warnings=0`
+  - ⚠️ browser verification of `/chat` still depends on the Mastra backend at `http://localhost:4111`; when that service is down the UI shows provider-fetch connection failures outside this code change
+
 # Progress Update (2026-04-15 - modular chat settings and workspace hook normalization)
 
 - Added a shared `app/chat/components/chat-settings-shell.tsx` wrapper so route-level settings pages consistently use `ChatProvider`, `ChatPageShell`, and `MainSidebar`.

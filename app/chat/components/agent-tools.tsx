@@ -112,7 +112,7 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
     }
 
     return (
-        <div className={cn('space-y-2 mt-2', className)}>
+        <div className={cn('mt-3 space-y-3', className)}>
             {groups.map(({ id, items }, groupIdx) => {
                 if (items.length === 0) {
                     return null
@@ -431,7 +431,7 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                         />
                         <ToolContent>
                             {progressMessages.length > 0 && (
-                                <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                                <div className="rounded-2xl border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground shadow-sm">
                                     <div className="font-medium text-foreground/80">
                                         Progress
                                     </div>

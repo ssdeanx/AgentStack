@@ -62,6 +62,7 @@ import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
+import { SidebarProvider } from '@/ui/sidebar'
 import {
     Tooltip,
     TooltipContent,
@@ -532,10 +533,10 @@ export function CodeLayout() {
 
     return (
         <TooltipProvider delayDuration={150}>
-            <div className="relative flex min-h-[calc(100vh-4rem)] bg-background">
+            <div className="chat-shell-bg relative flex min-h-[calc(100vh-4rem)]">
                 {showHelpPanel ? (
                     <Panel position="top-right" className="pointer-events-auto z-20 w-88">
-                        <div className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-xl backdrop-blur">
+                        <div className="chat-panel rounded-3xl p-4">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
@@ -565,12 +566,14 @@ export function CodeLayout() {
                         </div>
                     </Panel>
                 ) : null}
-            <aside className="w-70 shrink-0 border-r border-border bg-background">
-                <MainSidebar />
-            </aside>
+            <SidebarProvider>
+                <aside className="chat-sidebar-surface w-70 shrink-0">
+                    <MainSidebar />
+                </aside>
+            </SidebarProvider>
 
             <div className="grid min-w-0 flex-1 grid-cols-[300px_minmax(0,1fr)_420px]">
-                <aside className="min-h-0 overflow-auto border-r border-border bg-card/25 p-4">
+                <aside className="min-h-0 overflow-auto border-r border-border/70 bg-background/72 p-4 backdrop-blur-xl">
                 <div className="space-y-4">
                     <div className="flex items-center justify-end">
                         <Tooltip>

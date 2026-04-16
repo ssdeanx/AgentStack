@@ -13,6 +13,7 @@ import { WorkflowOutput } from './workflow-output'
 import { WorkflowInputPanel } from './workflow-input-panel'
 import { WorkflowProgressPanel } from './workflow-progress-panel'
 import { WorkflowSuspendDialog } from './workflow-suspend-dialog'
+import { WorkflowIcon } from 'lucide-react'
 import { MiniMap, Panel, Background, BackgroundVariant } from '@xyflow/react'
 import type { ReactNode } from 'react'
 
@@ -30,7 +31,7 @@ export function WorkflowCanvas({ children }: WorkflowCanvasProps) {
         useWorkflowContext()
 
     return (
-        <div className="flex-1 relative noise overflow-hidden mesh-gradient">
+        <div className="chat-canvas-surface relative flex-1 overflow-hidden noise">
             <Canvas
                 nodes={nodes}
                 edges={edges}
@@ -56,12 +57,12 @@ export function WorkflowCanvas({ children }: WorkflowCanvasProps) {
                 />
                 <Controls
                     showInteractive={false}
-                    className="bg-background/80 backdrop-blur-md border-border/50 shadow-xl"
+                    className="chat-panel !rounded-2xl"
                 />
                 <MiniMap
                     zoomable
                     pannable
-                    className="!bg-card/60 !backdrop-blur-xl !border-border/30 rounded-2xl shadow-2xl !bottom-4 !right-4 overflow-hidden"
+                    className="!bottom-4 !right-4 !overflow-hidden !rounded-2xl !border-border/60 !bg-background/92 shadow-xl"
                     nodeStrokeWidth={3}
                     maskColor="oklch(var(--background) / 0.6)"
                     nodeColor={(n) => {
@@ -79,33 +80,32 @@ export function WorkflowCanvas({ children }: WorkflowCanvasProps) {
                 />
                 <Panel
                     position="bottom-left"
-                    className="bg-background/40 backdrop-blur-xl border-border/20 rounded-full px-4 py-1.5 text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] shadow-lg animate-fade-in"
+                    className="chat-panel-muted rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
                 >
                     <span className="flex items-center gap-2">
-                        <div className="size-1.5 bg-primary rounded-full animate-pulse" />
-                        {workflowConfig?.name} • CORE ENGINE 2026
+                        <div className="size-1.5 rounded-full bg-primary" />
+                        {workflowConfig?.name ?? 'Workflow runtime'}
                     </span>
                 </Panel>
 
-                {/* Floating status display */}
                 <Panel
                     position="top-left"
-                    className="bg-card/30 backdrop-blur-2xl border-border/10 rounded-xl p-3 shadow-2xl mt-16 max-w-xs animate-in slide-in-from-left-4 duration-500"
+                    className="chat-panel mt-16 max-w-xs rounded-2xl p-4"
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <div className="size-4 text-primary">⚙️</div>
+                    <div className="mb-2 flex items-center gap-3">
+                        <div className="flex size-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                            <WorkflowIcon className="size-4" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
                                 Active Runtime
                             </p>
-                            <p className="text-xs font-semibold truncate">
+                            <p className="truncate text-xs font-semibold">
                                 {workflowConfig?.id}
                             </p>
                         </div>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
                         {workflowConfig?.description}
                     </p>
                 </Panel>

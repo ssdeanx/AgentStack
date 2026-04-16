@@ -76,7 +76,6 @@ import { projectManagementAgent } from './agents/projectManagementAgent'
 import { seoAgent } from './agents/seoAgent'
 import { socialMediaAgent } from './agents/socialMediaAgent'
 import { translationAgent } from './agents/translationAgent'
-
 // Image Processing Agents
 import { imageAgent } from './agents/image'
 
@@ -187,34 +186,14 @@ import { supervisorAgent } from './agents/supervisor-agent'
 import { mastraAuth } from './auth'
 import { agentFsWorkspace } from './workspaces'
 import { MastraEditor } from '@mastra/editor'
-import { MastraCompositeStore } from '@mastra/core/storage'
+//import { MastraCompositeStore } from '@mastra/core/storage'
 import { ArcadeToolProvider } from '@mastra/editor/arcade'
 import { ComposioToolProvider } from '@mastra/editor/composio'
+//import { PosthogExporter } from '@mastra/posthog'
 
 export const mastra = new Mastra({
     workspace: agentFsWorkspace,
-    editor: new MastraEditor(
-        {
-            logger: log,
-            toolProviders: {
-                composio: new ComposioToolProvider({
-                apiKey: process.env.COMPOSIO_API_KEY!,
-                }),
-                // Add other tool providers here
-                arcade: new ArcadeToolProvider({
-                apiKey: process.env.ARCADE_API_KEY!,
-                }),
-            },
-            sandboxes: {
-                // Optional: restrict certain modules or APIs for security
-            },
-            filesystems: {
-
-                // Optional: configure storage limits, allowed file types, etc.
-            },
-             // Optional: add a custom toolbar with specific tools or actions
-        }
-    ),
+    
     workflows: {
         weatherWorkflow,
         contentStudioWorkflow,
@@ -348,6 +327,28 @@ export const mastra = new Mastra({
         a2aCoordinatorAgent,
         codingA2ACoordinator,
     },
+    editor: new MastraEditor(
+        {
+            logger: log,
+            toolProviders: {
+                composio: new ComposioToolProvider({
+                apiKey: process.env.COMPOSIO_API_KEY!,
+                }),
+                // Add other tool providers here
+                arcade: new ArcadeToolProvider({
+                apiKey: process.env.ARCADE_API_KEY!,
+                }),
+            },
+            sandboxes: {
+                // Optional: restrict certain modules or APIs for security
+            },
+            filesystems: {
+
+                // Optional: configure storage limits, allowed file types, etc.
+            },
+             // Optional: add a custom toolbar with specific tools or actions
+        }
+    ),
     scorers: {
         completeness: createCompletenessScorer(),
         keywordCoverage: keywordCoverageScorer,
@@ -424,12 +425,12 @@ export const mastra = new Mastra({
                   //  new CloudExporter(),
                 ],
                 includeInternalSpans: true,
-                serializationOptions: {
-                    maxStringLength: 1080, // Truncate long strings to prevent oversized spans
-                    maxArrayLength: 100, // Limit array lengths in span attributes
-                    maxDepth: 6, // Limit depth of nested objects in span attributes
-                    maxObjectKeys: 100, // Limit number of keys in objects included in span attributes
-                }
+                //serializationOptions: {
+                //    maxStringLength: 1080, // Truncate long strings to prevent oversized spans
+                //    maxArrayLength: 100, // Limit array lengths in span attributes
+                //    maxDepth: 6, // Limit depth of nested objects in span attributes
+                //    maxObjectKeys: 100, // Limit number of keys in objects included in span attributes
+                //}
             }
         }
     }),
@@ -452,6 +453,7 @@ export const mastra = new Mastra({
                 path: '/workflow/:workflowId',
                 includeTextStreamParts: true,
             }),
+            // Deprecated use chat instead since use supervisor agents instead.
             networkRoute({
                 path: '/network/:agentId',
             }),

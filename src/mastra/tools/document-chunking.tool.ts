@@ -23,6 +23,7 @@ import { libsqlvector } from '../config/libsql'
 
 import type { RequestContext } from '@mastra/core/request-context'
 import type { ExtractParams } from '@mastra/rag'
+import { resolveAbortSignal } from './abort-signal.utils'
 
 log.info('Initializing Document Chunking Tool...')
 
@@ -507,7 +508,7 @@ content indexing, or semantic search capabilities.
         log.info('MDocument chunker tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal),
             hook: 'onInputStart',
         })
     },
@@ -516,7 +517,7 @@ content indexing, or semantic search capabilities.
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
@@ -528,7 +529,7 @@ content indexing, or semantic search capabilities.
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            abort: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -921,7 +922,7 @@ content indexing, or semantic search capabilities.
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -971,7 +972,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
         log.info('LibSQL chunker tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -980,7 +981,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
@@ -992,7 +993,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1384,7 +1385,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -1450,7 +1451,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         log.info('Document reranker tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -1461,7 +1462,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             indexName: input.indexName,
             topK: input.topK,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1471,7 +1472,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             toolName,
             documentCount: output.rerankedDocuments.length,
             processingTimeMs: output.processingTimeMs,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },

@@ -280,9 +280,9 @@ export function AgentLaunchpad({ mode, limit, className }: AgentLaunchpadProps) 
 
     return (
         <TooltipProvider delayDuration={150}>
-            <section className={cn('space-y-5', className)}>
-            <Card className="border-border/60 bg-card/80 shadow-sm">
-                <CardContent className="grid gap-4 p-5 lg:grid-cols-[1.5fr_1fr] lg:items-center">
+            <section className={cn('space-y-6', className)}>
+            <Card className="overflow-hidden rounded-3xl border-border/60 bg-card/80 shadow-sm shadow-black/5">
+                <CardContent className="grid gap-5 bg-linear-to-br from-background to-muted/20 p-5 lg:grid-cols-[1.5fr_1fr] lg:items-center lg:p-6">
                     <div className="space-y-3">
                         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                             <SparklesIcon className="size-3.5" />
@@ -325,8 +325,8 @@ export function AgentLaunchpad({ mode, limit, className }: AgentLaunchpadProps) 
             </Card>
 
             {selectedAgent ? (
-                <Card className="border-border/60 bg-card/80 shadow-sm">
-                    <CardHeader className="space-y-3 border-b border-border/40 bg-linear-to-br from-background to-muted/20">
+                <Card className="overflow-hidden rounded-3xl border-border/60 bg-card/80 shadow-sm shadow-black/5">
+                    <CardHeader className="space-y-4 border-b border-border/40 bg-linear-to-br from-background to-muted/20 px-5 py-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="space-y-1">
                                 <CardTitle className="text-base">Selected agent</CardTitle>
@@ -343,28 +343,28 @@ export function AgentLaunchpad({ mode, limit, className }: AgentLaunchpadProps) 
                         </div>
                     </CardHeader>
 
-                    <CardContent className="grid gap-4 p-5 xl:grid-cols-[1.05fr_0.95fr]">
-                        <div className="space-y-4">
+                    <CardContent className="grid gap-5 p-5 xl:grid-cols-[1.05fr_0.95fr] xl:p-6">
+                        <div className="space-y-5">
                             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Provider</div>
                                     <div className="mt-2 text-sm font-medium text-foreground">
                                         {selectedAgentSummary.provider ?? 'Unknown'}
                                     </div>
                                 </div>
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Model</div>
                                     <div className="mt-2 text-sm font-medium text-foreground">
                                         {selectedAgentSummary.modelId ?? 'Unknown'}
                                     </div>
                                 </div>
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Workspace</div>
                                     <div className="mt-2 text-sm font-medium text-foreground">
                                         {selectedAgentSummary.workspaceId ?? 'No workspace'}
                                     </div>
                                 </div>
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Draft</div>
                                     <div className="mt-2 text-sm font-medium text-foreground">
                                         {selectedAgentSummary.hasDraft ? 'Yes' : 'No'}
@@ -422,15 +422,15 @@ export function AgentLaunchpad({ mode, limit, className }: AgentLaunchpadProps) 
                             </div>
 
                             <div className="grid gap-3 md:grid-cols-3">
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Tools</div>
                                     <div className="mt-2 text-lg font-semibold">{selectedAgentSummary.toolCount}</div>
                                 </div>
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Workflows</div>
                                     <div className="mt-2 text-lg font-semibold">{selectedAgentSummary.workflowCount}</div>
                                 </div>
-                                <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
+                                <div className="rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Workspace tools</div>
                                     <div className="mt-2 text-lg font-semibold">{selectedAgentSummary.workspaceToolCount}</div>
                                 </div>
@@ -453,7 +453,7 @@ export function AgentLaunchpad({ mode, limit, className }: AgentLaunchpadProps) 
                             ) : null}
                         </div>
 
-                        <div className="space-y-4 rounded-2xl border border-border/60 bg-background/70 p-4">
+                        <div className="space-y-4 rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <div className="text-sm font-medium text-foreground">Quick actions</div>

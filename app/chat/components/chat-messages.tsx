@@ -1408,11 +1408,11 @@ function MessageItem({
                 <Message
                     from={message.role}
                     className={cn(
-                        'transition-all duration-500 ease-spring',
+                        'transition-all duration-300',
                         isAssistant
-                            ? 'rotate-y-2 translate-z-2 liquid-glass shadow-2xl'
-                            : '-rotate-y-2 translate-z-1 shadow-md',
-                        'hover:rotate-y-0 hover:translate-z-4'
+                            ? 'liquid-glass shadow-xl'
+                            : 'border border-border/70 bg-background/80 shadow-md',
+                        'hover:border-border hover:shadow-lg'
                     )}
                 >
                     <MessageContent>
@@ -2121,6 +2121,10 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
         sources,
         selectedAgent,
         agentConfig,
+        selectedProvider,
+        selectedProviderConnected,
+        selectedProviderEnvVar,
+        selectedModel,
         threadId,
         resourceId,
         usage,
@@ -2287,11 +2291,51 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
                                     <Badge variant="outline" className="font-normal">
                                         {usageSummary}
                                     </Badge>
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            'font-normal',
+                                            selectedProviderConnected
+                                                ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                : 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                        )}
+                                    >
+                                        {selectedProviderConnected
+                                            ? `${selectedProvider?.name ?? selectedModel.provider} ready`
+                                            : `Configure ${selectedProviderEnvVar ?? selectedModel.provider}`}
+                                    </Badge>
+                                    <Badge variant="secondary" className="font-normal">
+                                        {selectedModel.name}
+                                    </Badge>
+                                    {agentConfig?.browserTools.length ? (
+                                        <Badge variant="secondary" className="font-normal">
+                                            {agentConfig.browserTools.length} browser tool
+                                            {agentConfig.browserTools.length === 1
+                                                ? ''
+                                                : 's'}
+                                        </Badge>
+                                    ) : null}
+                                    {agentConfig?.workspaceId ? (
+                                        <Badge variant="secondary" className="font-normal">
+                                            Workspace attached
+                                        </Badge>
+                                    ) : null}
                                 </div>
                             ) : null}
                         </AgentContent>
                     </Agent>
                 </div>
+                {!selectedProviderConnected && (
+                    <Alert className="mb-4 border-amber-500/25 bg-amber-500/10 text-amber-950 dark:text-amber-100">
+                        <AlertTriangleIcon className="size-4" />
+                        <AlertTitle>Provider not configured</AlertTitle>
+                        <AlertDescription>
+                            {selectedProviderEnvVar
+                                ? `Set ${selectedProviderEnvVar} to enable ${selectedProvider?.name ?? selectedModel.provider} for this chat session.`
+                                : `The selected provider is currently unavailable for ${agentConfig?.name ?? selectedAgent}.`}
+                        </AlertDescription>
+                    </Alert>
+                )}
                 {visibleError.length > 0 && (
                     <Alert variant="destructive" className="mb-4">
                         <AlertTriangleIcon className="size-4" />
@@ -2313,8 +2357,18 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
                 {messages.length === 0 && !isLoading ? (
                     <ConversationEmptyState
                         icon={<MessageSquareIcon className="size-8" />}
-                        title="Start a conversation"
-                        description={`Chat with ${agentConfig?.name ?? selectedAgent} to get started`}
+                        title={
+                            selectedProviderConnected
+                                ? `Start with ${agentConfig?.name ?? selectedAgent}`
+                                : `Finish configuring ${selectedProvider?.name ?? selectedModel.provider}`
+                        }
+                        description={
+                            selectedProviderConnected
+                                ? `Your current model is ${selectedModel.name}. Send a message to begin.`
+                                : selectedProviderEnvVar
+                                  ? `Add ${selectedProviderEnvVar} to unlock ${selectedProvider?.name ?? selectedModel.provider} in chat.`
+                                  : `This chat surface is waiting on a live provider connection before it can respond.`
+                        }
                     />
                 ) : (
                     <>

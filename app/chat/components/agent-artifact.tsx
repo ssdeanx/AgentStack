@@ -210,9 +210,9 @@ export function AgentArtifactCompact({
     return (
         <button
             onClick={onClick}
-            className="group flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/50"
+            className="group flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card/80 p-3 text-left shadow-sm shadow-black/5 transition-colors hover:bg-muted/30"
         >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
                 <Code2Icon className="size-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -265,7 +265,7 @@ export function ArtifactEditorFAB({
             <Button
                 variant="outline"
                 size="icon"
-                className="fixed bottom-6 right-6 z-50 size-12 rounded-full shadow-lg"
+                className="fixed bottom-6 right-6 z-50 size-12 rounded-full border border-border/60 bg-background/90 shadow-xl shadow-black/10 backdrop-blur-md"
                 onClick={() => setIsOpen(true)}
             >
                 <PlayIcon className="size-5" />

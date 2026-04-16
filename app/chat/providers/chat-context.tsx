@@ -2,7 +2,6 @@
 
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { getAgentConfig, DEFAULT_AGENT_ID } from '../config/agents'
 import type {
     UIMessage,
     UIDataTypes,
@@ -66,8 +65,18 @@ import {
     MASTRA_THREAD_ID_KEY,
 } from '@mastra/core/request-context'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { MASTRA_API_BASE_URL } from '@/lib/mastra-client'
 import { useAuthQuery } from '@/lib/hooks/use-auth-query'
-import { useAgent, useAgentModelProviders } from '@/lib/hooks/use-mastra-query'
+import {
+    useAgent,
+    useAgentModelProviders,
+    useAgents,
+} from '@/lib/hooks/use-mastra-query'
+import {
+    createRuntimeAgentConfig,
+    type RuntimeAgentConfig,
+    type RuntimeChatModel,
+} from '../lib/runtime-chat-catalog'
 import { extractThoughtSummaryFromProviderMetadata } from '../components/chat.utils'
 import { ChatContext } from './chat-context-hooks'
 
@@ -90,12 +99,7 @@ type ModelProvider = NonNullable<
     NonNullable<ReturnType<typeof useAgentModelProviders>['data']>
 >['providers'][number]
 
-type ChatModel = {
-    id: string
-    name: string
-    provider: string
-    contextWindow?: number
-}
+type ChatModel = RuntimeChatModel
 
 export type ChatRuntimeTypes = {
     chunk: UIMessageChunk
@@ -181,11 +185,14 @@ export interface ChatContextValue {
     usage: LanguageModelUsage | null
     lastCompletion: ChatCompletionState | null
     error: string | null
-    agentConfig: ReturnType<typeof getAgentConfig>
+    agentConfig: RuntimeAgentConfig | undefined
     modelProviders: ModelProvider[]
     selectedProvider: ModelProvider | null
     selectedProviderModels: string[]
     selectedProviderLabel: string
+    selectedProviderConnected: boolean
+    selectedProviderEnvVar?: string
+    selectedProviderDocUrl?: string
     selectedModel: ChatModel
     queuedTasks: QueuedTask[]
     pendingConfirmations: PendingConfirmation[]
@@ -289,19 +296,38 @@ export interface ChatProviderProps {
     defaultResourceId?: string
 }
 
-const MASTRA_API_URL =
-    process.env.NEXT_PUBLIC_MASTRA_API_URL ?? 'http://localhost:4111'
-
 export function ChatProvider({
     children,
-    defaultAgent = DEFAULT_AGENT_ID,
+    defaultAgent,
     defaultThreadId,
     defaultResourceId,
 }: ChatProviderProps) {
     const authQuery = useAuthQuery()
     const userId = authQuery.data?.user.id ?? ''
+    const agentsQuery = useAgents()
+    const availableAgentIds = useMemo(
+        () =>
+            (agentsQuery.data ?? [])
+                .map((agent) => agent.id)
+                .filter(
+                    (agentId): agentId is string =>
+                        typeof agentId === 'string' && agentId.length > 0
+                ),
+        [agentsQuery.data]
+    )
+    const runtimeDefaultAgent = useMemo(() => {
+        if (
+            typeof defaultAgent === 'string' &&
+            defaultAgent.length > 0 &&
+            availableAgentIds.includes(defaultAgent)
+        ) {
+            return defaultAgent
+        }
 
-    const [selectedAgent, setSelectedAgent] = useState(defaultAgent)
+        return availableAgentIds[0] ?? defaultAgent ?? ''
+    }, [availableAgentIds, defaultAgent])
+
+    const [selectedAgent, setSelectedAgent] = useState(defaultAgent ?? '')
     // sourcesState is nullable to allow falling back to derived sources from messages.
     const [sourcesState, setSourcesState] = useState<Source[] | null>(null)
     const [chatError, setChatError] = useState<string | null>(null)
@@ -323,8 +349,18 @@ export function ChatProvider({
 
     const [selectedModelId, setSelectedModelId] = useState('')
     const [isFocusMode, setFocusMode] = useState(false)
+    const resolvedSelectedAgent = useMemo(() => {
+        if (
+            selectedAgent.length > 0 &&
+            availableAgentIds.includes(selectedAgent)
+        ) {
+            return selectedAgent
+        }
 
-    const selectedAgentDetails = useAgent(selectedAgent)
+        return runtimeDefaultAgent
+    }, [availableAgentIds, runtimeDefaultAgent, selectedAgent])
+
+    const selectedAgentDetails = useAgent(resolvedSelectedAgent)
     const modelProvidersQuery = useAgentModelProviders()
 
     const modelProviders = useMemo<ModelProvider[]>(
@@ -357,11 +393,17 @@ export function ChatProvider({
         }
 
         if (userId.length > 0) {
-            return `thread:${userId}:${defaultAgent}`
+            return `thread:${userId}:${resolvedSelectedAgent || runtimeDefaultAgent}`
         }
 
         return ''
-    }, [defaultAgent, defaultThreadId, threadIdOverride, userId])
+    }, [
+        defaultThreadId,
+        resolvedSelectedAgent,
+        runtimeDefaultAgent,
+        threadIdOverride,
+        userId,
+    ])
 
     const availableModels = useMemo<ChatModel[]>(() => {
         const modelsById = new Map<string, ChatModel>()
@@ -418,21 +460,30 @@ export function ChatProvider({
         [availableModels, modelProviders, selectedAgentDetails.data?.provider, selectedModelId]
     )
 
-    const selectedProviderModels = useMemo(
-        () => selectedProvider?.models ?? [],
-        [selectedProvider]
-    )
+    const selectedProviderModels = useMemo(() => {
+        if (!selectedProvider) {
+            return []
+        }
+
+        return availableModels
+            .filter((model) => model.provider === selectedProvider.id)
+            .map((model) => model.id)
+    }, [availableModels, selectedProvider])
 
     const selectedProviderLabel = useMemo(
         () => selectedProvider?.name ?? selectedAgentDetails.data?.provider ?? '',
         [selectedAgentDetails.data?.provider, selectedProvider]
     )
 
+    const selectedProviderConnected = selectedProvider?.connected ?? false
+    const selectedProviderEnvVar = selectedProvider?.envVar
+    const selectedProviderDocUrl = selectedProvider?.docUrl
+
     const transport = useMemo(
         () =>
             new DefaultChatTransport({
                 // Use stable endpoint - agentId passed in body, not URL path
-                api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
+                api: `${MASTRA_API_BASE_URL}/chat/${resolvedSelectedAgent}`,
                 credentials: 'include',
                 prepareSendMessagesRequest({
                     messages: outgoingMessages,
@@ -447,7 +498,7 @@ export function ChatProvider({
                     const requestContext = new RequestContext<ChatRequestContext>()
                     requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)
                     requestContext.set(MASTRA_THREAD_ID_KEY, threadId)
-                    requestContext.set('agentId', selectedAgent)
+                    requestContext.set('agentId', resolvedSelectedAgent)
                     requestContext.set('userId', userId)
                     requestContext.set(CHAT_PROVIDER_ID_CONTEXT_KEY, selectedModel.provider)
                     requestContext.set(CHAT_MODEL_ID_CONTEXT_KEY, selectedModel.id)
@@ -456,7 +507,7 @@ export function ChatProvider({
 
                     return {
                         body: {
-                            id: selectedAgent,
+                            id: resolvedSelectedAgent,
                             messages: outgoingMessages,
                             parts: outgoingMessages.flatMap((m) => m.parts),
                             trigger,
@@ -471,7 +522,7 @@ export function ChatProvider({
                                     : runtimeContext,
                             resourceId,
                             data: {
-                                agentId: selectedAgent,
+                                agentId: resolvedSelectedAgent,
                                 threadId,
                                 input: textPart?.text ?? '',
                             },
@@ -480,7 +531,14 @@ export function ChatProvider({
                     }
                 },
             }),
-        [selectedAgent, threadId, resourceId, userId, selectedModel.provider, selectedModel.id]
+        [
+            resourceId,
+            resolvedSelectedAgent,
+            selectedModel.id,
+            selectedModel.provider,
+            threadId,
+            userId,
+        ]
     )
 
     const {
@@ -964,8 +1022,8 @@ export function ChatProvider({
     }, [])
 
     const agentConfig = useMemo(
-        () => getAgentConfig(selectedAgent),
-        [selectedAgent]
+        () => createRuntimeAgentConfig(selectedAgentDetails.data),
+        [selectedAgentDetails.data]
     )
 
     const error = aiError?.message ?? chatError
@@ -1052,7 +1110,7 @@ export function ChatProvider({
             messages,
             isLoading,
             status,
-            selectedAgent,
+            selectedAgent: resolvedSelectedAgent,
             streamingContent,
             streamingReasoning,
             toolInvocations,
@@ -1065,6 +1123,9 @@ export function ChatProvider({
             selectedProvider,
             selectedProviderModels,
             selectedProviderLabel,
+            selectedProviderConnected,
+            selectedProviderEnvVar,
+            selectedProviderDocUrl,
             selectedModel,
             availableModels,
             queuedTasks,
@@ -1098,7 +1159,7 @@ export function ChatProvider({
         messages,
         isLoading,
         status,
-        selectedAgent,
+        resolvedSelectedAgent,
         streamingContent,
         streamingReasoning,
         toolInvocations,
@@ -1110,6 +1171,9 @@ export function ChatProvider({
         selectedProvider,
         selectedProviderModels,
         selectedProviderLabel,
+        selectedProviderConnected,
+        selectedProviderEnvVar,
+        selectedProviderDocUrl,
         selectedModel,
         availableModels,
         queuedTasks,

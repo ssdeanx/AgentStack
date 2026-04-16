@@ -14,6 +14,7 @@ interface ChatPageShellProps {
     contentClassName?: string
     sidebar?: ReactNode
     hideHeader?: boolean
+    fullBleed?: boolean
 }
 
 /**
@@ -28,29 +29,30 @@ export function ChatPageShell({
     contentClassName,
     sidebar,
     hideHeader = false,
+    fullBleed = false,
 }: ChatPageShellProps) {
     return (
-        <SidebarProvider className="flex min-h-screen w-full overflow-hidden bg-background">
+        <SidebarProvider className="chat-shell-bg flex min-h-screen w-full overflow-hidden bg-background text-foreground">
             {sidebar ?? null}
-            <SidebarInset className="min-w-0 flex-1 overflow-hidden bg-background">
-                <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+            <SidebarInset className="min-w-0 flex-1 overflow-hidden bg-transparent">
+                <div className="flex h-full min-h-0 flex-col overflow-hidden bg-transparent">
                     {hideHeader ? null : (
-                        <header className="border-b border-border/60 bg-background/80 px-5 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
-                            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                                <div className="space-y-2.5">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground/70">
+                        <header className="border-b border-border/70 bg-background/88 px-5 py-4 shadow-[0_18px_48px_-36px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:px-6 sm:py-5">
+                            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="space-y-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground/75">
                                         {eyebrow}
                                     </p>
-                                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                                    <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                                         {title}
                                     </h1>
-                                    <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                                    <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                                         {description}
                                     </p>
                                 </div>
 
                                 {actions ? (
-                                    <div className="flex flex-wrap items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-2.5">
                                         {actions}
                                     </div>
                                 ) : null}
@@ -60,11 +62,19 @@ export function ChatPageShell({
 
                     <main
                         className={cn(
-                            'flex-1 overflow-y-auto bg-linear-to-b from-background to-background/95 p-5 sm:p-6',
+                            'flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8',
                             contentClassName
                         )}
                     >
-                        {children}
+                        <div
+                            className={cn(
+                                fullBleed
+                                    ? 'flex h-full min-h-full flex-col'
+                                    : 'mx-auto flex w-full max-w-[1600px] flex-col gap-6'
+                            )}
+                        >
+                            {children}
+                        </div>
                     </main>
                 </div>
             </SidebarInset>

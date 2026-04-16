@@ -41,6 +41,7 @@ import { createGitHubAdapter } from '@chat-adapter/github'
 import { createDiscordAdapter } from '@chat-adapter/discord'
 import { google } from '../config/google'
 import {
+  TokenLimiter,
   ToolSearchProcessor,
   //TokenLimiter
 } from '@mastra/core/processors'
@@ -337,7 +338,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
       tools: researchAgentTools,
       search: { topK: 5 },
     }),
-    //new TokenLimiter(2048),
+    new TokenLimiter(64000),
   ],
   outputProcessors: [
   //  new TokenLimiterProcessor(128000),
