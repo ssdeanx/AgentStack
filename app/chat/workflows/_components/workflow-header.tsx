@@ -47,48 +47,47 @@ export function WorkflowHeader() {
         workflowStatus === 'running' || workflowStatus === 'paused'
 
     return (
-        <header className="flex items-center justify-between border border-border/20 bg-card/40 backdrop-blur-3xl mx-6 mt-4 px-6 py-3 rounded-2xl shadow-2xl relative overflow-hidden z-20">
-            <div className="absolute inset-0 bg-linear-to-r from-primary/5 via-transparent to-transparent pointer-events-none" />
-            <div className="flex items-center gap-4 relative">
-                <Link href="/">
+        <header className="chat-toolbar z-20 mx-4 mt-4 rounded-2xl px-4 py-3 sm:mx-6 sm:px-5">
+            <div className="flex flex-1 flex-wrap items-center gap-4">
+                <Link href="/chat">
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+                        className="h-9 rounded-xl px-3 hover:bg-background/80"
                     >
                         <ArrowLeftIcon className="size-4 mr-2" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">
-                            Gateway
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
+                            Chat hub
                         </span>
                     </Button>
                 </Link>
-                <div className="h-6 w-px bg-border/20" />
+                <div className="hidden h-6 w-px bg-border/40 sm:block" />
                 <div className="flex items-center gap-3">
-                    <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
-                        <WorkflowIcon className="size-5 text-primary" />
+                    <div className="flex size-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                        <WorkflowIcon className="size-5" />
                     </div>
                     <div>
-                        <h1 className="text-sm font-bold uppercase tracking-[0.2em] text-foreground/90">
-                            System Overview
+                        <h1 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground/90">
+                            Workflow studio
                         </h1>
-                        <p className="text-[10px] text-muted-foreground font-mono tracking-tighter opacity-60 uppercase">
-                            Operational Nodes:{' '}
+                        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+                            Available runtimes:{' '}
                             {Object.keys(WORKFLOW_CONFIGS).length} / ACTIVE
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 relative">
+            <div className="flex flex-wrap items-center gap-3">
                 <Select
                     value={selectedWorkflow}
                     onValueChange={(value) => selectWorkflow(value)}
                     disabled={isWorkflowActive}
                 >
-                    <SelectTrigger className="w-72 h-9 bg-background/20 border-border/20 backdrop-blur-md rounded-xl text-xs font-semibold focus:ring-primary/30">
+                    <SelectTrigger className="h-10 w-[min(100%,22rem)] rounded-xl border-border/70 bg-background/80 text-xs font-semibold focus:ring-primary/30">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-card/90 backdrop-blur-3xl border-border/20 rounded-xl shadow-2xl">
+                    <SelectContent className="rounded-xl border-border/70 bg-popover text-popover-foreground shadow-2xl">
                         {CATEGORY_ORDER.map((category) => {
                             const workflows = workflowsByCategory[category]
                             if (workflows.length === 0) {
@@ -123,7 +122,7 @@ export function WorkflowHeader() {
                 {workflowStatus === 'running' && (
                     <Badge
                         variant="outline"
-                        className="h-8 gap-2 px-3 border-yellow-500/30 text-yellow-500 bg-yellow-500/5 rounded-full font-bold text-[10px] uppercase tracking-widest animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.1)]"
+                        className="h-8 gap-2 rounded-full border-amber-500/30 bg-amber-500/8 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300"
                     >
                         <RefreshCwIcon className="size-3 animate-spin" />
                         Operational
@@ -133,7 +132,7 @@ export function WorkflowHeader() {
                 {workflowStatus === 'paused' && (
                     <Badge
                         variant="outline"
-                        className="h-8 gap-2 px-3 border-blue-500/30 text-blue-500 bg-blue-500/5 rounded-full font-bold text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                        className="h-8 gap-2 rounded-full border-sky-500/30 bg-sky-500/8 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300"
                     >
                         <PauseIcon className="size-3" />
                         Suspended
@@ -143,7 +142,7 @@ export function WorkflowHeader() {
                 {workflowStatus === 'completed' && (
                     <Badge
                         variant="outline"
-                        className="h-8 gap-2 px-3 border-green-500/30 text-green-500 bg-green-500/5 rounded-full font-bold text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                        className="h-8 gap-2 rounded-full border-emerald-500/30 bg-emerald-500/8 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300"
                     >
                         <CheckCircle2Icon className="size-3" />
                         Synchronized
@@ -153,7 +152,7 @@ export function WorkflowHeader() {
                 {workflowStatus === 'error' && (
                     <Badge
                         variant="outline"
-                        className="h-8 gap-2 px-3 border-red-500/30 text-red-500 bg-red-500/5 rounded-full font-bold text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                        className="h-8 gap-2 rounded-full border-destructive/35 bg-destructive/8 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-destructive"
                     >
                         <AlertCircleIcon className="size-3" />
                         Critical Error
@@ -168,7 +167,7 @@ export function WorkflowHeader() {
                                 variant="outline"
                                 size="sm"
                                 onClick={pauseWorkflow}
-                                className="h-9 w-24 rounded-xl border-border/20 hover:bg-muted/10 font-bold text-[9px] tracking-widest uppercase transition-all duration-300"
+                                className="h-9 w-24 rounded-xl border-border/70 bg-background/70 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-background"
                             >
                                 <PauseIcon className="size-3 mr-2" />
                                 Suspend
@@ -178,7 +177,7 @@ export function WorkflowHeader() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => resumeWorkflow()}
-                                className="h-9 w-24 rounded-xl border-border/20 hover:bg-muted/10 font-bold text-[9px] tracking-widest uppercase transition-all duration-300"
+                                className="h-9 w-24 rounded-xl border-border/70 bg-background/70 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-background"
                             >
                                 <RefreshCwIcon className="size-3 mr-2" />
                                 Resume
@@ -188,7 +187,7 @@ export function WorkflowHeader() {
                             variant="outline"
                             size="icon"
                             onClick={stopWorkflow}
-                            className="h-9 w-9 rounded-xl border-border/20 hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
+                            className="h-9 w-9 rounded-xl border-border/70 bg-background/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
                             title="Kill process"
                         >
                             <SquareIcon className="size-3" />
@@ -203,7 +202,7 @@ export function WorkflowHeader() {
                         variant="outline"
                         size="sm"
                         onClick={stopWorkflow}
-                        className="h-9 rounded-xl border-border/20 hover:bg-primary/10 hover:text-primary font-bold text-[9px] tracking-widest uppercase transition-all duration-300"
+                        className="h-9 rounded-xl border-border/70 bg-background/70 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-primary/10 hover:text-primary"
                         title="Reset system"
                     >
                         <RotateCcwIcon className="size-4 mr-1" />

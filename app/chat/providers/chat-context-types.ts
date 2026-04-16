@@ -9,8 +9,10 @@ import type {
 } from 'ai'
 import type { ReactNode } from 'react'
 
-import type { getAgentConfig } from '../config/agents'
-import type { ModelConfig } from '../config/models'
+import type {
+    RuntimeAgentConfig,
+    RuntimeChatModel,
+} from '../lib/runtime-chat-catalog'
 
 // ============================================================================
 // AI SDK v6 Type Aliases - Re-exported for convenient access
@@ -37,6 +39,10 @@ export interface Source {
     url: string
     title: string
 }
+
+export type ChatModel = RuntimeChatModel
+
+export type ChatAgentConfig = RuntimeAgentConfig | undefined
 
 export interface TokenUsage {
     inputTokenDetails: {
@@ -203,8 +209,8 @@ export interface ChatContextValue {
     sources: Source[]
     usage: TokenUsage | null
     error: string | null
-    agentConfig: ReturnType<typeof getAgentConfig>
-    selectedModel: ModelConfig
+    agentConfig: ChatAgentConfig
+    selectedModel: ChatModel
 
     // Queue & Tasks
     queuedTasks: QueuedTask[]
@@ -227,7 +233,7 @@ export interface ChatContextValue {
     isFocusMode: boolean
 
     // Available Models
-    availableModels: ModelConfig[]
+    availableModels: ChatModel[]
 
     // Actions
     sendMessage: (text: string, files?: File[]) => void

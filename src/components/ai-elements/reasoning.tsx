@@ -36,7 +36,7 @@ interface ReasoningContextValue {
 
 const ReasoningContext = createContext<ReasoningContextValue | null>(null);
 
-export const useReasoning = () => {
+const useReasoning = () => {
   const context = useContext(ReasoningContext);
   if (!context) {
     throw new Error("Reasoning components must be used within Reasoning");
@@ -136,7 +136,7 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn("not-prose mb-4", className)}
+          className={cn("not-prose mb-4 overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-sm shadow-black/5", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -176,7 +176,7 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
+          "flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground",
           className
         )}
         {...props}
@@ -210,7 +210,7 @@ export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
       className={cn(
-        "mt-4 text-sm",
+        "mt-2 px-4 pb-4 text-sm",
         "closed:fade-out-0 closed:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none closed:animate-out data-[state=open]:animate-in",
         className
       )}

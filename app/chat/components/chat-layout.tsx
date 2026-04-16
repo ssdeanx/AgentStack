@@ -16,14 +16,14 @@ export function ChatLayout() {
     return (
         <main
             className={cn(
-                'flex h-screen pt-16 flex-col bg-background transition-all duration-500 overflow-hidden',
+                'chat-shell-bg flex h-screen overflow-hidden pt-16 transition-all duration-500',
                 isFocusMode && 'focus-mode-active'
             )}
         >
             <ChatHeader />
-            <SidebarProvider className="flex flex-1 overflow-hidden min-h-0 bg-background w-full">
+            <SidebarProvider className="flex min-h-0 w-full flex-1 overflow-hidden bg-transparent">
                 <MainSidebar />
-                <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background m-0 rounded-none border-x-0 relative min-w-0">
+                <SidebarInset className="relative m-0 flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-x-0 bg-transparent">
                     <ResizablePanelGroup className="flex h-full w-full min-h-0 min-w-0 overflow-hidden">
                         <ResizablePanel defaultSize={72} minSize={55} className="min-w-0">
                             <div className="flex h-full min-h-0 flex-col overflow-hidden relative min-w-0">
@@ -39,7 +39,7 @@ export function ChatLayout() {
                                     defaultSize={28}
                                     minSize={20}
                                     maxSize={40}
-                                    className="min-w-80 border-l bg-card/30 backdrop-blur-xl"
+                                    className="min-w-80 border-l border-border/70 bg-background/72 backdrop-blur-xl"
                                 >
                                     <div className="h-full min-h-0 overflow-hidden">
                                         <ChatSidebar />

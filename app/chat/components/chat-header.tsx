@@ -36,19 +36,16 @@ import {
 } from '@/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/popover'
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
+import { useAgents } from '@/lib/hooks/use-mastra-query'
 import {
-    getAgentsByCategory,
-    CATEGORY_LABELS,
-    CATEGORY_ORDER,
-    type AgentConfig,
-} from '@/app/chat/config/agents'
-import {
-    PROVIDER_CONFIGS,
-    PROVIDER_ORDER,
-    getModelsByProvider,
-    formatContextWindow,
-    type ModelConfig,
-} from '@/app/chat/config/models'
+    createRuntimeAgentConfig,
+    formatRuntimeContextWindow,
+    groupRuntimeAgentsByCategory,
+    RUNTIME_AGENT_CATEGORY_LABELS,
+    RUNTIME_AGENT_CATEGORY_ORDER,
+    type RuntimeAgentConfig,
+    type RuntimeChatModel,
+} from '@/app/chat/lib/runtime-chat-catalog'
 import {
     CheckIcon,
     MessageSquareIcon,
@@ -82,6 +79,8 @@ export function ChatHeader() {
         setThreadId,
         setResourceId,
         restoreCheckpoint,
+        availableModels,
+        modelProviders,
         selectedModel,
         selectModel,
     } = useChatContext()
@@ -92,13 +91,63 @@ export function ChatHeader() {
     const [tempThreadId, setTempThreadId] = useState(threadId)
     const [tempResourceId, setTempResourceId] = useState(resourceId)
 
-    const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
-    const modelsByProvider = useMemo(() => getModelsByProvider(), [])
+    const agentsQuery = useAgents()
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
 
-    const handleSelectAgent = (agent: AgentConfig) => {
+    const runtimeAgents = useMemo(
+        () => {
+            const data = agentsQuery.data ?? []
+            const source = Array.isArray(data)
+                ? data
+                : Object.values(data as Record<string, unknown>)
+
+            return source
+                .map((agent) =>
+                    createRuntimeAgentConfig(
+                        agent as Parameters<typeof createRuntimeAgentConfig>[0]
+                    )
+                )
+                .filter((agent): agent is RuntimeAgentConfig => agent !== undefined)
+        },
+        [agentsQuery.data]
+    )
+
+    const agentsByCategory = useMemo(
+        () => groupRuntimeAgentsByCategory(runtimeAgents),
+        [runtimeAgents]
+    )
+
+    const modelsByProvider = useMemo(() => {
+        return modelProviders
+            .map((provider) => {
+                const models = provider.models.map<RuntimeChatModel>((modelId) => {
+                    const knownModel =
+                        availableModels.find(
+                            (model) =>
+                                model.id === modelId && model.provider === provider.id
+                        ) ??
+                        availableModels.find((model) => model.id === modelId)
+
+                    return (
+                        knownModel ?? {
+                            id: modelId,
+                            name: modelId,
+                            provider: provider.id,
+                        }
+                    )
+                })
+
+                return {
+                    provider,
+                    models,
+                }
+            })
+            .filter((entry) => entry.models.length > 0)
+    }, [availableModels, modelProviders])
+
+    const handleSelectAgent = (agent: RuntimeAgentConfig) => {
         selectAgent(agent.id)
 
         const nextParams = new URLSearchParams(searchParams.toString())
@@ -108,7 +157,7 @@ export function ChatHeader() {
         setAgentSelectorOpen(false)
     }
 
-    const handleSelectModel = (model: ModelConfig) => {
+    const handleSelectModel = (model: RuntimeChatModel) => {
         selectModel(model.id)
         setModelSelectorOpen(false)
     }
@@ -126,20 +175,23 @@ export function ChatHeader() {
     const usedTokens = inputTokens + outputTokens
 
     return (
-        <header className="flex items-center justify-between border-b border-border px-4 py-3 mt-16">
-            <div className="flex items-center gap-3">
-                <MessageSquareIcon className="size-5 text-muted-foreground" />
-                <div className="flex flex-col">
-                    <span className="font-semibold text-sm">
-                        AgentStack Chat
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                        {agentConfig?.description ?? 'AI-powered assistant'}
-                    </span>
+        <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.03),0_12px_32px_-24px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:px-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="rounded-2xl bg-primary/10 p-2 text-primary shadow-sm shadow-primary/10">
+                        <MessageSquareIcon className="size-5" />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold tracking-tight">
+                            AgentStack Chat
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {agentConfig?.description ?? 'AI-powered assistant'}
+                        </span>
+                    </div>
                 </div>
-            </div>
 
-            <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 {/* Checkpoint History */}
                 {checkpoints.length > 0 && (
                     <Popover>
@@ -227,11 +279,7 @@ export function ChatHeader() {
                     onOpenChange={setModelSelectorOpen}
                 >
                     <ModelSelectorTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="min-w-35 justify-between gap-2"
-                        >
+                        <Button variant="outline" size="sm" className="min-w-35 justify-between gap-2 rounded-2xl border-border/60 bg-background/70 shadow-sm">
                             <CpuIcon className="size-3.5 text-muted-foreground" />
                             <span className="truncate text-xs">
                                 {selectedModel.name}
@@ -244,26 +292,21 @@ export function ChatHeader() {
                             <ModelSelectorEmpty>
                                 No models found.
                             </ModelSelectorEmpty>
-                            {PROVIDER_ORDER.map((provider) => {
-                                const models = modelsByProvider[provider]
+                            {modelsByProvider.map(({ provider, models }) => {
                                 if (models.length === 0) {
                                     return null
                                 }
-                                const providerConfig =
-                                    PROVIDER_CONFIGS[provider]
 
                                 return (
                                     <ModelSelectorGroup
-                                        key={provider}
+                                        key={provider.id}
                                         heading={
                                             <div className="flex items-center gap-2">
                                                 <ModelSelectorLogo
-                                                    provider={
-                                                        providerConfig.logo as never
-                                                    }
+                                                    provider={provider.id}
                                                     className="size-3"
                                                 />
-                                                {providerConfig.name}
+                                                {provider.name}
                                             </div>
                                         }
                                     >
@@ -281,10 +324,12 @@ export function ChatHeader() {
                                                         {model.name}
                                                     </ModelSelectorName>
                                                     <span className="text-xs text-muted-foreground">
-                                                        {formatContextWindow(
+                                                        {formatRuntimeContextWindow(
                                                             model.contextWindow
-                                                        )}{' '}
-                                                        • {model.description}
+                                                        )}
+                                                        {model.description
+                                                            ? ` • ${model.description}`
+                                                            : ' • Live model'}
                                                     </span>
                                                 </div>
                                                 {selectedModel.id ===
@@ -323,7 +368,7 @@ export function ChatHeader() {
                             <ModelSelectorEmpty>
                                 No agents found.
                             </ModelSelectorEmpty>
-                            {CATEGORY_ORDER.map((category) => {
+                            {RUNTIME_AGENT_CATEGORY_ORDER.map((category) => {
                                 const agents = agentsByCategory[category]
                                 if (agents.length === 0) {
                                     return null
@@ -332,7 +377,7 @@ export function ChatHeader() {
                                 return (
                                     <ModelSelectorGroup
                                         key={category}
-                                        heading={CATEGORY_LABELS[category]}
+                                        heading={RUNTIME_AGENT_CATEGORY_LABELS[category]}
                                     >
                                         {agents.map((agent) => (
                                             <ModelSelectorItem
@@ -469,6 +514,7 @@ export function ChatHeader() {
                         <Trash2Icon className="size-4" />
                     </Button>
                 )}
+            </div>
             </div>
         </header>
     )

@@ -4,6 +4,10 @@ import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import {
+    createLinkedAbortController,
+    resolveAbortSignal,
+} from './abort-signal.utils'
 
 export interface UrlToolContext extends RequestContext {
     defaultProtocol?: string
@@ -137,7 +141,7 @@ export const urlValidationTool = createTool({
         log.info('URL validation tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -146,7 +150,7 @@ export const urlValidationTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -158,7 +162,7 @@ export const urlValidationTool = createTool({
                 url: input.url,
                 operationsCount: input.operations?.length ?? 1,
             },
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -166,7 +170,7 @@ export const urlValidationTool = createTool({
         log.info('URL validation tool completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
                 success: output.success,
                 operationsCompleted: output.operations.length,
@@ -176,7 +180,8 @@ export const urlValidationTool = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const abortSignal = context?.abortSignal
+        const abortController = createLinkedAbortController(context?.abortSignal)
+        const abortSignal = abortController.signal
         const tracingContext = context?.tracingContext
         const operations = inputData.operations ?? ['validate']
 
@@ -185,7 +190,7 @@ export const urlValidationTool = createTool({
         const allowLocalhost = requestCtx?.allowLocalhost ?? false
         const timeout = requestCtx?.timeout ?? 5000
 
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal.aborted) {
             throw new Error('URL validation cancelled')
         }
 
@@ -351,7 +356,7 @@ export const urlManipulationTool = createTool({
         log.info('URL manipulation tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -360,7 +365,7 @@ export const urlManipulationTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -372,7 +377,7 @@ export const urlManipulationTool = createTool({
                 baseUrl: input.baseUrl,
                 operationsCount: input.operations.length,
             },
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -380,7 +385,7 @@ export const urlManipulationTool = createTool({
         log.info('URL manipulation tool completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
                 success: output.success,
                 resultUrl: output.resultUrl,
@@ -390,11 +395,12 @@ export const urlManipulationTool = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const abortSignal = context?.abortSignal
+        const abortController = createLinkedAbortController(context?.abortSignal)
+        const abortSignal = abortController.signal
         const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as UrlToolContext | undefined
 
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal.aborted) {
             throw new Error('URL manipulation cancelled')
         }
 
@@ -700,10 +706,11 @@ function extractDomain(url: string): string {
 async function checkUrlReachability(
     url: string,
     timeout = 5000,
-    userAgent?: string
+    userAgent?: string,
+    parentAbortSignal?: AbortSignal
 ): Promise<boolean> {
     try {
-        const controller = new AbortController()
+        const controller = createLinkedAbortController(parentAbortSignal)
         const timeoutId = setTimeout(() => controller.abort(), timeout)
 
         const hasUserAgent = typeof userAgent === 'string' && userAgent.length > 0
@@ -721,9 +728,14 @@ async function checkUrlReachability(
     }
 }
 
-async function getUrlMetadata(url: string, timeout = 5000, userAgent?: string) {
+async function getUrlMetadata(
+    url: string,
+    timeout = 5000,
+    userAgent?: string,
+    parentAbortSignal?: AbortSignal
+) {
     try {
-        const controller = new AbortController()
+        const controller = createLinkedAbortController(parentAbortSignal)
         const timeoutId = setTimeout(() => controller.abort(), timeout)
 
         const hasUserAgent = typeof userAgent === 'string' && userAgent.length > 0

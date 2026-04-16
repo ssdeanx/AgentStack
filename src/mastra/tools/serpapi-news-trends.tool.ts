@@ -13,6 +13,7 @@ import { getJson } from 'serpapi'
 import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
 import type { RequestContext } from '@mastra/core/request-context'
+import { resolveAbortSignal } from './abort-signal.utils'
 
 export interface SerpApiNewsContext extends RequestContext {
     userId?: string
@@ -161,7 +162,7 @@ export const googleNewsTool = createTool({
         log.info('Google News tool input streaming started', {
             toolCallId,
             messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted === true,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -170,7 +171,7 @@ export const googleNewsTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted === true,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -185,7 +186,7 @@ export const googleNewsTool = createTool({
                 numResults: input.numResults,
             },
             messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted === true,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -323,7 +324,7 @@ export const googleNewsTool = createTool({
             toolName,
             articlesFound: output.newsArticles.length,
             totalResults: output.totalResults,
-            aborted: abortSignal?.aborted === true,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -364,7 +365,7 @@ export const googleNewsLiteTool = createTool({
                 numResults: input.numResults,
             },
             messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted === true,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -482,7 +483,17 @@ export const googleNewsLiteTool = createTool({
             })
         }
     },
-    
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google News Lite tool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            outputData: {
+                articlesFound: output.newsArticles.length,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 /**
@@ -549,6 +560,37 @@ export const googleTrendsTool = createTool({
         'Analyze search trends and interest over time for specific topics. Returns interest data over time, related queries, and related topics. Use to understand topic popularity, discover trending related searches, and analyze search patterns over different time periods.',
     inputSchema: googleTrendsInputSchema,
     outputSchema: googleTrendsOutputSchema,
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google Trends received input', {
+            toolCallId,
+            inputData: {
+                query: input.query,
+                location: input.location,
+                timeRange: input.timeRange,
+                category: input.category,
+            },
+            messageCount: messages.length,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google Trends input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Trends received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
@@ -704,7 +746,7 @@ export const googleTrendsTool = createTool({
             dataPoints: output?.interestOverTime?.length ?? 0,
             relatedQueries: output?.relatedQueries?.length ?? 0,
             relatedTopics: output?.relatedTopics?.length ?? 0,
-            aborted: abortSignal?.aborted === true,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },

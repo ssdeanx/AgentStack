@@ -104,12 +104,12 @@ export const AgentWorkflow = memo(({
     panelContent,
 }: AgentWorkflowProps) => {
     return (
-        <div className={cn('relative h-100 w-full border rounded-lg overflow-hidden bg-background', className)}>
+        <div className={cn('relative h-100 w-full overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-sm shadow-black/5', className)}>
             {(Boolean(title)) && (
-                <div className="absolute top-3 left-3 z-10 bg-background/80 backdrop-blur-sm border px-3 py-1.5 rounded-md shadow-sm">
-                    <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">
+                <div className="absolute left-3 top-3 z-10 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 shadow-sm backdrop-blur-sm">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
                         {title}
-                    </span >
+                    </span>
                 </div>
             )}
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
+import { useMounted } from '@/hooks/use-mounted'
 import { useAuthQuery } from '@/lib/hooks/use-auth-query'
 import { useAgent, useThreads } from '@/lib/hooks/use-mastra-query'
 import { LogoutButton } from '../_components/logout-button'
@@ -40,6 +41,7 @@ import {
     ServerIcon,
     WorkflowIcon,
     WrenchIcon,
+    RoadIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -89,6 +91,7 @@ export function MainSidebar() {
     const router = useRouter()
     const { data: session } = useAuthQuery()
     const { selectedAgent, setThreadId, threadId } = useChatContext()
+    const isMounted = useMounted()
     const selectedAgentQuery = useAgent(selectedAgent)
     const threadsResult = useThreads({ agentId: selectedAgent })
 
@@ -153,6 +156,12 @@ export function MainSidebar() {
                 icon: CodeIcon,
                 activePrefix: '/chat/Code',
                 description: 'Open the code-focused agent workspace.',
+            },
+            {
+                label: 'Builder',
+                href: '/chat/builder',
+                icon: RoadIcon,
+                description: 'Use a visual interface to build and customize agents and tools.',
             },
             {
                 label: 'Workspaces',
@@ -244,11 +253,11 @@ export function MainSidebar() {
     return (
         <TooltipProvider delayDuration={150}>
             <Sidebar
-                className="border-r bg-background/95 backdrop-blur-xl"
+                className="chat-sidebar-surface"
                 data-active-agent={selectedAgent}
                 data-thread-count={threads.length}
             >
-                <SidebarHeader className="border-b border-border/50 px-5 py-4">
+                <SidebarHeader className="border-b border-border/70 px-4 py-4">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
@@ -256,17 +265,17 @@ export function MainSidebar() {
                                 onClick={() => {
                                     router.push('/chat')
                                 }}
-                                className="flex w-full items-center gap-3 rounded-2xl px-1 py-1 text-left transition-colors hover:text-primary"
+                                className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-background/55"
                             >
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
                                     <BotIcon className="size-5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="truncate text-base font-bold tracking-tight text-foreground/90">
+                                    <div className="truncate text-sm font-semibold tracking-tight text-foreground">
                                         AgentStack
                                     </div>
-                                    <div className="truncate text-[11px] text-muted-foreground">
-                                        Command center
+                                    <div className="truncate text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
+                                        Chat workspace
                                     </div>
                                 </div>
                             </button>
@@ -287,9 +296,9 @@ export function MainSidebar() {
 
                 <SidebarContent className="px-2">
                     <ScrollArea className="h-full px-1">
-                        <div className="space-y-3 py-3">
+                        <div className="space-y-4 py-4">
                             <SidebarGroup>
-                                <SidebarGroupLabel className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
+                                <SidebarGroupLabel className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/55">
                                     Pages
                                 </SidebarGroupLabel>
                                 <SidebarGroupContent>
@@ -313,12 +322,12 @@ export function MainSidebar() {
                                                                         item.href,
                                                                         item.activePrefix
                                                                     )
-                                                                        ? 'bg-primary/10 text-primary font-medium'
-                                                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                                        ? 'border border-primary/25 bg-primary/8 text-foreground shadow-[0_20px_32px_-28px_rgba(99,102,241,0.8)]'
+                                                                        : 'border border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/60 hover:text-foreground'
                                                                 )}
                                                             >
                                                                 <Link href={item.href}>
-                                                                    <div className="mt-0.5 rounded-lg bg-primary/10 p-1.5 text-primary/80">
+                                                                    <div className="mt-0.5 rounded-xl border border-border/60 bg-background/80 p-1.5 text-primary/80">
                                                                         <Icon className="size-3.5" />
                                                                     </div>
                                                                     <div className="min-w-0 flex-1">
@@ -344,7 +353,7 @@ export function MainSidebar() {
                             </SidebarGroup>
 
                             <SidebarGroup>
-                                <SidebarGroupLabel className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
+                                <SidebarGroupLabel className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/55">
                                     Current Threads
                                 </SidebarGroupLabel>
                                 <SidebarGroupContent>
@@ -353,7 +362,7 @@ export function MainSidebar() {
                                             <Loader2Icon className="size-4 animate-spin text-muted-foreground/40" />
                                         </div>
                                     ) : threads.length === 0 ? (
-                                        <div className="rounded-2xl border border-dashed border-border/50 px-4 py-3 text-xs italic text-muted-foreground/60">
+                                        <div className="rounded-2xl border border-dashed border-border/60 bg-background/45 px-4 py-3 text-xs italic text-muted-foreground/60">
                                             No threads for this agent yet.
                                         </div>
                                     ) : (
@@ -382,11 +391,11 @@ export function MainSidebar() {
                                                                         className={cn(
                                                                             'w-full cursor-pointer items-start gap-3 rounded-2xl px-3 py-3 text-left transition-all duration-200',
                                                                             threadId === currentThreadId
-                                                                                ? 'bg-primary/10 text-primary font-medium'
-                                                                                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                                                ? 'border border-primary/25 bg-primary/8 text-foreground shadow-[0_20px_32px_-28px_rgba(99,102,241,0.8)]'
+                                                                                : 'border border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/60 hover:text-foreground'
                                                                         )}
                                                                     >
-                                                                        <div className="mt-0.5 rounded-lg bg-primary/10 p-1.5 text-primary/80">
+                                                                        <div className="mt-0.5 rounded-xl border border-border/60 bg-background/80 p-1.5 text-primary/80">
                                                                             <MessageSquareIcon className="size-3.5" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
@@ -422,10 +431,10 @@ export function MainSidebar() {
                     </ScrollArea>
                 </SidebarContent>
 
-                <SidebarFooter className="border-t border-border/50 p-5">
+                <SidebarFooter className="border-t border-border/70 p-4">
                     <div className="space-y-4">
-                        {session?.user ? (
-                            <div className="rounded-2xl border border-border/60 bg-muted/40 p-4">
+                        {isMounted && session?.user ? (
+                            <div className="chat-panel-muted rounded-2xl p-4">
                                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
                                     Account
                                 </div>
@@ -484,7 +493,7 @@ export function MainSidebar() {
                                     <TooltipTrigger asChild>
                                         <SidebarMenuButton
                                             variant="default"
-                                            className="h-11 w-full justify-center rounded-2xl bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 active:scale-[0.98]"
+                                            className="h-11 w-full justify-center rounded-2xl bg-primary font-semibold text-primary-foreground shadow-[0_18px_36px_-24px_rgba(99,102,241,0.8)] transition-all duration-300 hover:bg-primary/90 active:scale-[0.98]"
                                             onClick={() => {
                                                 router.push('/chat/agents')
                                             }}

@@ -90,7 +90,7 @@ function SelectedAttachments(): JSX.Element | null {
     }
 
     return (
-        <div className="flex flex-wrap gap-2 p-2 border-b border-border/50">
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-border/60 bg-background/70 p-2 shadow-sm">
             {attachments.map((att, index) => {
                 const name = getName(att)
                 return (
@@ -128,8 +128,11 @@ export function ChatInput() {
         selectedAgent,
         selectedModel,
         modelProviders,
+        selectedProvider,
         selectedProviderModels,
         selectedProviderLabel,
+        selectedProviderConnected,
+        selectedProviderEnvVar,
         selectProvider,
         selectModel,
         messages,
@@ -144,6 +147,11 @@ export function ChatInput() {
     const supportsFiles = agentConfig?.features.fileUpload ?? false
     const showSuggestions = messages.length === 0 && !isLoading
     const totalTokens = getTotalTokens(usage as LanguageModelUsage | null | undefined)
+    const providerStatusLabel = selectedProviderConnected
+        ? 'API key active'
+        : selectedProviderEnvVar
+          ? `Missing ${selectedProviderEnvVar}`
+          : 'Provider unavailable'
 
     const suggestions = useMemo(
         () => getSuggestionsForAgent(selectedAgent),
@@ -187,7 +195,7 @@ export function ChatInput() {
     // ... rest of component unchanged
 
     return (
-        <footer className="border-t border-border p-4 bg-background">
+        <footer className="border-t border-border/60 bg-background/90 px-4 py-4 shadow-[0_-12px_30px_-20px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:px-6">
             <div className="mx-auto max-w-4xl space-y-3">
                 {showSuggestions && (
                     <AgentSuggestions
@@ -198,7 +206,7 @@ export function ChatInput() {
                 )}
 
                 {/* Compact status bar */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <div className="flex items-center justify-between gap-3 px-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1.5">
                             <CpuIcon className="size-3" />
@@ -206,6 +214,15 @@ export function ChatInput() {
                         </span>
                         <span className="flex items-center gap-1.5">
                             <CpuIcon className="size-3" />
+                            <span
+                                className={cn(
+                                    'inline-flex size-2 rounded-full',
+                                    selectedProviderConnected
+                                        ? 'bg-emerald-500 shadow-[0_0_10px_rgba(34,197,94,0.55)]'
+                                        : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.45)]'
+                                )}
+                                aria-hidden="true"
+                            />
                             {selectedProviderLabel}
                         </span>
                         <span className="flex items-center gap-1.5">
@@ -214,18 +231,35 @@ export function ChatInput() {
                         </span>
                     </div>
                     {totalTokens > 0 && (
-                        <Badge
-                            variant="secondary"
-                            className="text-xs font-normal"
-                        >
-                            {totalTokens.toLocaleString()} tokens
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant={
+                                    selectedProviderConnected
+                                        ? 'secondary'
+                                        : 'outline'
+                                }
+                                className={cn(
+                                    'text-xs font-normal',
+                                    selectedProviderConnected
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                        : 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                )}
+                            >
+                                {providerStatusLabel}
+                            </Badge>
+                            <Badge
+                                variant="secondary"
+                                className="text-xs font-normal"
+                            >
+                                {totalTokens.toLocaleString()} tokens
+                            </Badge>
+                        </div>
                     )}
                 </div>
 
                 <PromptInput
                     onSubmit={handleSubmit}
-                    className="rounded-lg border shadow-sm transition-all duration-300 focus-within:glow-primary focus-within:ring-2 focus-within:ring-primary/20 bg-background"
+                    className="rounded-3xl border border-border/60 bg-card/80 shadow-lg shadow-black/5 transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-xl"
                     accept={
                         supportsFiles
                             ? 'image/*,.pdf,.txt,.csv,.json,.md'
@@ -263,7 +297,7 @@ export function ChatInput() {
                                 className={cn(
                                     'magnetic transition-all duration-300',
                                     isSpeaking &&
-                                        'text-primary glow-primary animate-ambient-pulse scale-110'
+                                        'text-primary animate-ambient-pulse scale-105'
                                 )}
                                 onTranscriptionChange={(text) => {
                                     setInput(
@@ -292,6 +326,15 @@ export function ChatInput() {
                                 <ModelSelectorTrigger asChild>
                                     <PromptInputButton title="Select provider">
                                         <CpuIcon className="size-4" />
+                                        <span
+                                            className={cn(
+                                                'ml-1 inline-flex size-2 rounded-full',
+                                                selectedProviderConnected
+                                                    ? 'bg-emerald-500'
+                                                    : 'bg-amber-500'
+                                            )}
+                                            aria-hidden="true"
+                                        />
                                         <span className="hidden sm:inline ml-1 text-xs">
                                             {selectedProviderLabel}
                                         </span>
@@ -316,20 +359,36 @@ export function ChatInput() {
                                                             'bg-accent'
                                                     )}
                                                 >
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex min-w-0 items-center gap-2">
                                                         <ModelSelectorLogo
                                                             provider={provider.id}
                                                             className="size-3"
+                                                        />
+                                                        <span
+                                                            className={cn(
+                                                                'inline-flex size-2 rounded-full',
+                                                                provider.connected
+                                                                    ? 'bg-emerald-500'
+                                                                    : 'bg-amber-500'
+                                                            )}
+                                                            aria-hidden="true"
                                                         />
                                                         <ModelSelectorName>
                                                             {provider.name}
                                                         </ModelSelectorName>
                                                     </div>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {provider.connected
-                                                            ? `${provider.models.length} model${provider.models.length === 1 ? '' : 's'}`
-                                                            : 'disconnected'}
-                                                    </span>
+                                                    <div className="text-right text-xs text-muted-foreground">
+                                                        <div>
+                                                            {provider.connected
+                                                                ? `${provider.models.length} model${provider.models.length === 1 ? '' : 's'}`
+                                                                : 'API key missing'}
+                                                        </div>
+                                                        {provider.envVar ? (
+                                                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                                                                {provider.envVar}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
                                                 </ModelSelectorItem>
                                             ))}
                                         </ModelSelectorGroup>
@@ -367,6 +426,13 @@ export function ChatInput() {
                                                     {modelId}
                                                 </ModelSelectorItem>
                                             ))}
+                                            {selectedProviderModels.length === 0 && (
+                                                <div className="px-2 py-3 text-xs text-muted-foreground">
+                                                    {selectedProvider?.connected
+                                                        ? 'This agent does not expose runtime-selectable models for the selected provider.'
+                                                        : providerStatusLabel}
+                                                </div>
+                                            )}
                                         </ModelSelectorGroup>
                                     </ModelSelectorList>
                                 </ModelSelectorContent>

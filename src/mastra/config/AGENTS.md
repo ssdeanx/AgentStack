@@ -2,6 +2,10 @@
 
 # Config Directory (`/src/mastra/config`)
 
+## Recent Update (2026-04-16)
+
+- `src/mastra/config/libsql.ts` now uses `fastembed.base` with a shared 768-dimension LibSQL index and preloads FastEmbed via `warmup()` before `Memory` initialization to avoid missing-tokenizer cache races.
+
 ## Recent Update (2026-03-18)
 
 - Standardized the current Gemini embedding model references in active config/runtime files on `gemini-embedding-2-preview`.

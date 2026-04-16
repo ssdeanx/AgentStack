@@ -109,15 +109,15 @@ export function AgentConfirmation({
     return (
         <Confirmation approval={approval} state={state} className={className}>
             <ConfirmationRequest>
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-background/70 p-4 shadow-sm">
                     <div className={cn('mt-0.5 shrink-0', config.iconClass)}>
                         <Icon className="size-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium text-sm">
                                 Tool{' '}
-                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
+                                <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">
                                     {toolName}
                                 </code>
                             </p>
@@ -135,7 +135,7 @@ export function AgentConfirmation({
                 </div>
             </ConfirmationRequest>
             <ConfirmationAccepted>
-                <div className="flex items-center gap-2 text-green-600 bg-green-500/10 px-3 py-2 rounded-md">
+                <div className="flex items-center gap-2 rounded-2xl border border-green-500/20 bg-green-500/10 px-3 py-2 text-green-600 shadow-sm">
                     <CheckIcon className="size-4" />
                     <span className="text-sm font-medium">
                         Approved - Tool execution started
@@ -143,7 +143,7 @@ export function AgentConfirmation({
                 </div>
             </ConfirmationAccepted>
             <ConfirmationRejected>
-                <div className="flex items-center gap-2 text-red-600 bg-red-500/10 px-3 py-2 rounded-md">
+                <div className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-red-600 shadow-sm">
                     <XIcon className="size-4" />
                     <span className="text-sm font-medium">
                         Rejected - Tool execution cancelled

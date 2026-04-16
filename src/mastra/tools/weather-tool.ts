@@ -4,6 +4,10 @@ import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import type { TracingContext } from '@mastra/core/observability'
+import {
+    createLinkedAbortController,
+    resolveAbortSignal,
+} from './abort-signal.utils'
 
 import type { RequestContext } from '@mastra/core/request-context'
 import type { BaseToolRequestContext } from './request-context.utils'
@@ -59,14 +63,14 @@ export const weatherTool = createTool({
             toolCallId,
             messageCount: messages.length,
             hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
         })
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
         log.info('Weather tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             messageCount: messages.length,
             hook: 'onInputDelta',
         })
@@ -76,19 +80,20 @@ export const weatherTool = createTool({
             toolCallId,
             messageCount: messages.length,
             inputData: { location: input.location },
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
 
     execute: async (inputData, context) => {
         const {writer} = context
-        const {abortSignal} = context
+        const abortController = createLinkedAbortController(context.abortSignal)
+        const abortSignal = abortController.signal
         const tracingContext: TracingContext | undefined =
             context.tracingContext
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal.aborted) {
             throw new Error('Weather lookup cancelled', { cause: abortSignal })
         }
 
@@ -151,7 +156,7 @@ export const weatherTool = createTool({
             })
 
             // Check for cancellation before geocoding
-            if (abortSignal?.aborted ?? false) {
+            if (abortSignal.aborted) {
                 weatherSpan?.error({
                     error: new Error('Operation cancelled during geocoding'),
                     endSpan: true,
@@ -276,13 +281,13 @@ export const weatherTool = createTool({
             toolCallId,
             toolName,
             outputData: {
-                location: output.location,
-                temperature: output.temperature,
-                unit: output.unit,
-                conditions: output.conditions,
+            location: output.location,
+            temperature: output.temperature,
+            unit: output.unit,
+            conditions: output.conditions,
             },
             hook: 'onOutput',
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
         })
     },
 })
@@ -290,7 +295,7 @@ export const weatherTool = createTool({
 const getWeather = async (
     location: string,
     unit: 'celsius' | 'fahrenheit',
-    abortSignal?: AbortSignal
+    abortSignal: AbortSignal
 ) => {
     const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`
     const geocodingResponse = await fetch(geocodingUrl, { signal: abortSignal })

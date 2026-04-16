@@ -183,13 +183,13 @@ export function AgentQueue({
 
     return (
         <Queue className={className}>
-            <div className="flex items-center gap-2 px-2 pb-2 border-b mb-2">
+            <div className="mb-3 flex items-center gap-2 rounded-2xl border border-border/60 bg-background/70 px-3 py-2 shadow-sm">
                 <span className="text-sm font-medium">Task Queue</span>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="rounded-full text-xs">
                     {tasks.length} total
                 </Badge>
                 {running.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="rounded-full text-xs">
                         {running.length} running
                     </Badge>
                 )}

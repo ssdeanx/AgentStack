@@ -69,7 +69,32 @@ export const mongoMemory = new Memory({
     vector: mongoVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
     embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     options: {
-        observationalMemory: true,
+        observationalMemory: {
+                    enabled: true,
+                    scope: 'thread', // 'resource' | 'thread'
+                    model: 'google/gemini-2.5-flash',
+                    shareTokenBudget: false, // Don't share token budget between observation and reflection to preserve context
+                    observation: {
+                        instruction: 'You are an assistant that observes and remembers important information from the conversation. Pay attention to details, context, and any information that might be useful for future reference.',
+                        messageTokens: 60_000,
+                        modelSettings: {
+                            temperature: 0.3,
+                            maxOutputTokens: 64_000,
+                            topK: 40,
+                            topP: 0.95,
+                        },
+                    },
+                    reflection: {
+                        instruction: 'Based on the observations, generate concise and informative reflections that capture important details, context, and insights from the conversation. These reflections should be useful for future reference and help provide context for the assistant.',
+                        modelSettings: {
+                            temperature: 0.3,
+                            maxOutputTokens: 64_000,
+                            topK: 40,
+                            topP: 0.95,
+                        },
+                        observationTokens: 50_000,
+                    },
+        },
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',

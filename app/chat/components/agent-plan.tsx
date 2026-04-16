@@ -58,11 +58,16 @@ export function AgentPlan({
         >
             <PlanHeader>
                 <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <PlanTitle>{plan.title}</PlanTitle>
                         {completedCount > 0 && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="rounded-full text-xs shadow-sm">
                                 {completedCount}/{normalizedSteps.length}
+                            </Badge>
+                        )}
+                        {progress > 0 && (
+                            <Badge variant="outline" className="rounded-full text-xs">
+                                {progress}%
                             </Badge>
                         )}
                     </div>
@@ -71,7 +76,7 @@ export function AgentPlan({
                 <PlanTrigger />
             </PlanHeader>
             <PlanContent>
-                <ol className="space-y-2 text-sm">
+                <ol className="space-y-2.5 text-sm">
                     {normalizedSteps.map((step, index) => {
                         const isCurrentStep = plan.currentStep === index
                         const isCompleted = step.completed
@@ -101,12 +106,12 @@ export function AgentPlan({
                 </ol>
                 {progress > 0 && progress < 100 && (
                     <svg
-                        className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted"
+                        className="mt-4 h-2 w-full overflow-hidden rounded-full border border-border/60 bg-muted/50"
                         viewBox="0 0 100 1"
                         preserveAspectRatio="none"
                         aria-hidden="true"
                     >
-                        <rect x="0" y="0" width="100" height="1" className="fill-muted" />
+                        <rect x="0" y="0" width="100" height="1" className="fill-muted/50" />
                         <rect
                             x="0"
                             y="0"

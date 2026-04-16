@@ -19,6 +19,7 @@ import type {
     BinanceKlineRow,
     NormalizedCandle,
 } from './market-data.helpers'
+import { resolveAbortSignal } from './abort-signal.utils'
 
 /**
  * Shared request context for Binance crypto data.
@@ -350,7 +351,7 @@ export const binanceSpotMarketDataTool = createTool({
         log.info('Binance spot market-data input streaming started', {
             toolCallId,
             messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -359,7 +360,7 @@ export const binanceSpotMarketDataTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -369,7 +370,7 @@ export const binanceSpotMarketDataTool = createTool({
             messageCount: messages?.length ?? 0,
             function: input.function,
             symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -414,7 +415,7 @@ export const binanceSpotMarketDataTool = createTool({
             const results = [] as BinanceSpotMarketDataItem[]
 
             for (const currentSymbol of symbols) {
-                if (abortSignal?.aborted) {
+                if (resolveAbortSignal(abortSignal).aborted) {
                     throw new Error('Binance crypto request cancelled')
                 }
 
@@ -496,7 +497,7 @@ export const binanceSpotMarketDataTool = createTool({
             toolCallId,
             toolName,
             count,
-            abortSignal: abortSignal?.aborted,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },

@@ -7,6 +7,10 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
+import {
+    createLinkedAbortController,
+    resolveAbortSignal,
+} from './abort-signal.utils'
 
 /**
  * Alpha Vantage Tools
@@ -121,7 +125,7 @@ export const alphaVantageCryptoTool = createTool({
         log.info('Alpha Vantage crypto tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -130,7 +134,7 @@ export const alphaVantageCryptoTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -140,13 +144,14 @@ export const alphaVantageCryptoTool = createTool({
             messageCount: messages.length,
             symbol: input.symbol,
             market: input.market,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const abortSignal = context.abortSignal
+        const abortController = createLinkedAbortController(context.abortSignal)
+        const abortSignal = abortController.signal
         const tracingContext: TracingContext | undefined = context.tracingContext
         const requestContext = context.requestContext as RequestContext<AlphaVantageContextExtra>
         const userId = requestContext?.all.userId
@@ -156,7 +161,7 @@ export const alphaVantageCryptoTool = createTool({
             .join('/')
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted === true) {
+        if (abortSignal.aborted) {
             throw new Error('Alpha Vantage crypto lookup cancelled')
         }
 
@@ -257,6 +262,7 @@ export const alphaVantageCryptoTool = createTool({
                 method: 'GET',
                 timeout: 30000,
                 responseType: 'json',
+                signal: abortSignal,
             })
 
             if (
@@ -411,7 +417,7 @@ export const alphaVantageCryptoTool = createTool({
             toolCallId,
             toolName,
             symbol: output.metadata?.symbol ?? 'unknown',
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -507,7 +513,7 @@ export const alphaVantageStockTool = createTool({
         log.info('Alpha Vantage stock tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -516,7 +522,7 @@ export const alphaVantageStockTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -526,13 +532,14 @@ export const alphaVantageStockTool = createTool({
             messageCount: messages.length,
             symbol: input.symbol,
             function: input.function,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const abortSignal = context.abortSignal
+        const abortController = createLinkedAbortController(context.abortSignal)
+        const abortSignal = abortController.signal
         const tracingContext: TracingContext | undefined =
             context.tracingContext
         const requestContext =
@@ -541,7 +548,7 @@ export const alphaVantageStockTool = createTool({
         const workspaceId = requestContext?.all.workspaceId
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted === true) {
+        if (abortSignal.aborted) {
             throw new Error('Alpha Vantage stock lookup cancelled')
         }
 
@@ -646,6 +653,7 @@ export const alphaVantageStockTool = createTool({
                 method: 'GET',
                 timeout: 30000,
                 responseType: 'json',
+                signal: abortSignal,
             })
 
             if (
@@ -827,7 +835,7 @@ export const alphaVantageStockTool = createTool({
             toolName,
             symbol: output.metadata?.symbol ?? 'unknown',
             dataKeys,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -954,7 +962,7 @@ export const alphaVantageTool = createTool({
         log.info('alphaVantageTool tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -963,7 +971,7 @@ export const alphaVantageTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -983,13 +991,14 @@ export const alphaVantageTool = createTool({
                 series_type: input.series_type,
                 economic_indicator: input.economic_indicator,
             },
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const abortSignal = context.abortSignal
+        const abortController = createLinkedAbortController(context.abortSignal)
+        const abortSignal = abortController.signal
         const tracingContext: TracingContext | undefined =
             context.tracingContext
         const requestContext =
@@ -998,7 +1007,7 @@ export const alphaVantageTool = createTool({
         const workspaceId = requestContext?.all.workspaceId
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted === true) {
+        if (abortSignal.aborted) {
             throw new Error('Alpha Vantage general lookup cancelled')
         }
 
@@ -1305,7 +1314,7 @@ export const alphaVantageTool = createTool({
             toolName,
             function: output.metadata?.function ?? 'unknown',
             dataKeys,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },

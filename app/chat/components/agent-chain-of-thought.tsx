@@ -47,13 +47,13 @@ export function AgentChainOfThought({
 
     return (
         <ChainOfThought defaultOpen={defaultOpen} className={className}>
-            <ChainOfThoughtHeader className="flex items-center gap-2">
+            <ChainOfThoughtHeader className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card/80 px-4 py-3 shadow-sm shadow-black/5">
                 <span className="flex-1">
                     {isStreaming
                         ? (activeStep?.label ?? 'Thinking...')
                         : 'Chain of Thought'}
                 </span>
-                <Badge variant="secondary" className="text-xs font-normal">
+                <Badge variant="secondary" className="rounded-full text-xs font-normal">
                     {completedCount}/{steps.length}
                 </Badge>
             </ChainOfThoughtHeader>

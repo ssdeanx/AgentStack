@@ -1,4 +1,5 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { RequestContext } from '@mastra/core/request-context'
 import type { TracingContext } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
@@ -10,7 +11,8 @@ import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
-
+import { createLinkedAbortController, resolveAbortSignal } from './abort-signal.utils'
+import type { BaseToolRequestContext } from './request-context.utils'
 
 const DEFAULT_USER_AGENT =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 AgentStackFetch/1.0'
@@ -18,10 +20,6 @@ const TRACKING_PARAM_RE = new RE2(
     '^(utm_[a-z0-9_]+|gclid|fbclid|yclid|mc_eid|mc_cid|igshid|ref|ref_src)$',
     'i'
 )
-
-import type { RequestContext } from '@mastra/core/request-context'
-import type { BaseToolRequestContext } from './request-context.utils'
-
 type FetchUserAgent = {
     'user-agent': string
 }
@@ -206,6 +204,15 @@ function passesRe2Filters(
         return false
     }
     return !exclude.some((re) => re.test(value))
+}
+
+function throwIfAborted(
+    abortSignal: AbortSignal | undefined,
+    message: string
+): void {
+    if (abortSignal?.aborted ?? false) {
+        throw new FetchToolError(message, 'ABORTED')
+    }
 }
 
 function dedupeResults(results: SearchResult[]): SearchResult[] {
@@ -422,10 +429,13 @@ async function searchDuckDuckGo(options: {
     query: string
     timeout: number
     userAgent?: string
+    abortSignal?: AbortSignal
 }): Promise<SearchResult[]> {
+    throwIfAborted(options.abortSignal, 'Fetch tool cancelled before DuckDuckGo search')
     const response = await httpFetch('https://duckduckgo.com/html/', {
         method: 'GET',
         timeout: options.timeout,
+        signal: options.abortSignal,
         responseType: 'text',
         params: { q: options.query },
         headers: buildRequestHeaders(options.userAgent),
@@ -448,10 +458,13 @@ async function searchGoogle(options: {
     maxResults: number
     timeout: number
     userAgent?: string
+    abortSignal?: AbortSignal
 }): Promise<SearchResult[]> {
+    throwIfAborted(options.abortSignal, 'Fetch tool cancelled before Google search')
     const response = await httpFetch('https://www.google.com/search', {
         method: 'GET',
         timeout: options.timeout,
+        signal: options.abortSignal,
         responseType: 'text',
         params: {
             q: options.query,
@@ -477,10 +490,13 @@ async function searchBing(options: {
     query: string
     timeout: number
     userAgent?: string
+    abortSignal?: AbortSignal
 }): Promise<SearchResult[]> {
+    throwIfAborted(options.abortSignal, 'Fetch tool cancelled before Bing search')
     const response = await httpFetch('https://www.bing.com/search', {
         method: 'GET',
         timeout: options.timeout,
+        signal: options.abortSignal,
         responseType: 'text',
         params: { q: options.query, setlang: 'en' },
         headers: buildRequestHeaders(options.userAgent),
@@ -503,10 +519,16 @@ async function searchGoogleNewsRss(options: {
     timeout: number
     userAgent?: string
     maxResults: number
+    abortSignal?: AbortSignal
 }): Promise<SearchResult[]> {
+    throwIfAborted(
+        options.abortSignal,
+        'Fetch tool cancelled before Google News RSS search'
+    )
     const response = await httpFetch('https://news.google.com/rss/search', {
         method: 'GET',
         timeout: options.timeout,
+        signal: options.abortSignal,
         responseType: 'text',
         params: {
             q: options.query,
@@ -593,6 +615,7 @@ async function fetchPageAsMarkdown(options: {
     timeout: number
     userAgent?: string
     contentWindow: ContentWindowConfig
+    abortSignal?: AbortSignal
 }): Promise<{
     markdown: string
     originalChars: number
@@ -602,9 +625,11 @@ async function fetchPageAsMarkdown(options: {
     const headers: Record<string, string> = {}
     Object.assign(headers, buildRequestHeaders(options.userAgent))
 
+    throwIfAborted(options.abortSignal, 'Fetch tool cancelled before page fetch')
     const response = await httpFetch(options.url, {
         method: 'GET',
         timeout: options.timeout,
+        signal: options.abortSignal,
         responseType: 'text',
         headers,
     })
@@ -738,10 +763,12 @@ export const fetchTool = createTool({
     inputSchema: fetchToolInputSchema,
     outputSchema: fetchToolOutputSchema,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        
+        
         log.info('Fetch tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -750,7 +777,7 @@ export const fetchTool = createTool({
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
@@ -758,7 +785,7 @@ export const fetchTool = createTool({
         log.info('Fetch tool input available', {
             toolCallId,
             messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
             url: input.url,
             query: input.query,
             searchProvider: input.searchProvider,
@@ -769,15 +796,14 @@ export const fetchTool = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const abortSignal = context.abortSignal
+        const abortController = createLinkedAbortController(context.abortSignal)
+        const abortSignal = abortController.signal
         const requestContext = context.requestContext as RequestContext<FetchToolContext> | undefined
         const userId = requestContext?.all.userId
         const workspaceId = requestContext?.all.workspaceId
         const tracingContext: TracingContext | undefined = context.tracingContext
 
-        if (abortSignal?.aborted ?? false) {
-            throw new Error('Fetch tool cancelled')
-        }
+        throwIfAborted(abortSignal, 'Fetch tool cancelled')
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -823,6 +849,7 @@ export const fetchTool = createTool({
                     timeout,
                     userAgent,
                     contentWindow,
+                    abortSignal,
                 })
 
                 const result = fetchToolOutputSchema.parse({
@@ -879,6 +906,7 @@ export const fetchTool = createTool({
                         timeout,
                         userAgent,
                         maxResults,
+                        abortSignal,
                     })
                     providerDiagnostics['google-news-rss'] = 'ok'
                     discoveredRaw.push(...newsResults)
@@ -893,6 +921,7 @@ export const fetchTool = createTool({
                     query,
                     timeout,
                     userAgent,
+                    abortSignal,
                 })
                 discoveredRaw.push(...providerResults)
                 providerDiagnostics.duckduckgo = 'ok'
@@ -902,6 +931,7 @@ export const fetchTool = createTool({
                     maxResults,
                     timeout,
                     userAgent,
+                    abortSignal,
                 })
                 discoveredRaw.push(...providerResults)
                 providerDiagnostics.google = 'ok'
@@ -910,12 +940,13 @@ export const fetchTool = createTool({
                     query,
                     timeout,
                     userAgent,
+                    abortSignal,
                 })
                 discoveredRaw.push(...providerResults)
                 providerDiagnostics.bing = 'ok'
             } else {
                 const [ddgResults, googleResults, bingResults] = await Promise.all([
-                    searchDuckDuckGo({ query, timeout, userAgent })
+                    searchDuckDuckGo({ query, timeout, userAgent, abortSignal })
                         .then((results) => {
                             providerDiagnostics.duckduckgo = 'ok'
                             return results
@@ -930,6 +961,7 @@ export const fetchTool = createTool({
                         maxResults,
                         timeout,
                         userAgent,
+                        abortSignal,
                     })
                         .then((results) => {
                             providerDiagnostics.google = 'ok'
@@ -940,7 +972,7 @@ export const fetchTool = createTool({
                                 error instanceof Error ? error.message : String(error)
                             return []
                         }),
-                    searchBing({ query, timeout, userAgent })
+                    searchBing({ query, timeout, userAgent, abortSignal })
                         .then((results) => {
                             providerDiagnostics.bing = 'ok'
                             return results
@@ -966,9 +998,7 @@ export const fetchTool = createTool({
             }> = []
 
             for (const item of discovered) {
-                if (abortSignal?.aborted ?? false) {
-                    throw new Error('Fetch tool cancelled during result fetch')
-                }
+                throwIfAborted(abortSignal, 'Fetch tool cancelled during result fetch')
 
                 if (!includeContent) {
                     results.push(item)
@@ -981,6 +1011,7 @@ export const fetchTool = createTool({
                         timeout,
                         userAgent,
                         contentWindow,
+                        abortSignal,
                     })
                     results.push({ ...item, markdown: resultMarkdown.markdown })
                 } catch (error) {

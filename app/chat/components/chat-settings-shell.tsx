@@ -50,7 +50,7 @@ export function ChatSettingsShell({
             >
                 <TooltipProvider delayDuration={150}>
                     <div className="space-y-6">
-                        <ScrollArea className="w-full whitespace-nowrap rounded-3xl border border-border/60 bg-card/70">
+                        <ScrollArea className="chat-panel-muted w-full whitespace-nowrap rounded-3xl">
                             <nav className="grid min-w-max gap-3 p-4 lg:min-w-0 lg:grid-cols-3">
                                 {sections.map((section) => {
                                     const isActive =
@@ -63,16 +63,16 @@ export function ChatSettingsShell({
                                                 <Link
                                                     href={section.href}
                                                     className={cn(
-                                                        'rounded-2xl border px-4 py-3 transition-colors',
+                                                        'rounded-2xl border px-4 py-3 transition-all',
                                                         isActive
-                                                            ? 'border-primary/30 bg-primary/10 text-foreground'
-                                                            : 'border-border/60 bg-background/70 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                            ? 'border-primary/35 bg-primary/8 text-foreground shadow-[0_18px_38px_-30px_rgba(99,102,241,0.6)]'
+                                                            : 'border-border/60 bg-background/55 text-muted-foreground hover:border-border/80 hover:bg-background/75 hover:text-foreground'
                                                     )}
                                                 >
-                                                    <div className="text-sm font-medium">
+                                                    <div className="text-sm font-medium tracking-tight">
                                                         {section.title}
                                                     </div>
-                                                    <div className="mt-1 text-xs leading-relaxed">
+                                                    <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                                                         {section.description}
                                                     </div>
                                                 </Link>

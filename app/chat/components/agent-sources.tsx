@@ -1,12 +1,12 @@
 'use client'
 
+import Image from 'next/image'
 import {
     Sources,
     SourcesTrigger,
     SourcesContent,
     Source,
 } from '@/src/components/ai-elements/sources'
-import type { Source as SourceType } from '@/app/chat/providers/chat-context-types'
 import { ExternalLinkIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import type { AgentSourcesProps } from '../providers/chat-context-types'
@@ -79,13 +79,13 @@ export function AgentSources({
                         title={source.title || getDomain(source.url)}
                     >
                         <div className="flex items-center gap-2 min-w-0">
-                            <img
+                            <Image
                                 src={getFavicon(source.url)}
                                 alt=""
-                                className="size-4 rounded-sm shrink-0"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none'
-                                }}
+                                width={16}
+                                height={16}
+                                unoptimized
+                                className="size-4 shrink-0 rounded-sm"
                             />
                             <span className="truncate flex-1">
                                 {source.title || getDomain(source.url)}

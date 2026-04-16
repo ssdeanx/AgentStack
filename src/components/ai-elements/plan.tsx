@@ -51,7 +51,7 @@ export const Plan = ({
   return (
     <PlanContext.Provider value={contextValue}>
       <Collapsible asChild data-slot="plan" {...props}>
-        <Card className={cn("shadow-none", className)}>{children}</Card>
+        <Card className={cn("overflow-hidden rounded-2xl border-border/60 bg-card/80 shadow-sm shadow-black/5", className)}>{children}</Card>
       </Collapsible>
     </PlanContext.Provider>
   );
@@ -61,7 +61,7 @@ export type PlanHeaderProps = ComponentProps<typeof CardHeader>;
 
 export const PlanHeader = ({ className, ...props }: PlanHeaderProps) => (
   <CardHeader
-    className={cn("flex items-start justify-between", className)}
+    className={cn("flex items-start justify-between gap-4 bg-linear-to-br from-background to-muted/20 px-5 py-4", className)}
     data-slot="plan-header"
     {...props}
   />
@@ -119,14 +119,14 @@ export type PlanContentProps = ComponentProps<typeof CardContent>;
 
 export const PlanContent = (props: PlanContentProps) => (
   <CollapsibleContent asChild>
-    <CardContent data-slot="plan-content" {...props} />
+    <CardContent className="px-5 pb-5 pt-0" data-slot="plan-content" {...props} />
   </CollapsibleContent>
 );
 
 export type PlanFooterProps = ComponentProps<"div">;
 
 export const PlanFooter = (props: PlanFooterProps) => (
-  <CardFooter data-slot="plan-footer" {...props} />
+  <CardFooter className="border-t border-border/50 bg-background/60 px-5 py-4" data-slot="plan-footer" {...props} />
 );
 
 export type PlanTriggerProps = ComponentProps<typeof CollapsibleTrigger>;
@@ -134,7 +134,7 @@ export type PlanTriggerProps = ComponentProps<typeof CollapsibleTrigger>;
 export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
   <CollapsibleTrigger asChild>
     <Button
-      className={cn("size-8", className)}
+      className={cn("size-9 rounded-full border border-border/60 bg-background/80 shadow-sm", className)}
       data-slot="plan-trigger"
       size="icon"
       variant="ghost"

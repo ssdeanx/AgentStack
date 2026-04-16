@@ -4,6 +4,12 @@
 
 ## Recent Update (2026-04-15)
 
+- The main chat shell no longer relies on `app/chat/config/agents.ts` / `app/chat/config/models.ts` for the active agent/model presentation layer:
+  - `app/chat/lib/runtime-chat-catalog.ts` now derives chat UI metadata from live Mastra agent payloads.
+  - `app/chat/providers/chat-context.tsx` now builds `agentConfig` from `useAgent(selectedAgent)`.
+  - `app/chat/components/chat-header.tsx` now groups agents from `useAgents()` and models from `useAgentModelProviders()`.
+  - `app/chat/components/chat-sidebar.tsx` now exposes runtime browser/workspace/skill counts from the active agent payload.
+- The installed `@mastra/client-js` package exposes capability metadata like `browserTools`, `workspaceTools`, and `skills`, but this repo still does not have a first-class browser/editor runtime-control client resource comparable to tool providers; UI work in this area should assume capability display first and add server routes only if real session/control features are needed.
 - Settings pages are now modular route groups instead of two monolithic screens:
   - `/chat/user` overview + focused routes for profile, security, sessions, API keys, and danger zone
   - `/chat/admin` overview + focused routes for runtime and user operations
@@ -11,10 +17,41 @@
 - Use the same shared shell composition for non-settings dashboard surfaces that need the persistent chat sidebar; the current wrapped set includes datasets, evaluation, observability, tools, logs, harness, MCP/A2A, workflows, and workflow detail pages.
 - `UserSettingsPanel` and `AdminSettingsPanel` now support section-based rendering so new routes can reuse the same Better Auth mutations without duplicating form logic.
 - `useWorkspaces()` in `lib/hooks/use-mastra-query.ts` now returns normalized `WorkspaceItem[]`; new chat UI code should consume that array directly instead of re-decoding `{ workspaces: [...] }` response shapes in components.
+- `lib/hooks/use-mastra-query.ts` was also tightened to track the installed `@mastra/client-js` API more closely:
+  - `useToolProvider(...)` now returns the real provider resource instead of duplicating the toolkits query
+  - stored resource update/version mutations now accept explicit request-context-aware inputs
+  - workspace skill hooks now support `skillPath?: string` for disambiguating duplicate skill names
+  - `useCompareStoredScorerVersions(...)` now uses the scorer-specific compare response type
+- The chat provider/runtime UX now also exposes provider readiness directly through `ChatContext`:
+  - active provider connection state and env-var hint come from live `useAgentModelProviders()` data
+  - the composer shows a green/amber provider status light and avoids presenting provider-level model options that the current agent cannot actually use
+  - the message surface shows provider/model/runtime capability badges and a configuration warning when the provider is unavailable
+- `/chat/builder` now uses the exact stored-agent creation contract from `@mastra/client-js`:
+  - live provider/model options instead of hardcoded Gemini defaults
+  - typed tool-map payloads instead of `unknown` casts
+  - save is gated on a connected provider so users cannot submit an obviously invalid agent snapshot
+- Tool cancellation now depends on the runtime `abortSignal` that comes from `createTool()` / `useChat.stop()`, not on a shared global controller.
 - Prefer shared tooltip and scroll affordances on high-density chat surfaces:
   - add tooltip descriptions for navigation items and overview cards when a route’s purpose is not obvious
   - use `ScrollArea` for long sidebars, thread lists, or horizontally dense settings navs rather than letting layout overflow
   - keep shell spacing consistent through `ChatPageShell` instead of per-page padding drift
+
+## Recent Update (2026-04-16)
+
+- The shared chat visual system was tightened around `ChatPageShell`, `ChatSettingsShell`, and `MainSidebar` instead of route-level bespoke chrome.
+- `ChatPageShell` now supports `fullBleed` mode for immersive routes that still need the persistent shared sidebar, and `/chat/workflows` now uses that path.
+- `/chat/builder` no longer uses its own standalone header/layout; it now mounts inside the same shared shell/sidebar composition as the rest of the chat workspace.
+- `app/layout.tsx` no longer applies `mesh-gradient` to the entire app body, and `app/globals.css` now defines calmer chat-specific surface utilities:
+  - `chat-shell-bg`
+  - `chat-sidebar-surface`
+  - `chat-panel`
+  - `chat-panel-muted`
+  - `chat-toolbar`
+  - `chat-canvas-surface`
+- The older glow/glass/bento utilities were softened rather than removed blindly so existing routes keep working while the chat area adopts a more restrained professional theme.
+- Live runtime verification also fixed two important chat-shell contracts:
+  - `lib/mastra-client.ts` exports `MASTRA_API_BASE_URL` for frontend consumers like `chat-context.tsx`
+  - `ChatProvider` now derives runtime agent ids from the `useAgents()` array payload instead of array indexes, which prevents invalid `/api/agents/0` fetches on shell pages
 
 ## Overview
 
@@ -69,8 +106,8 @@ graph TB
         AgentArtifact["agent-artifact.tsx<br/>Code artifacts"]
     end
 
-    subgraph Config["config/"]
-        AgentConfig["agents.ts<br/>26+ agent configs"]
+    subgraph RuntimeCatalog["runtime metadata"]
+        RuntimeAgentConfig["runtime-chat-catalog.ts<br/>live-derived agent metadata"]
     end
 
     subgraph AIElements["AI Elements (imported)"]
@@ -91,7 +128,7 @@ graph TB
 
     ChatPage --> Providers
     ChatPage --> Components
-    Components --> Config
+    Components --> RuntimeCatalog
     Components --> AIElements
 ```
 
@@ -104,8 +141,8 @@ app/chat/
 ├── providers/
 │   ├── chat-context.tsx        # React Context with AI SDK v5 types
 │   └── chat-context-types.ts   # Type definitions
-├── config/
-│   └── agents.ts               # 26+ agent configurations with feature flags
+├── lib/
+│   └── runtime-chat-catalog.ts # Runtime-derived chat agent/model metadata
 └── components/
     ├── chat-header.tsx         # Header with ModelSelector
     ├── chat-messages.tsx       # Message list with streaming, Attachments, AudioPlayer

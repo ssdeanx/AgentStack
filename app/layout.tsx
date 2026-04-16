@@ -6,7 +6,6 @@ import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { Navbar } from '@/app/components/navbar'
 import { PublicPageReveal } from '@/app/components/public-page-reveal'
-import { cn } from '@/lib/utils'
 import { TooltipProvider } from '@/ui/tooltip'
 import { QueryProvider } from '@/app/components/query-provider'
 
@@ -72,7 +71,7 @@ export default function RootLayout({
                 />
             </head>
 
-            <body className={cn(inter.className, 'mesh-gradient')}>
+            <body className={inter.className}>
                 <ThemeProvider
                     attribute="class"
                     defaultTheme="system"
