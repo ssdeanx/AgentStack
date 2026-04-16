@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+//import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { ConvexStore, ConvexVector } from '@mastra/convex'
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 import { Memory } from '@mastra/memory'

@@ -3,7 +3,7 @@ import { LibSQLStore, LibSQLVector } from '@mastra/libsql'
 import { Memory } from '@mastra/memory'
 import { log } from './logger'
 import {
-    ModelRouterEmbeddingModel,
+//    ModelRouterEmbeddingModel,
     ModelRouterLanguageModel,
 } from '@mastra/core/llm'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
@@ -105,14 +105,14 @@ export const LibsqlMemory = new Memory({
                 before: parseInt(process.env.SEMANTIC_RANGE_BEFORE ?? '3'),
                 after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
             },
-            scope: 'resource', // 'resource' | 'thread'
+            scope: 'thread', // 'resource' | 'thread'
             threshold: 0.75, // Similarity threshold for semantic recall
             indexName: LIBSQL_INDEX_NAME, // Index name for semantic recall
         },
         // Enhanced working memory with supported template
         workingMemory: {
             enabled: true,
-            scope: 'resource', // 'resource' | 'thread'
+            scope: 'thread', // 'resource' | 'thread'
             version: 'vnext',
             template: `
 # User Context

@@ -121,6 +121,7 @@ const defaultFormatMessage = (message: UIMessage): string => {
   return `**${roleLabel}:** ${getMessageText(message)}`;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const messagesToMarkdown = (
   messages: UIMessage[],
   formatMessage: (

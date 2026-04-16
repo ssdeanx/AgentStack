@@ -31,7 +31,9 @@
     "cli": "node dist/index.js",
     "generate-index": "node dist/cli/index.js",
     "convex": "npx convex dev --env-file .env.local",
-    "code": "npx mastracode"
+    "code": "npx mastracode",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "keywords": [
     "ai",
@@ -304,7 +306,13 @@
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.2",
     "typescript-language-server": "^5.1.3",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "storybook": "^10.3.5",
+    "@storybook/nextjs": "^10.3.5",
+    "@storybook/addon-a11y": "^10.3.5",
+    "@storybook/addon-docs": "^10.3.5",
+    "@storybook/addon-onboarding": "^10.3.5",
+    "eslint-plugin-storybook": "^10.3.5"
   },
   "overrides": {
     "jsondiffpatch": "0.7.3",

@@ -13,7 +13,7 @@ const hasData = (value: unknown): value is { data: unknown } =>
     typeof value === 'object' && value !== null && 'data' in value
 
 const toStringList = (value: unknown) =>
-    Array.isArray(value) ? value.map((item) => String(item)) : value == null ? [] : [String(value)]
+    Array.isArray(value) ? value.map((item) => String(item)) : value === null ? [] : [String(value)]
 
 const variantStep = createStep({
     id: 'gen-variant',

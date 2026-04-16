@@ -1,11 +1,4 @@
-import { MCPClient } from '@mastra/mcp'
-
-const smithry = process.env.SMITHERY_API_KEY
-const smithryProfile = process.env.SMITHERY_PROFILE
-const neo4jPassword = process.env.NEO4J_PASSWORD
-const neo4jUsername = process.env.NEO4J_USERNAME
-const neo4jUri = process.env.NEO4J_URI
-const NEO4J_DATABASE = process.env.NEO4J_DATABASE ?? 'neo4j'
+import { MCPClient, MCPClientOptions } from '@mastra/mcp'
 
 const Klavis = process.env.KLAVIS_INSTANCE_ID
 const strata = process.env.KLAVIS_STRATA

@@ -11,7 +11,7 @@ const inputSchema = z.object({
 const outputSchema = z.any()
 
 const toStringList = (value: unknown): string[] =>
-    Array.isArray(value) ? value.map((item) => String(item)) : value == null ? [] : [String(value)]
+    Array.isArray(value) ? value.map((item) => String(item)) : value === null ? [] : [String(value)]
 
 const outlineStep = createStep({
     id: 'gen-outline',

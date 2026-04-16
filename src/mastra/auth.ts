@@ -1,4 +1,3 @@
-
 import { MastraAuthBetterAuth } from '@mastra/auth-better-auth'
 import { LibsqlDialect } from '@libsql/kysely-libsql'
 import { betterAuth, type Auth, type BetterAuthOptions } from 'better-auth'
@@ -6,6 +5,19 @@ import { admin, multiSession, oAuthProxy, oneTap, username } from 'better-auth/p
 import { apiKey } from '@better-auth/api-key'
 import { Kysely, type ColumnType } from 'kysely'
 import { log } from './config/logger'
+import { mcp } from "better-auth/plugins";
+import { agentAuth } from "@better-auth/agent-auth";
+import {
+  fromOpenAPI,
+  createOpenAPIHandler,
+} from "@better-auth/agent-auth/openapi";
+
+
+//const capabilities = fromOpenAPI(spec);
+
+//const onExecute = createOpenAPIHandler(spec, {
+//  baseUrl: 'http://localhost:3000/api',
+//});
 
 type AuthDateColumn = ColumnType<Date, Date | string, Date | string>;
 type AuthNullableDateColumn = ColumnType<
@@ -181,7 +193,7 @@ const authDatabase = new Kysely<BetterAuthDatabase>({
   }),
 });
 
-const authOptions: BetterAuthOptions = {
+export const authOptions: BetterAuthOptions = {
   appName: 'AgentStack',
   emailAndPassword: {
     enabled: true,
@@ -229,9 +241,60 @@ const authOptions: BetterAuthOptions = {
       enableSessionForAPIKeys: true,
     }),
     oneTap(),
+    mcp({ 
+            loginPage: "/login" // path to your login page
+    }),
     oAuthProxy({
       productionURL: process.env.BETTER_AUTH_PRODUCTION_URL ?? baseURL,
     }),
+    agentAuth({ 
+      providerName: "AgentStack", 
+      providerDescription: "AgentStack project information, details about the user, and session context. Plus agents, including their tools, resources, and permissions.", 
+      modes: ["delegated", "autonomous"], 
+      capabilities: [ 
+        {
+          name: "create_issue",
+          description: "Create an issue in the current workspace.",
+          input: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              body: { type: "string" },
+            },
+              required: ["title"],
+            },
+        },
+        { 
+          name: "deploy_project", 
+          description: "Deploy a project to production.", 
+          input: { 
+            type: "object", 
+            properties: { 
+              projectId: { type: "string" }, 
+            }, 
+            required: ["projectId"], 
+          }, 
+        }, 
+        { 
+          name: "list_projects", 
+          description: "List projects the current user can access.", 
+        }, 
+      ], 
+      async onExecute({ capability, arguments: args, agentSession }) { 
+        switch (capability) { 
+          case "list_projects": 
+            return [{ id: "proj_123", name: "marketing-site" }]; 
+          case "deploy_project": 
+            return { 
+              ok: true, 
+              projectId: args?.projectId, 
+              requestedBy: agentSession.user.id, 
+            }; 
+          default: 
+            throw new Error(`Unsupported capability: ${capability}`); 
+        } 
+      }, 
+    }), 
   ],
   session: {
     cookieCache: {
