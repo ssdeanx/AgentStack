@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAINanoBanana } from '../config'
+//import { googleAINanoBanana } from '../config'
 import { log } from '../config/logger'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'

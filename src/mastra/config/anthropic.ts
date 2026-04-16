@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
-import { logError } from './logger'
+//import { logError } from './logger'
 
 const anthropic = createAnthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,

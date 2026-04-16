@@ -1,7 +1,7 @@
 import { Memory } from '@mastra/memory'
 import { UpstashStore, UpstashVector } from '@mastra/upstash'
 // import { ToolCallFilter } from '@mastra/memory/processors';
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+//import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { google } from '@ai-sdk/google'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
 /**

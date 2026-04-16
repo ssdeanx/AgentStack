@@ -231,3 +231,7 @@ src/mastra/public/workspace/swingtimer.lua
 .playwright-mcp/*.yml
 src/mastra/public/workspace/swingtimer.md
 src/mastra/public/workspace/tbc-shaman.md
+
+*storybook.log
+storybook-static
+src/stories/AGENT.md

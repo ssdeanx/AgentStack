@@ -1,5 +1,5 @@
 import { createVertex } from '@ai-sdk/google-vertex'
-import { logError } from './logger'
+//import { logError } from './logger'
 
 const project = process.env.GOOGLE_CLOUD_PROJECT
 const location = process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1'

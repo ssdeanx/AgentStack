@@ -1,9 +1,9 @@
 import { Suspense, type ReactNode } from 'react'
 
-import { headers } from 'next/headers'
+//import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { authClient } from '@/lib/auth-client'
 
-import { auth } from '@/auth'
 
 /**
  * Protects the entire chat subtree with a server-side session check.
@@ -16,9 +16,7 @@ async function ChatSessionGate({
 }: {
 	children: ReactNode
 }) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	})
+	const session = await authClient.getSession()
 
 	if (!session) {
 		redirect('/login?next=/chat')

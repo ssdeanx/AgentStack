@@ -37,6 +37,17 @@ function isNodeErrorWithCode(error: unknown): error is NodeJS.ErrnoException {
     )
 }
 
+declare global {
+    namespace NodeJS {
+        interface ErrnoException extends Error {
+            code?: string
+            errno?: number
+            syscall?: string
+            path?: string
+        }
+    }
+}
+
 const readNoteFile = async (uri: string): Promise<string | null> => {
     const title = uri.replace('notes://', '')
     const notePath = path.join(NOTES_DIR, `${title}.md`)

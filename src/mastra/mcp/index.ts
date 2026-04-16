@@ -1,15 +1,15 @@
 import { MCPServer } from '@mastra/mcp'
 import { a2aCoordinatorAgent } from '../a2a/a2aCoordinatorAgent'
 import { codingA2ACoordinator } from '../a2a/codingA2ACoordinator'
-import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
-import type {
-    MCPServerResourceContent,
-    MCPServerResources,
-    Resource,
-    ResourceTemplate,
-} from '@mastra/mcp'
+//import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
+//import type {
+//    MCPServerResourceContent,
+//    MCPServerResources,
+//    Resource,
+//    ResourceTemplate,
+//} from '@mastra/mcp'
 //import http from "http";
-import { log } from '../config/logger'
+//import { log } from '../config/logger'
 
 /**
  * A2A Coordinator MCP Server

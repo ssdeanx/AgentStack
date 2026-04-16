@@ -88,7 +88,7 @@ export const FileTree = ({
         role="tree"
         {...props}
       >
-        <div className="p-2">{children}</div>
+        <div className="p-2" role="group">{children}</div>
       </div>
     </FileTreeContext.Provider>
   );
@@ -164,6 +164,7 @@ export const FileTreeFolder = ({
     <FileTreeFolderContext.Provider value={folderContextValue}>
       <Collapsible onOpenChange={handleOpenChange} open={isExpanded}>
         <div
+          aria-selected={isSelected}
           className={cn("", className)}
           role="treeitem"
           tabIndex={0}

@@ -1,5 +1,5 @@
 import { createGitHubCopilotOpenAICompatible } from '@opeoginni/github-copilot-openai-compatible'
-import { logError } from './logger'
+//import { logError } from './logger'
 import * as dotenv from 'dotenv'
 import { approveAll, CopilotClient } from "@github/copilot-sdk";
 
