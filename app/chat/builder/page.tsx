@@ -132,7 +132,7 @@ export default function AgentBuilderPage() {
     const handleSave = async () => {
         if (!canSave) {
             setError(
-                selectedProvider?.connected === false
+                selectedProvider && !selectedProvider.connected
                     ? `Configure ${selectedProvider.envVar} before creating an agent with ${selectedProvider.name}.`
                     : 'Name, instructions, provider, and model are required.'
             )
