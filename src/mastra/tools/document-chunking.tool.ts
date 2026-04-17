@@ -1,10 +1,10 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
-import type { InferUITool } from '@mastra/core/tools'
+import type { InferToolInput, InferUITool, InferToolOutput } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { MDocument, rerank } from '@mastra/rag'
 import { randomUUID } from 'crypto'
-
+import { fastembed } from '@mastra/fastembed'
 import {
     ModelRouterEmbeddingModel,
     ModelRouterLanguageModel,
@@ -89,9 +89,9 @@ const CustomDocumentChunkingInputSchema = z.object({
     chunkSize: z.number().min(50).max(4000).default(512),
     chunkOverlap: z.number().min(0).max(500).default(50),
     chunkSeparator: z.string().default('\n'),
-    indexName: z.string().default('memory_messages_3072'),
+    indexName: z.string().default('memory_messages_768'),
     // Embedding model name for ModelRouterEmbeddingModel (e.g. 'google/gemini-embedding-2-preview')
-    embeddingModel: z.string().default('google/gemini-embedding-2-preview'),
+    embeddingModel: z.string().default(fastembed.base),
     // Number of texts to embed per batch
     embeddingBatchSize: z.number().min(1).max(500).default(50),
     generateEmbeddings: z.boolean().default(true),
@@ -203,7 +203,7 @@ Use this tool when you need advanced document processing with metadata extractio
         log.info('Mastra chunker tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
@@ -212,7 +212,7 @@ Use this tool when you need advanced document processing with metadata extractio
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
@@ -223,7 +223,7 @@ Use this tool when you need advanced document processing with metadata extractio
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             messageCount: messages.length,
-            aborted: abortSignal?.aborted,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -251,11 +251,11 @@ Use this tool when you need advanced document processing with metadata extractio
             id: 'mastra:chunker',
         })
         const startTime = Date.now()
-        logToolExecution('mastra-chunker', { input: inputData })
+        logToolExecution('mastra:chunker', { input: inputData })
 
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'mastra-chunker',
+            name: 'mastra:chunker',
             input: {
                 documentLength: inputData.documentContent.length,
                 chunkingStrategy: inputData.chunkingStrategy,
@@ -268,8 +268,8 @@ Use this tool when you need advanced document processing with metadata extractio
             requestContext: context.requestContext,
             tracingContext,
             metadata: {
-                'tool.id': 'mastra-chunker',
-                operation: 'mastra-chunker',
+                'tool.id': 'mastra:chunker',
+                operation: 'mastra:chunker',
             },
         })
 
@@ -285,7 +285,7 @@ Use this tool when you need advanced document processing with metadata extractio
                             chunkSize: inputData.chunkSize,
                             chunkOverlap: inputData.chunkOverlap,
                             processedAt: new Date().toISOString(),
-                            source: 'mastra-chunker',
+                            source: 'mastra:chunker',
                         },
                     },
                 ],
@@ -426,7 +426,7 @@ Use this tool when you need advanced document processing with metadata extractio
                 processingTimeMs: totalProcessingTime,
             }
 
-            logStepEnd('mastra-chunker', output, totalProcessingTime)
+            logStepEnd('mastra:chunker', output, totalProcessingTime)
 
             return output
         } catch (error) {
@@ -436,7 +436,7 @@ Use this tool when you need advanced document processing with metadata extractio
                     ? error
                     : new Error('Unknown error occurred')
 
-            logError('mastra-chunker', safeError, {
+            logError('mastra:chunker', safeError, {
                 inputData,
                 processingTimeMs: processingTime,
             })
@@ -458,7 +458,7 @@ Use this tool when you need advanced document processing with metadata extractio
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: abortSignal?.aborted ?? false,
+            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -494,7 +494,7 @@ This tool processes document content by:
 
 Features:
 - Multiple chunking strategies with customizable parameters
-- Automatic embedding generation (3072 dimensions for gemini-embedding-2-preview)
+- Automatic embedding generation (768 dimensions for fastembed.base)
 - PgVector storage with metadata support
 - Comprehensive error handling and logging
 - Performance monitoring and metrics
@@ -541,9 +541,9 @@ content indexing, or semantic search capabilities.
         const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
-        const indexName = inputData.indexName ?? 'memory_messages_3072'
+        const indexName = inputData.indexName ?? 'memory_messages_768'
         const embeddingModel =
-            inputData.embeddingModel ?? 'google/gemini-embedding-2-preview'
+            inputData.embeddingModel ?? fastembed.base
         const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
         // Check if operation was already cancelled
@@ -561,11 +561,11 @@ content indexing, or semantic search capabilities.
             id: 'mdocument:chunker',
         })
         const startTime = Date.now()
-        logToolExecution('mdocument-chunker', { input: inputData })
+        logToolExecution('mdocument:chunker', { input: inputData })
 
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'mdocument-chunker',
+            name: 'mdocument:chunker',
             input: {
                 documentLength: inputData.documentContent.length,
                 chunkingStrategy: inputData.chunkingStrategy,
@@ -575,8 +575,8 @@ content indexing, or semantic search capabilities.
             requestContext: context.requestContext,
             tracingContext,
             metadata: {
-                'tool.id': 'mdocument-chunker',
-                operation: 'mdocument-chunker',
+                'tool.id': 'mdocument:chunker',
+                operation: 'mdocument:chunker',
             },
         })
 
@@ -592,7 +592,7 @@ content indexing, or semantic search capabilities.
                             chunkSize,
                             chunkOverlap,
                             processedAt: new Date().toISOString(),
-                            source: 'mdocument-chunker',
+                            source: 'mdocument:chunker',
                         },
                     },
                 ],
@@ -881,7 +881,7 @@ content indexing, or semantic search capabilities.
                 processingTimeMs: totalProcessingTime,
             }
 
-            logStepEnd('mdocument-chunker', output, totalProcessingTime)
+            logStepEnd('mdocument:chunker', output, totalProcessingTime)
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -900,7 +900,7 @@ content indexing, or semantic search capabilities.
                     ? error
                     : new Error('Unknown error occurred')
 
-            logError('mdocument-chunker', safeError, {
+            logError('mdocument:chunker', safeError, {
                 inputData,
                 processingTimeMs: processingTime,
             })
@@ -938,7 +938,7 @@ content indexing, or semantic search capabilities.
  *
  * Features:
  * - Multiple chunking strategies with customizable parameters
- * - Automatic embedding generation (3072 dimensions for gemini-embedding-2-preview)
+ * - Automatic embedding generation (768 dimensions for fastembed.base)
  * - LibSQL/Turso storage with metadata support
  * - Comprehensive error handling and logging
  * - Performance monitoring and metrics
@@ -953,12 +953,12 @@ Custom Document Chunking Tool with LibSQL (Turso) Integration
 
 This tool processes document content by:
 1. Creating chunks using configurable strategies (recursive, character, token, markdown, etc.)
-2. Generating embeddings for each chunk using Gemini embedding model
+2. Generating embeddings for each chunk using fastembed.base model
 3. Storing chunks and embeddings in LibSQL (Turso) for efficient similarity search
 
 Features:
 - Multiple chunking strategies with customizable parameters
-- Automatic embedding generation (3072 dimensions for gemini-embedding-2-preview)
+- Automatic embedding generation (768 dimensions for fastembed.base)
 - LibSQL/Turso storage with metadata support
 - Comprehensive error handling and logging
 - Performance monitoring and metrics
@@ -1005,9 +1005,9 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
         const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
-        const indexName = inputData.indexName ?? 'memory_messages_3072'
+        const indexName = inputData.indexName ?? 'memory_messages_768'
         const embeddingModel =
-            inputData.embeddingModel ?? 'google/gemini-embedding-2-preview'
+            inputData.embeddingModel ?? fastembed.base
         const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
         // Check if operation was already cancelled
@@ -1025,11 +1025,11 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
             id: 'libsql:chunker',
         })
         const startTime = Date.now()
-        logToolExecution('libsql-chunker', { input: inputData })
+        logToolExecution('libsql:chunker', { input: inputData })
 
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'libsql-chunker',
+            name: 'libsql:chunker',
             input: {
                 documentLength: inputData.documentContent.length,
                 chunkingStrategy: inputData.chunkingStrategy,
@@ -1039,8 +1039,8 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
             requestContext: context.requestContext,
             tracingContext,
             metadata: {
-                'tool.id': 'libsql-chunker',
-                operation: 'libsql-chunker',
+                'tool.id': 'libsql:chunker',
+                operation: 'libsql:chunker',
             },
         })
 
@@ -1056,7 +1056,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
                             chunkSize,
                             chunkOverlap,
                             processedAt: new Date().toISOString(),
-                            source: 'libsql-chunker',
+                            source: 'libsql:chunker',
                         },
                     },
                 ],
@@ -1218,9 +1218,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
                         )
                         const result = await embedMany({
                             values: batch,
-                            model: new ModelRouterEmbeddingModel(
-                                embeddingModel
-                            ),
+                            model: fastembed.base,
                             maxRetries: 3,
                             abortSignal: new AbortController().signal,
                         })
@@ -1422,7 +1420,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
   `,
     inputSchema: z.object({
         userQuery: z.string().min(1, 'Query cannot be empty'),
-        indexName: z.string().default('memory_messages_3072'),
+        indexName: z.string().default('memory_messages_768'),
         topK: z.number().min(1).max(50).default(10),
         initialTopK: z.number().min(1).max(100).default(20),
         semanticWeight: z.number().min(0).max(1).default(0.5),
@@ -1490,10 +1488,10 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             id: 'document:reranker',
         })
         const startTime = Date.now()
-        logToolExecution('document-reranker', {
+        logToolExecution('document:reranker', {
             userQuery: inputData.userQuery,
         })
-        const indexName = inputData.indexName ?? 'memory_messages_3072'
+        const indexName = inputData.indexName ?? 'memory_messages_768'
         const topK = inputData.topK ?? 10
         const initialTopK = inputData.initialTopK ?? 20
         const semanticWeight = inputData.semanticWeight ?? 0.5
@@ -1505,7 +1503,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         // Use the existing tracing context if available to create a child span.
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
-            name: 'document-reranker',
+            name: 'document:reranker',
             input: {
                 userQuery: inputData.userQuery,
                 indexName,
@@ -1514,7 +1512,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             },
             metadata: {
                 'tool.id': 'document:reranker',
-                operation: 'document-reranker',
+                operation: 'document:reranker',
             },
         })
 
@@ -1532,9 +1530,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             const embeddingStartTime = Date.now()
             const { embedding: queryEmbedding } = await embed({
                 value: inputData.userQuery,
-                model: new ModelRouterEmbeddingModel(
-                    'google/gemini-embedding-2-preview'
-                ),
+                model: fastembed.base,
             })
             const embeddingTime = Date.now() - embeddingStartTime
 
@@ -1674,7 +1670,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 processingTimeMs: totalProcessingTime,
             }
 
-            logStepEnd('document-reranker', output, totalProcessingTime)
+            logStepEnd('document:reranker', output, totalProcessingTime)
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -1693,7 +1689,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                     ? error
                     : new Error('Unknown error occurred')
 
-            logError('document-reranker', safeError, {
+            logError('document:reranker', safeError, {
                 userQuery: inputData.userQuery,
                 processingTimeMs: processingTime,
             })
@@ -1713,3 +1709,13 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 export type DocumentRerankerUITool = InferUITool<typeof documentRerankerTool>
 export type MastraChunkerUITool = InferUITool<typeof mastraChunker>
 export type MDocumentChunkerUITool = InferUITool<typeof mdocumentChunker>
+
+export type LibSQLChunkerUITool = InferUITool<typeof libsqlChunker>
+export type DocumentRerankerToolInput = InferToolInput<typeof documentRerankerTool>
+export type MastraChunkerToolInput = InferToolInput<typeof mastraChunker>
+export type MDocumentChunkerToolInput = InferToolInput<typeof mdocumentChunker>
+export type LibSQLChunkerToolInput = InferToolInput<typeof libsqlChunker>
+export type DocumentRerankerToolOutput = InferToolOutput<typeof documentRerankerTool>
+export type MastraChunkerToolOutput = InferToolOutput<typeof mastraChunker>
+export type MDocumentChunkerToolOutput = InferToolOutput<typeof mdocumentChunker>
+export type LibSQLChunkerToolOutput = InferToolOutput<typeof libsqlChunker>

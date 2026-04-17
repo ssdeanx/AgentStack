@@ -1,9 +1,9 @@
 import { Agent } from '@mastra/core/agent'
 import { libsqlChunker,} from '../tools/document-chunking.tool'
 import { weatherTool } from '../tools/weather-tool'
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
-import { mainWorkspace } from '../workspaces'
+import { agentFsWorkspace, mainWorkspace } from '../workspaces'
 import type { AgentRequestContext } from './request-context'
 import { fetchTool } from '../tools/fetch.tool'
 import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
@@ -45,7 +45,7 @@ export const weatherAgent = new Agent({
                         thinkingBudget: -1,
                     },
                     cachedContent: "Location data cached for weather queries",
-                } satisfies GoogleGenerativeAIProviderOptions,
+                } satisfies GoogleLanguageModelOptions,
             },
         }
     },
@@ -68,7 +68,7 @@ export const weatherAgent = new Agent({
         },
     },
     maxRetries: 5,
-    workspace: mainWorkspace,
+    workspace: agentFsWorkspace,
 
   //  defaultOptions: {
 //       autoResumeSuspendedTools: true,

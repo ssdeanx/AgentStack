@@ -1,6 +1,6 @@
 import { libsqlQueryTool, libsqlgraphQueryTool } from './../config/libsql';
 import { libsqlChunker, mdocumentChunker } from './../tools/document-chunking.tool';
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import type { Message, Thread } from 'chat'
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
@@ -20,13 +20,29 @@ import {
   googleNewsLiteTool,
   googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
+import { googleImagesTool } from '../tools/serpapi-images.tool'
+import { googleLocalTool, googleMapsReviewsTool } from '../tools/serpapi-local-maps.tool'
+import { googleSearchTool } from '../tools/serpapi-search.tool'
 import { stooqStockQuotesTool } from '../tools/stooq-stock-market-data.tool'
 import { yahooFinanceStockQuotesTool } from '../tools/yahoo-finance-stock.tool'
+import {
+  candlestickPatternTool,
+  fibonacciTool,
+  heikinAshiTool,
+  ichimokuCloudTool,
+  marketSummaryTool,
+  momentumAnalysisTool,
+  pivotPointsTool,
+  statisticalAnalysisTool,
+  technicalAnalysisTool,
+  trendAnalysisTool,
+  volatilityAnalysisTool,
+  volumeAnalysisTool,
+} from '../tools/technical-analysis.tool'
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
 import type { ChannelHandlers } from '@mastra/core/channels'
-import * as workspaces from '../workspaces'
 import {
   getLanguageFromContext,
   getRoleFromContext,
@@ -36,7 +52,6 @@ import { researchArxivDownloadWorkflow } from '../workflows/research/research-ar
 import { researchArxivSearchWorkflow } from '../workflows/research/research-arxiv-search.workflow'
 import { LibsqlMemory } from '../config/libsql'
 import { listRepositories } from '../tools/github';
-import * as browsers from '../browsers';
 import { createGitHubAdapter } from '@chat-adapter/github'
 import { createDiscordAdapter } from '@chat-adapter/discord'
 import { google } from '../config/google'
@@ -45,6 +60,12 @@ import {
   ToolSearchProcessor,
   //TokenLimiter
 } from '@mastra/core/processors'
+import { googleAiOverviewTool } from '../tools/serpapi-search.tool';
+import { amazonSearchTool, ebaySearchTool, homeDepotSearchTool, walmartSearchTool } from '../tools/serpapi-shopping.tool';
+import { agentFsWorkspace } from '../workspaces';
+import { agentBrowser } from '../browsers'
+import { createMemoryState } from "@chat-adapter/state-memory";
+
 //const github = createGitHubAdapter({
 //  //appId: process.env.GITHUB_APP_ID!,
 //  //privateKey: process.env.GITHUB_PRIVATE_KEY!,
@@ -197,20 +218,6 @@ const researchChannelHandlers: ChannelHandlers = {
   },
 }
 
-/**
- * Returns the shared workspace used by the research agent.
- */
-function getResearchAgentWorkspace() {
-  return workspaces.mainWorkspace
-}
-
-/**
- * Returns the deterministic browser configured for research verification.
- */
-function getResearchAgentBrowser() {
-  return browsers.agentBrowser
-}
-
 type ResearchPhase = 'initial' | 'followup' | 'validation'
 const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
 
@@ -248,8 +255,26 @@ const researchAgentTools = {
   binanceSpotMarketDataTool,
   coinbaseExchangeMarketDataTool,
   discordWebhookTool,
+  googleImagesTool,
+  googleLocalTool,
+  googleMapsReviewsTool,
   stooqStockQuotesTool,
   yahooFinanceStockQuotesTool,
+  ichimokuCloudTool,
+  fibonacciTool,
+  pivotPointsTool,
+  trendAnalysisTool,
+  momentumAnalysisTool,
+  volatilityAnalysisTool,
+  volumeAnalysisTool,
+  statisticalAnalysisTool,
+  heikinAshiTool,
+  marketSummaryTool,
+  candlestickPatternTool,
+  technicalAnalysisTool,
+  amazonSearchTool, walmartSearchTool, ebaySearchTool, homeDepotSearchTool,
+  googleSearchTool,
+  googleAiOverviewTool,
 }
 
 /**
@@ -284,13 +309,17 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 ## Tool Selection Guide
 - **Web**: Prefer 'fetchTool' for reliable URL fetch/search to markdown.
 - **Live browser verification**: Use the attached browser only when page state, interaction results, or live UI evidence materially matters more than static fetch output.
-- **News/Trends**: 'googleNewsLiteTool', 'googleTrendsTool', 'googleFinanceTool'.
+- **News/Trends**: 'googleNewsLiteTool', 'googleTrendsTool', 'googleFinanceTool'. 'googleSearchTool', 'googleAiOverviewTool',
+- **Places/Business**: 'googleLocalTool' for nearby business discovery and 'googleMapsReviewsTool' for place review analysis.
+- **Visual**: 'googleImagesTool' for structured image discovery and source lookups.
 - **Academic**: 'googleScholarTool'.
 - **Financial**: Use 'polygon*' for stocks/crypto.
 - **Financial**: Use 'polygon*' for stocks/crypto when you need paid/commercial feeds; use 'binanceSpotMarketDataTool' for free crypto spot data and batch lookups of 1-10 symbols; use 'coinbaseExchangeMarketDataTool', 'stooqStockQuotesTool', and 'yahooFinanceStockQuotesTool' for free public market data.
+- **Technical Analysis**: use 'ichimokuCloudTool', 'fibonacciTool', 'pivotPointsTool', 'trendAnalysisTool', 'momentumAnalysisTool', 'volatilityAnalysisTool', 'volumeAnalysisTool', 'statisticalAnalysisTool', 'heikinAshiTool', 'marketSummaryTool', 'candlestickPatternTool', and 'technicalAnalysisTool' for chart pattern and indicator analysis.
 - **Internal**: 'libsqlChunker' for embedding any information, 'libsqlQueryTool' for querying embedded knowledge. 'libsqlgraphQueryTool' for complex relational queries.
 - **Processing**: use workspace document tools for PDFs, Markdown, and any other filetype in the workspace;
 - **Discord**: use 'discordWebhookTool' to post short notifications or summaries to the configured Discord webhook URL.
+- **Stores**: 'amazonSearchTool', 'walmartSearchTool', 'ebaySearchTool', 'homeDepotSearchTool', for product research.
 
 ## Rules
 - **Efficiency**: No repetitive or back-to-back tool calls for the same query.
@@ -305,7 +334,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
             includeThoughts: true,
             thinkingLevel: 'medium',
           },
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
@@ -313,10 +342,10 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     const role = getRoleFromContext(requestContext)
 
     if (role === 'admin') {
-      return google.chat('gemini-3.1-pro-preview')
+      return 'kilo/x-ai/grok-code-fast-1:optimized:free'
     }
 
-    return google.chat('gemini-3.1-flash-lite-preview')
+    return 'opencode/minimax-m2.5-free'
   },
   tools: researchAgentTools,
   workflows: { researchArxivDownloadWorkflow, researchArxivSearchWorkflow },
@@ -338,7 +367,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
       tools: researchAgentTools,
       search: { topK: 5 },
     }),
-    new TokenLimiter(64000),
+    //new TokenLimiter(64000),
   ],
   outputProcessors: [
   //  new TokenLimiterProcessor(128000),
@@ -348,8 +377,8 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     //        emitOnNonText: true,
     //     }),
   ],
-  workspace: getResearchAgentWorkspace(),
-  browser: getResearchAgentBrowser(),
+  workspace: agentFsWorkspace,
+  browser: agentBrowser,
   channels: {
     inlineLinks: ['*'],
     inlineMedia: ['image/*', 'video/*', 'audio/*'],
@@ -357,9 +386,35 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     threadContext: {
       maxMessages: 15,
     },
+    state: createMemoryState(),
     handlers: researchChannelHandlers,
   },
-  //  defaultOptions: {
-  //      autoResumeSuspendedTools: true,
-  //  },
+  //voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
+  defaultOptions: {
+        autoResumeSuspendedTools: true,
+        //includeRawChunks: true,
+        modelSettings: {
+            temperature: 0.2,
+            //maxOutputTokens: 64000,
+            topK: 40,
+            topP: 0.95,
+            //stopSequences: ['\n\n'],
+            maxRetries: 5,
+        },
+        providerOptions: {
+        google: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingLevel: 'medium',
+          },
+          //cachedContent: "Use cached content when available to reduce latency and costs, but ensure freshness for time-sensitive queries. Prefer cached data for static information and use real-time fetches for news, trends, and financial data.",
+          //streamFunctionCallArguments: true,
+          mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
+          threshold: 'OFF', // Set to 'OFF' to disable thresholding and allow all tool calls
+          //labels: "research-agent",
+          //serviceTier: 'flex',
+        } satisfies GoogleLanguageModelOptions,
+    },
+  },
 })

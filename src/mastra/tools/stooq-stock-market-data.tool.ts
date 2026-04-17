@@ -1,6 +1,7 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { InferToolInput, InferToolOutput} from '@mastra/core/tools';
 import { createTool, type InferUITool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -284,5 +285,7 @@ export const stooqStockQuotesTool = createTool({
     },
 })
 
-export type StooqStockQuotesInput = StooqInput
+
 export type StooqStockQuotesUITool = InferUITool<typeof stooqStockQuotesTool>
+export type StooqStockQuotesOutput = InferToolOutput<typeof stooqStockQuotesTool>
+export type StooqStockQuotesInput = InferToolInput<typeof stooqStockQuotesTool>

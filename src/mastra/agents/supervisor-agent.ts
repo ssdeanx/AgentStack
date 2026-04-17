@@ -20,6 +20,7 @@ import {
 import { embed } from 'ai';
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm';
 import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
+import { GoogleVoice } from '@mastra/voice-google'
 
 const workspace = new Workspace({
   id: 'supervisor-workspace',
@@ -196,8 +197,7 @@ Operating rules:
     }
   },
   model: 'google/gemma-4-31b-it:free',
-  tools: {libsqlgraphQueryTool, libsqlQueryTool,
-  },
+  tools: {},
   agents: {
     researchAgent,
     browserAgent,
@@ -366,4 +366,5 @@ Operating rules:
       suppressFeedback: false, // Show feedback from the scorer
     },
   },
+  //voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
 })

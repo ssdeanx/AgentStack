@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
 import {
@@ -32,6 +32,7 @@ import {
 } from './request-context'
 import { fetchTool } from '../tools/fetch.tool'
 import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
+import { agentFsWorkspace } from '../workspaces'
 
 export type ChartRuntimeContext = AgentRequestContext<{
   chartStyle: 'detailed' | 'concise'
@@ -135,7 +136,7 @@ You are a Financial Data Visualization Specialist focused on recommending optima
             includeThoughts: true,
             thinkingBudget: -1,
           },
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
@@ -193,7 +194,7 @@ You are a Financial Data Processing Specialist that transforms raw API data into
             includeThoughts: true,
             thinkingBudget: -1,
           },
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
@@ -253,7 +254,7 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
             includeThoughts: true,
             thinkingBudget: -1,
           },
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
@@ -318,7 +319,7 @@ You are the Financial Chart Supervisor, orchestrating the complete chart creatio
             includeThoughts: true,
             thinkingBudget: -1,
           },
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
@@ -331,6 +332,7 @@ You are the Financial Chart Supervisor, orchestrating the complete chart creatio
     },
   },
   scorers: {},
+  workspace: agentFsWorkspace,
   inputProcessors: [
     new UnicodeNormalizer({
       stripControlChars: false,

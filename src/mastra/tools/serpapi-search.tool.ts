@@ -9,6 +9,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
+import type { InferToolInput, InferToolOutput, InferUITool } from '@mastra/core/tools';
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
 import { z } from 'zod'
@@ -596,3 +597,12 @@ export const googleAiOverviewTool = createTool({
         })
     },
 })
+
+export type GoogleSearchToolUI = InferUITool<typeof googleSearchTool>
+export type GoogleAiOverviewToolUI = InferUITool<typeof googleAiOverviewTool>
+
+
+export type GoogleSearchToolOutput = InferToolOutput<typeof googleSearchTool>
+export type GoogleSearchToolInput = InferToolInput<typeof googleSearchTool>
+export type GoogleAiOverviewToolOutput = InferToolOutput<typeof googleAiOverviewTool>
+export type GoogleAiOverviewToolInput = InferToolInput<typeof googleAiOverviewTool>

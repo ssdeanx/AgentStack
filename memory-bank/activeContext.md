@@ -1,3 +1,46 @@
+# Active Context Update (2026-04-16 - technical-analysis diagnostics fully clean)
+
+- `src/mastra/tools/technical-analysis.tool.ts` is now clean under VS Code `get_errors` after correcting the accidentally leaked return-type annotations and forcing the MACD/ADX result mappings to return explicit local types.
+- The technical-analysis hook blocks remain in the correct tool objects, with shared lifecycle logging helpers still in place.
+- `src/mastra/agents/researchAgent.ts` remains clean and still includes the full technical-analysis suite.
+
+# Active Context Update (2026-04-16 - technical-analysis hook and research-agent expansion)
+
+- `src/mastra/tools/technical-analysis.tool.ts` now uses shared hook-logging helpers for the repeated tool lifecycle hooks, with `messages` counts handled safely and the noisy `messages.length` reads removed.
+- The technical-analysis tool outputs now use explicit result interfaces instead of broad `Record<string, unknown>` / `as unknown as` casts for:
+  - Ichimoku cloud
+  - trend analysis
+  - momentum analysis
+  - volatility analysis
+  - volume analysis
+  - statistical analysis
+  - market summary
+  - final aggregated technical-analysis output
+- `src/mastra/agents/researchAgent.ts` now imports and exposes the full technical-analysis suite:
+  - `ichimokuCloudTool`, `fibonacciTool`, `pivotPointsTool`, `trendAnalysisTool`, `momentumAnalysisTool`, `volatilityAnalysisTool`, `volumeAnalysisTool`, `statisticalAnalysisTool`, `heikinAshiTool`, `marketSummaryTool`, `candlestickPatternTool`, and `technicalAnalysisTool`
+- Targeted ESLint validation on `src/mastra/tools/technical-analysis.tool.ts` and `src/mastra/agents/researchAgent.ts` is clean.
+
+# Active Context Update (2026-04-16 - SerpAPI production-grade expansion)
+
+- The shopping tool file `src/mastra/tools/serpapi-shopping.tool.ts` is now clean again after a targeted `get_errors` refresh.
+- Added three new SerpAPI tool surfaces for higher-value production use:
+  - `googleLocalTool` and `googleMapsReviewsTool` in `src/mastra/tools/serpapi-local-maps.tool.ts`
+  - `googleImagesTool` in `src/mastra/tools/serpapi-images.tool.ts`
+- Wired the new tools into `src/mastra/tools/index.ts` and `src/mastra/agents/researchAgent.ts` so they can be used by the agent runtime.
+- Targeted diagnostics are clean for the new tool files and the integration points.
+
+# Active Context Update (2026-04-16 - SerpAPI schema alignment)
+
+- `src/mastra/tools/serpapi-shopping.tool.ts` now uses the documented SerpAPI request/response fields for Amazon, Walmart, and eBay:
+  - Amazon search uses `k` for the query and `s` for sort values.
+  - Walmart links now fall back to `product_page_url` when present.
+  - eBay item ids now accept `product_id` with a fallback to `item_id`, and malformed listings are filtered out before returning.
+- `src/mastra/tools/serpapi-news-trends.tool.ts` now models richer Google News and Google Trends sections instead of flattening them away:
+  - Google News now preserves `position`, `sourceDetails`, `menuLinks`, and a normalized numeric `totalResults`.
+  - Google Trends now preserves detailed `interestOverTime`, `averages`, `relatedQueries`, and `relatedTopics` objects.
+- The stray `mathjs` import was removed from the SerpAPI news/trends module.
+- Targeted ESLint validation on the edited SerpAPI tool files is clean.
+
 # Active Context Update (2026-04-16 - FastEmbed warmup and dimension alignment)
 
 - `src/mastra/config/libsql.ts` now imports `warmup()` from `@mastra/fastembed` and preloads the base embed model before `LibsqlMemory` can issue semantic recall calls.

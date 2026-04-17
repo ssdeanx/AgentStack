@@ -1,3 +1,26 @@
+# Progress Update (2026-04-16 - technical-analysis diagnostics fixed)
+
+- Resolved the final `get_errors` issues in `src/mastra/tools/technical-analysis.tool.ts` by correcting leaked return-type annotations, re-typing the MACD/ADX mappings, and restarting the VS Code TypeScript server.
+- Confirmed `src/mastra/tools/technical-analysis.tool.ts` is now clean under VS Code diagnostics.
+- Confirmed `src/mastra/agents/researchAgent.ts` remains clean after the technical-analysis tool wiring.
+
+# Progress Update (2026-04-16 - technical-analysis hook cleanup and research-agent expansion)
+
+- Refactored `src/mastra/tools/technical-analysis.tool.ts` to use shared hook-logging helpers instead of repeated raw `messages.length` reads across the tool lifecycle hooks.
+- Replaced the broad `unknown`/`any`-style result casts in the technical-analysis tool with explicit result interfaces for Ichimoku, trend, momentum, volatility, volume, statistical, market summary, and aggregated technical analysis outputs.
+- Added the full technical-analysis suite to `src/mastra/agents/researchAgent.ts` so the research agent can call the new indicator and pattern tools directly.
+- Targeted ESLint validation on the two edited files is clean.
+
+# Progress Update (2026-04-16 - SerpAPI production-grade expansion)
+
+- Confirmed `src/mastra/tools/serpapi-shopping.tool.ts` is now clean after rechecking live diagnostics with `get_errors`.
+- Added two new SerpAPI-backed production tools:
+  - `googleLocalTool` for business discovery and normalized local-result lookups.
+  - `googleMapsReviewsTool` for place reviews, topics, and place-info extraction.
+- Added `googleImagesTool` for image discovery, inline image cards, suggested searches, and compact knowledge-graph summaries.
+- Wired the new tools into `src/mastra/tools/index.ts` and `src/mastra/agents/researchAgent.ts`, and validated the edited integration files with `get_errors`.
+- The new tools and integration points are currently clean in targeted diagnostics.
+
 # Progress Update (2026-04-16 - FastEmbed bootstrap hardening)
 
 - Added `warmup()` from `@mastra/fastembed` to `src/mastra/config/libsql.ts` so the base model cache is preloaded before memory semantic recall starts.
@@ -507,6 +530,11 @@
 
 ## In progress
 - None currently.
+
+## Recent completion
+- Corrected the SerpAPI shopping tool contracts so Amazon uses the documented `k`/`s` params, Walmart uses `product_page_url` as a fallback link source, and eBay accepts `product_id` with a safe fallback to `item_id`.
+- Expanded `src/mastra/tools/serpapi-news-trends.tool.ts` to more closely match SerpApi's documented Google News and Google Trends response sections, including richer nested schemas and additional fields per section.
+- Removed the stray `mathjs` import from the news/trends module and revalidated both edited SerpApi tool files with targeted ESLint.
 
 ## Notes
 - The harness UI now talks to the Mastra singleton through a thin JSON API instead of importing server harness code directly into the client.

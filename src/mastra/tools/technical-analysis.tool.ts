@@ -131,6 +131,185 @@ interface HeikinAshiOutput {
     close: number
 }
 
+type HookSummary = Record<string, string | number | boolean | undefined>
+
+interface IchimokuCloudResult {
+    success: boolean
+    results: IchimokuCloudOutput[]
+    message?: string
+}
+
+interface TrendAnalysisResult {
+    success: boolean
+    sma?: number[]
+    ema?: number[]
+    wma?: number[]
+    macd?: MACDOutput[]
+    adx?: number[]
+    trix?: number[]
+    kst?: KSTOutput[]
+    message?: string
+}
+
+interface MomentumAnalysisResult {
+    success: boolean
+    rsi?: number[]
+    stochastic?: Array<{ k: number; d: number }>
+    williamsR?: number[]
+    roc?: number[]
+    forceIndex?: number[]
+    message?: string
+}
+
+interface VolatilityAnalysisResult {
+    success: boolean
+    bollinger?: BollingerBandsOutput[]
+    atr?: number[]
+    message?: string
+}
+
+interface VolumeAnalysisResult {
+    success: boolean
+    obv?: number[]
+    adl?: number[]
+    mfi?: number[]
+    vwap?: number[]
+    message?: string
+}
+
+interface StatisticalSummary {
+    mean: number
+    median: number
+    mode: number
+    standardDeviation: number
+    variance: number
+    min: number
+    max: number
+    skewness: number
+    kurtosis: number
+}
+
+type TechnicalAnalysisStats = Pick<
+    StatisticalSummary,
+    | 'mean'
+    | 'median'
+    | 'mode'
+    | 'standardDeviation'
+    | 'variance'
+    | 'min'
+    | 'max'
+>
+
+interface StatisticalAnalysisResult {
+    success: boolean
+    stats?: StatisticalSummary
+    regression?: {
+        m: number
+        b: number
+    }
+    correlation?: number
+    message?: string
+}
+
+type MarketSentiment =
+    | 'Strong Buy'
+    | 'Buy'
+    | 'Neutral'
+    | 'Sell'
+    | 'Strong Sell'
+
+interface MarketSummaryResult {
+    success: boolean
+    sentiment: MarketSentiment
+    score: number
+    indicators: Record<string, string>
+    message?: string
+}
+
+type TechnicalAnalysisSeriesMap = Partial<{
+    sma: number[]
+    ema: number[]
+    rsi: number[]
+    wma: number[]
+    macd: MACDOutput[]
+    bollinger: BollingerBandsOutput[]
+    atr: number[]
+    stochastic: Array<{ k: number; d: number }>
+}>
+
+interface TechnicalAnalysisResult {
+    success: boolean
+    results: TechnicalAnalysisSeriesMap
+    stats?: TechnicalAnalysisStats
+    message?: string
+}
+
+function getHookMessageCount(messages: ReadonlyArray<unknown> | undefined): number {
+    return messages?.length ?? 0
+}
+
+function logToolHookStart(
+    label: string,
+    toolCallId: string | undefined,
+    messages: ReadonlyArray<unknown> | undefined,
+    abortSignal: AbortSignal | undefined
+): void {
+    log.info(`${label} input streaming started`, {
+        toolCallId,
+        messageCount: getHookMessageCount(messages),
+        abortSignal: abortSignal?.aborted ?? false,
+        hook: 'onInputStart',
+    })
+}
+
+function logToolHookDelta(
+    label: string,
+    toolCallId: string | undefined,
+    inputTextDelta: string,
+    messages: ReadonlyArray<unknown> | undefined,
+    abortSignal: AbortSignal | undefined
+): void {
+    log.info(`${label} received input chunk`, {
+        toolCallId,
+        inputTextDelta,
+        messageCount: getHookMessageCount(messages),
+        abortSignal: abortSignal?.aborted ?? false,
+        hook: 'onInputDelta',
+    })
+}
+
+function logToolHookAvailable(
+    label: string,
+    toolCallId: string | undefined,
+    messages: ReadonlyArray<unknown> | undefined,
+    abortSignal: AbortSignal | undefined,
+    inputData: HookSummary
+): void {
+    log.info(`${label} received input`, {
+        toolCallId,
+        messageCount: getHookMessageCount(messages),
+        inputData,
+        abortSignal: abortSignal?.aborted ?? false,
+        hook: 'onInputAvailable',
+    })
+}
+
+function logToolHookOutput(
+    label: string,
+    toolCallId: string | undefined,
+    toolName: string | undefined,
+    abortSignal: AbortSignal | undefined,
+    outputData: HookSummary
+): void {
+    log.info(`${label} completed`, {
+        toolCallId,
+        toolName,
+        outputData,
+        abortSignal: abortSignal?.aborted ?? false,
+        hook: 'onOutput',
+    })
+}
+
 export const ichimokuCloudTool = createTool({
     id: 'ichimoku-cloud',
     description: 'Calculate Ichimoku Cloud (Kinko Hyo) components.',
@@ -158,7 +337,7 @@ export const ichimokuCloudTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
-    execute: async (inputData, context) => {
+    execute: async (inputData, context): Promise<IchimokuCloudResult> => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined = context?.tracingContext
@@ -204,7 +383,7 @@ export const ichimokuCloudTool = createTool({
         })
 
         try {
-            const results = IchimokuCloud.calculate({
+            const rawResults = IchimokuCloud.calculate({
                 high: inputData.high,
                 low: inputData.low,
                 conversionPeriod,
@@ -213,9 +392,26 @@ export const ichimokuCloudTool = createTool({
                 displacement,
             })
 
-            const finalResult = {
+            const startIndex = Math.max(
+                0,
+                inputData.close.length - rawResults.length
+            )
+            const results: IchimokuCloudResult['results'] = rawResults.map(
+                (result, index) => ({
+                    tenkanSen: result.conversion,
+                    kijunSen: result.base,
+                    senkouSpanA: result.spanA,
+                    senkouSpanB: result.spanB,
+                    chikouSpan:
+                        inputData.close[startIndex + index] ??
+                        inputData.close[inputData.close.length - 1] ??
+                        result.base,
+                })
+            )
+
+            const finalResult: IchimokuCloudResult = {
                 success: true,
-                results: results as unknown as IchimokuCloudOutput[],
+                results,
             }
 
             const duration = Date.now() - startTime
@@ -269,30 +465,32 @@ export const ichimokuCloudTool = createTool({
             return { success: false, message: err.message }
         }
     },
-    onInputStart: ({ toolCallId }) => {
-        log.info('Ichimoku tool input streaming started', {
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Ichimoku tool', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Ichimoku tool',
             toolCallId,
-            hook: 'onInputStart',
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Ichimoku tool', toolCallId, messages, abortSignal, {
+            highLength: input.high.length,
+            lowLength: input.low.length,
+            closeLength: input.close.length,
+            conversionPeriod: input.conversionPeriod,
+            basePeriod: input.basePeriod,
+            spanPeriod: input.spanPeriod,
+            displacement: input.displacement,
         })
     },
-    onInputDelta: ({ toolCallId }) => {
-        log.info('Ichimoku tool received input chunk', {
-            toolCallId,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('Ichimoku tool received input', {
-            toolCallId,
-            inputData: input,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ toolCallId, toolName }) => {
-        log.info('Ichimoku tool completed', {
-            toolCallId,
-            toolName,
-            hook: 'onOutput',
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        logToolHookOutput('Ichimoku tool', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -413,30 +611,28 @@ export const fibonacciTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId }) => {
-        log.info('Fibonacci tool input streaming started', {
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Fibonacci tool', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Fibonacci tool',
             toolCallId,
-            hook: 'onInputStart',
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Fibonacci tool', toolCallId, messages, abortSignal, {
+            high: input.high,
+            low: input.low,
+            trend: input.trend,
         })
     },
-    onInputDelta: ({ toolCallId }) => {
-        log.info('Fibonacci tool received input chunk', {
-            toolCallId,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('Fibonacci tool received input', {
-            toolCallId,
-            inputData: input,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ toolCallId, toolName }) => {
-        log.info('Fibonacci tool completed', {
-            toolCallId,
-            toolName,
-            hook: 'onOutput',
+    onOutput: ({ toolCallId, toolName, abortSignal }) => {
+        logToolHookOutput('Fibonacci tool', toolCallId, toolName, abortSignal, {
+            success: true,
         })
     },
 })
@@ -627,36 +823,27 @@ export const pivotPointsTool = createTool({
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Pivot points tool input streaming started', {
-            toolCallId,
-            messages: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
+        logToolHookStart('Pivot points tool', toolCallId, messages, abortSignal)
     },
-    onInputDelta: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Pivot points tool received input chunk', {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Pivot points tool',
             toolCallId,
-            hook: 'onInputDelta',
-            messages: messages.length,
-            abortSignal: abortSignal?.aborted,
-        })
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Pivot points tool received input', {
-            toolCallId,
-            inputData: input,
-            messages: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
+        logToolHookAvailable('Pivot points tool', toolCallId, messages, abortSignal, {
+            high: input.high,
+            low: input.low,
+            close: input.close,
         })
     },
     onOutput: ({ toolCallId, toolName, abortSignal }) => {
-        log.info('Pivot points tool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Pivot points tool', toolCallId, toolName, abortSignal, {
+            success: true,
         })
     },
 })
@@ -749,7 +936,7 @@ export const trendAnalysisTool = createTool({
             const fastPeriod = rawFastPeriod ?? 12
             const slowPeriod = rawSlowPeriod ?? 26
             const signalPeriod = rawSignalPeriod ?? 9
-            const results: Record<string, unknown> = {
+            const results: TrendAnalysisResult = {
                 success: true,
                 sma: SMA.calculate({ values: data, period }),
                 ema: EMA.calculate({ values: data, period }),
@@ -767,18 +954,29 @@ export const trendAnalysisTool = createTool({
                     SMAROCPer4: 15,
                     signalPeriod: 9,
                 }),
-                macd: MACD.calculate({
-                    values: data,
-                    fastPeriod,
-                    slowPeriod,
-                    signalPeriod,
-                    SimpleMAOscillator: false,
-                    SimpleMASignal: false,
-                }),
+                macd: (() => {
+                    const macdValues: MACDOutput[] = MACD.calculate({
+                        values: data,
+                        fastPeriod,
+                        slowPeriod,
+                        signalPeriod,
+                        SimpleMAOscillator: false,
+                        SimpleMASignal: false,
+                    }).map((entry): MACDOutput => ({
+                        MACD: entry.MACD ?? 0,
+                        signal: entry.signal ?? 0,
+                        histogram: entry.histogram ?? 0,
+                    }))
+
+                    return macdValues
+                })(),
             }
 
             if (high && low && close) {
-                results.adx = ADX.calculate({ high, low, close, period })
+                const adxValues: number[] = ADX.calculate({ high, low, close, period }).map(
+                    (entry): number => entry.adx
+                )
+                results.adx = adxValues
             }
 
             toolSpan?.update({
@@ -797,17 +995,7 @@ export const trendAnalysisTool = createTool({
                 id: 'trend-analysis',
             })
 
-            return results as unknown as {
-                success: boolean
-                sma?: number[]
-                ema?: number[]
-                wma?: number[]
-                macd?: MACDOutput[]
-                adx?: number[]
-                trix?: number[]
-                kst?: KSTOutput[]
-                message?: string
-            }
+            return results
         } catch (error: unknown) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
@@ -828,38 +1016,26 @@ export const trendAnalysisTool = createTool({
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Trend analysis input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
+        logToolHookStart('Trend analysis', toolCallId, messages, abortSignal)
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Trend analysis received input chunk', {
+        logToolHookDelta(
+            'Trend analysis',
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
+            messages,
+            abortSignal
+        )
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Trend analysis received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { period: input.period },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
+        logToolHookAvailable('Trend analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            dataLength: input.data.length,
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Trend analysis completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Trend analysis', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -890,7 +1066,7 @@ export const momentumAnalysisTool = createTool({
         forceIndex: z.array(z.number()).optional(),
         message: z.string().optional(),
     }),
-    execute: async (inputData, context) => {
+    execute: async (inputData, context): Promise<MomentumAnalysisResult> => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined = context?.tracingContext
@@ -928,7 +1104,7 @@ export const momentumAnalysisTool = createTool({
                 inputData
             const period = rawPeriod ?? 14
             const signalPeriod = rawSignalPeriod ?? 3
-            const results: Record<string, unknown> = {
+            const results: MomentumAnalysisResult = {
                 success: true,
                 rsi: RSI.calculate({ values: data, period }),
                 roc: ROC.calculate({ values: data, period }),
@@ -974,15 +1150,7 @@ export const momentumAnalysisTool = createTool({
                 id: 'momentum-analysis',
             })
 
-            return results as unknown as {
-                success: boolean
-                rsi?: number[]
-                stochastic?: Array<{ k: number; d: number }>
-                williamsR?: number[]
-                roc?: number[]
-                forceIndex?: number[]
-                message?: string
-            }
+            return results
         } catch (error: unknown) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
@@ -1003,38 +1171,27 @@ export const momentumAnalysisTool = createTool({
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Momentum analysis input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
+        logToolHookStart('Momentum analysis', toolCallId, messages, abortSignal)
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Momentum analysis received input chunk', {
+        logToolHookDelta(
+            'Momentum analysis',
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
+            messages,
+            abortSignal
+        )
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Momentum analysis received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { period: input.period },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
+        logToolHookAvailable('Momentum analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            signalPeriod: input.signalPeriod,
+            dataLength: input.data.length,
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Momentum analysis completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Momentum analysis', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -1102,7 +1259,7 @@ export const volatilityAnalysisTool = createTool({
             const { data, period: rawPeriod, stdDev: rawStdDev, high, low, close } = inputData
             const period = rawPeriod ?? 20
             const stdDev = rawStdDev ?? 2
-            const results: Record<string, unknown> = {
+            const results: VolatilityAnalysisResult = {
                 success: true,
                 bollinger: BollingerBands.calculate({
                     values: data,
@@ -1131,12 +1288,7 @@ export const volatilityAnalysisTool = createTool({
                 id: 'volatility-analysis',
             })
 
-            return results as unknown as {
-                success: boolean
-                bollinger?: BollingerBandsOutput[]
-                atr?: number[]
-                message?: string
-            }
+            return results
         } catch (error: unknown) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
@@ -1157,38 +1309,27 @@ export const volatilityAnalysisTool = createTool({
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Volatility analysis input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
+        logToolHookStart('Volatility analysis', toolCallId, messages, abortSignal)
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Volatility analysis received input chunk', {
+        logToolHookDelta(
+            'Volatility analysis',
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
+            messages,
+            abortSignal
+        )
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Volatility analysis received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { period: input.period },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
+        logToolHookAvailable('Volatility analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            stdDev: input.stdDev,
+            dataLength: input.data.length,
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Volatility analysis completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Volatility analysis', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -1247,7 +1388,7 @@ export const volumeAnalysisTool = createTool({
         try {
             const { high, low, close, volume, period: rawPeriod } = inputData
             const period = rawPeriod ?? 14
-            const results: Record<string, unknown> = {
+            const results: VolumeAnalysisResult = {
                 success: true,
                 obv: OBV.calculate({ close, volume }),
                 adl: ADL.calculate({ high, low, close, volume }),
@@ -1271,14 +1412,7 @@ export const volumeAnalysisTool = createTool({
                 id: 'volume-analysis',
             })
 
-            return results as unknown as {
-                success: boolean
-                obv?: number[]
-                adl?: number[]
-                mfi?: number[]
-                vwap?: number[]
-                message?: string
-            }
+            return results
         } catch (error: unknown) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
@@ -1299,38 +1433,29 @@ export const volumeAnalysisTool = createTool({
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Volume analysis input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
+        logToolHookStart('Volume analysis', toolCallId, messages, abortSignal)
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Volume analysis received input chunk', {
+        logToolHookDelta(
+            'Volume analysis',
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
+            messages,
+            abortSignal
+        )
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Volume analysis received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { period: input.period },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
+        logToolHookAvailable('Volume analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            highLength: input.high.length,
+            lowLength: input.low.length,
+            closeLength: input.close.length,
+            volumeLength: input.volume.length,
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Volume analysis completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Volume analysis', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -1403,7 +1528,7 @@ export const statisticalAnalysisTool = createTool({
 
         try {
             const { data, dataX, dataY } = inputData
-            const results: Record<string, unknown> = { success: true }
+            const results: StatisticalAnalysisResult = { success: true }
 
             if (data && data.length > 0) {
                 results.stats = {
@@ -1445,26 +1570,7 @@ export const statisticalAnalysisTool = createTool({
                 id: 'statistical-analysis',
             })
 
-            return results as unknown as {
-                success: boolean
-                stats?: {
-                    mean: number
-                    median: number
-                    mode: number
-                    standardDeviation: number
-                    variance: number
-                    min: number
-                    max: number
-                    skewness: number
-                    kurtosis: number
-                }
-                regression?: {
-                    m: number
-                    b: number
-                }
-                correlation?: number
-                message?: string
-            }
+            return results
         } catch (error: unknown) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
@@ -1485,38 +1591,27 @@ export const statisticalAnalysisTool = createTool({
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Statistical analysis input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
+        logToolHookStart('Statistical analysis', toolCallId, messages, abortSignal)
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Statistical analysis received input chunk', {
+        logToolHookDelta(
+            'Statistical analysis',
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
+            messages,
+            abortSignal
+        )
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Statistical analysis received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { hasData: !!input.data },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
+        logToolHookAvailable('Statistical analysis', toolCallId, messages, abortSignal, {
+            dataLength: input.data?.length ?? 0,
+            dataXLength: input.dataX?.length ?? 0,
+            dataYLength: input.dataY?.length ?? 0,
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Statistical analysis completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Statistical analysis', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -1545,6 +1640,17 @@ export const heikinAshiTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Heikin Ashi', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta('Heikin Ashi', toolCallId, inputTextDelta, messages, abortSignal)
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Heikin Ashi', toolCallId, messages, abortSignal, {
+            dataLength: input.close.length,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1627,39 +1733,9 @@ export const heikinAshiTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Heikin Ashi streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Heikin Ashi received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Heikin Ashi received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { dataLength: input.close.length },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Heikin Ashi completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Heikin Ashi', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -1688,6 +1764,27 @@ export const marketSummaryTool = createTool({
         indicators: z.record(z.string(), z.string()),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Market summary', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Market summary',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Market summary', toolCallId, messages, abortSignal, {
+            openLength: input.open.length,
+            highLength: input.high.length,
+            lowLength: input.low.length,
+            closeLength: input.close.length,
+            volumeLength: input.volume.length,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1794,7 +1891,12 @@ export const marketSummaryTool = createTool({
                 sentiment = 'Sell'
             }
 
-            const finalResult = { success: true, sentiment, score, indicators }
+            const finalResult: MarketSummaryResult = {
+                success: true,
+                sentiment,
+                score,
+                indicators,
+            }
 
             toolSpan?.update({
                 output: finalResult,
@@ -1832,62 +1934,20 @@ export const marketSummaryTool = createTool({
                 },
                 id: 'market-summary',
             })
-            return {
+            const errorResult: MarketSummaryResult = {
                 success: false,
                 sentiment: 'Neutral',
                 score: 0,
                 indicators: {},
                 message: errorMessage,
-            } as unknown as {
-                success: boolean
-                sentiment:
-                    | 'Strong Buy'
-                    | 'Buy'
-                    | 'Neutral'
-                    | 'Sell'
-                    | 'Strong Sell'
-                score: number
-                indicators: Record<string, string>
-                message?: string
             }
+            return errorResult
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Market summary streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Market summary received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Market summary received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { dataLength: input.close.length },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Market summary completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                success: output.success,
-                sentiment: output.sentiment,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Market summary', toolCallId, toolName, abortSignal, {
+            success: output.success,
+            sentiment: output.sentiment,
         })
     },
 })
@@ -1906,6 +1966,23 @@ export const candlestickPatternTool = createTool({
         patterns: z.record(z.string(), z.boolean()).optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Pattern detection', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Pattern detection',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Pattern detection', toolCallId, messages, abortSignal, {
+            dataLength: input.close.length,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -2005,39 +2082,9 @@ export const candlestickPatternTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Pattern detection streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Pattern detection received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Pattern detection received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { dataLength: input.close.length },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Pattern detection completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Pattern detection', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })
@@ -2128,7 +2175,30 @@ export const technicalAnalysisTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
-
+        onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Technical analysis tool', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Technical analysis tool',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable(
+            'Technical analysis tool',
+            toolCallId,
+            messages,
+            abortSignal,
+            {
+                operation: input.operation,
+                dataLength: input.data.length,
+            }
+        )
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -2186,8 +2256,8 @@ export const technicalAnalysisTool = createTool({
                 volume: undefined as number[] | undefined,
             }
             const params = { ...defaultParams, ...(inputParams ?? {}) }
-            const results: Record<string, unknown> = {}
-            let stats = undefined
+            const results: TechnicalAnalysisSeriesMap = {}
+            let stats: TechnicalAnalysisStats | undefined = undefined
 
             if (data.length === 0) {
                 throw new Error('Data series cannot be empty')
@@ -2226,14 +2296,22 @@ export const technicalAnalysisTool = createTool({
             }
 
             if (operation === 'macd' || operation === 'all') {
-                results.macd = MACD.calculate({
-                    values: data,
-                    fastPeriod: params.fastPeriod ?? 12,
-                    slowPeriod: params.slowPeriod ?? 26,
-                    signalPeriod: params.signalPeriod ?? 9,
-                    SimpleMAOscillator: false,
-                    SimpleMASignal: false,
-                })
+                results.macd = (() => {
+                    const macdValues: MACDOutput[] = MACD.calculate({
+                        values: data,
+                        fastPeriod: params.fastPeriod ?? 12,
+                        slowPeriod: params.slowPeriod ?? 26,
+                        signalPeriod: params.signalPeriod ?? 9,
+                        SimpleMAOscillator: false,
+                        SimpleMASignal: false,
+                    }).map((entry): MACDOutput => ({
+                        MACD: entry.MACD ?? 0,
+                        signal: entry.signal ?? 0,
+                        histogram: entry.histogram ?? 0,
+                    }))
+
+                    return macdValues
+                })()
             }
 
             if (operation === 'bollinger' || operation === 'all') {
@@ -2266,7 +2344,7 @@ export const technicalAnalysisTool = createTool({
                 }
             }
 
-            const finalResult = {
+            const finalResult: TechnicalAnalysisResult = {
                 success: true,
                 results,
                 stats,
@@ -2319,42 +2397,9 @@ export const technicalAnalysisTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Technical analysis tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Technical analysis tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Technical analysis tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                operation: input.operation,
-                dataLength: input.data.length,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Technical analysis tool completed', {
-            toolCallId,
-            toolName,
-            outputData: { success: output.success },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
+        logToolHookOutput('Technical analysis tool', toolCallId, toolName, abortSignal, {
+            success: output.success,
         })
     },
 })

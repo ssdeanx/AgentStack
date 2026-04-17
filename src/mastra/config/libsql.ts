@@ -47,7 +47,7 @@ await libsqlvector.createIndex({
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
     vector: libsqlvector,
-    embedder: LIBSQL_EMBEDDING_MODEL,
+    embedder: fastembed,
     embedderOptions: {
         telemetry: {
             request: {
@@ -63,10 +63,10 @@ export const LibsqlMemory = new Memory({
         readOnly: false,
         observationalMemory: {
             enabled: true,
-            scope: 'resource', // 'resource' | 'thread'
+            scope: 'thread', // 'resource' | 'thread'
             model: 'google/gemini-2.5-flash',
-            retrieval: { vector: true, scope: 'resource' },
-            shareTokenBudget: true, // Don't share token budget between observation and reflection to preserve context
+            retrieval: { vector: true, scope: 'thread' },
+            shareTokenBudget: false, // Don't share token budget between observation and reflection to preserve context
             observation: {
                 instruction: 'You are an assistant that observes and remembers important information from the conversation. Pay attention to details, context, and any information that might be useful for future reference.',
                 messageTokens: 50_000,
@@ -105,14 +105,14 @@ export const LibsqlMemory = new Memory({
                 before: parseInt(process.env.SEMANTIC_RANGE_BEFORE ?? '3'),
                 after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
             },
-            scope: 'thread', // 'resource' | 'thread'
+            scope: 'resource', // 'resource' | 'thread'
             threshold: 0.75, // Similarity threshold for semantic recall
             indexName: LIBSQL_INDEX_NAME, // Index name for semantic recall
         },
         // Enhanced working memory with supported template
         workingMemory: {
             enabled: true,
-            scope: 'thread', // 'resource' | 'thread'
+            scope: 'resource', // 'resource' | 'thread'
             version: 'vnext',
             template: `
 # User Context
@@ -160,7 +160,7 @@ export const libsqlgraphQueryTool = createGraphRAGTool({
     vectorStore: libsqlvector,
     vectorStoreName: 'libsql-vector',
     indexName: LIBSQL_INDEX_NAME,
-    model: LIBSQL_EMBEDDING_MODEL,
+    model: fastembed,
     // Supported graph options (updated for 768 dimensions)
     graphOptions: {
         dimension: LIBSQL_EMBEDDING_DIMENSION, // FastEmbed base dimension (768)
@@ -183,7 +183,7 @@ export const libsqlQueryTool = createVectorQueryTool({
     vectorStore: libsqlvector,
     vectorStoreName: 'libsql-vector',
     indexName: LIBSQL_INDEX_NAME,
-    model: LIBSQL_EMBEDDING_MODEL,
+    model: fastembed,
     includeVectors: true,
     // Advanced filtering
     enableFilter: true,

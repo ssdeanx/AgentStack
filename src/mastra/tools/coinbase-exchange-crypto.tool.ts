@@ -1,7 +1,8 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
-import { createTool, type InferUITool } from '@mastra/core/tools'
+import type { InferToolInput, InferToolOutput, InferUITool} from '@mastra/core/tools';
+import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
@@ -336,3 +337,6 @@ export const coinbaseExchangeMarketDataTool = createTool({
 
 export type CoinbaseExchangeMarketDataInput = CoinbaseInput
 export type CoinbaseExchangeMarketDataUITool = InferUITool<typeof coinbaseExchangeMarketDataTool>
+export type CoinbaseExchangeMarketDataToolInput = InferToolInput<typeof coinbaseExchangeMarketDataTool>
+export type CoinbaseExchangeMarketDataToolOutput = InferToolOutput<typeof coinbaseExchangeMarketDataTool>
+

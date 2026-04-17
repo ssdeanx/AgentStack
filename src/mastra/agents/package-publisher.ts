@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 //import { TokenLimiterProcessor } from '@mastra/core/processors'
 import {
   getLanguageFromContext,
@@ -9,6 +9,7 @@ import {
 } from './request-context'
 import { InternalSpans } from '@mastra/core/observability'
 import { LibsqlMemory } from '../config/libsql'
+import { agentFsWorkspace } from '../workspaces'
 
 export type PackagePublisherRuntimeContext = AgentRequestContext
 
@@ -155,7 +156,7 @@ export const danePackagePublisher = new Agent({
                         includeThoughts: true,
                         thinkingBudget: -1,
                     },
-                } satisfies GoogleGenerativeAIProviderOptions,
+                } satisfies GoogleLanguageModelOptions,
             },
         }
     },
@@ -168,5 +169,6 @@ export const danePackagePublisher = new Agent({
         },
     },
     scorers: {},
+    workspace: agentFsWorkspace,
     //outputProcessors: [new TokenLimiterProcessor(128000)],
 })

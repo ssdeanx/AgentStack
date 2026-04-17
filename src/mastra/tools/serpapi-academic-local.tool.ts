@@ -8,7 +8,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
-import type { InferUITool } from '@mastra/core/tools'
+import type { InferToolInput, InferToolOutput, InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
 import { z } from 'zod'
@@ -748,4 +748,14 @@ export const yelpSearchTool = createTool({
     },
 })
 
+export type GoogleFinanceToolUI = InferUITool<typeof googleFinanceTool>
+export type GoogleScholarToolUI = InferUITool<typeof googleScholarTool>
 export type YelpSearchUITool = InferUITool<typeof yelpSearchTool>
+
+
+export type GoogleFinanceToolOutput = InferToolOutput<typeof googleFinanceTool>
+export type GoogleFinanceToolInput = InferToolInput<typeof googleFinanceTool>
+export type GoogleScholarToolOutput = InferToolOutput<typeof googleScholarTool>
+export type GoogleScholarToolInput = InferToolInput<typeof googleScholarTool>
+export type YelpSearchToolOutput = InferToolOutput<typeof yelpSearchTool>
+export type YelpSearchToolInput = InferToolInput<typeof yelpSearchTool>

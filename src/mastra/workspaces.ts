@@ -1,17 +1,69 @@
 import type {
     LSPConfig,
     LSPDiagnostic,
-    LSPServerDef,
+    //LSPServerDef,
     Lifecycle,
     LocalFilesystemOptions,
     LocalSandboxOptions,
     SandboxLifecycle,
     SkillSearchOptions,
-    SandboxLifecycleHook,
-    FilesystemLifecycle,
+    FilesystemLifecycleHook,
     MastraFilesystemOptions,
     ProcessHandle,
     SandboxProcessManager,
+    SandboxDetectionResult,
+    SandboxError,
+    SandboxLifecycleHook,
+    SandboxExecutionError,
+    SandboxFeatureNotSupportedError,
+    SandboxInfo,
+    SandboxNotAvailableError,
+    SandboxNotReadyError,
+    SandboxOperation,
+    SandboxTimeoutError,
+    SearchNotAvailableError,
+    SkillSearchResult,
+    Skill,
+    SkillFormat,
+    SkillMetadata,
+    SkillPublishResult,
+    SkillSource,
+    StaleFileError,
+    SkillsContext,
+    SkillsResolver,
+    SkillSourceStat,
+    SkillSourceEntry,
+    SpawnProcessOptions,
+    ProcessInfo,
+    ListOptions,
+    FilesystemLifecycle,
+    FileContent,
+    FilesystemError,
+    FilesystemMountConfig,
+    FileEntry,
+    FileStat,
+    FileExistsError,
+    FileNotFoundError,
+    FileReadRequiredError,
+    FilesystemIcon,
+    FilesystemInfo,
+    FilesystemNotAvailableError,
+    FilesystemNotMountableError,
+    FilesystemNotReadyError,
+    WorkspaceNotAvailableError,
+    WorkspaceInfo,
+    WorkspaceSandbox,
+    WorkspaceFilesystem,
+    WorkspaceConfig,
+    WorkspaceError,
+    WorkspaceNotReadyError,
+    WorkspaceSkills,
+    WorkspaceStatus,
+    WriteOptions,
+    WorkspaceReadOnlyError,
+    MastraSandbox,
+    MastraFilesystem,
+    MastraSandboxOptions
 } from '@mastra/core/workspace'
 import {
     Workspace,
@@ -19,7 +71,7 @@ import {
     LocalSandbox,
     WORKSPACE_TOOLS,
 } from '@mastra/core/workspace'
-import type { ProcessInfo, SpawnProcessOptions } from '@mastra/core/workspace'
+//import { createFilesystem } from '@mastra/core/workspace/filesystem'
 import { DaytonaSandbox } from '@mastra/daytona'
 import { AgentFSFilesystem } from '@mastra/agentfs'
 import { AgentFS } from 'agentfs-sdk'
@@ -31,13 +83,26 @@ import {
 } from 'vscode-jsonrpc/node'
 import { libsqlvector } from './config/libsql'
 import { embed } from 'ai'
-import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
-import { VersionedSkillSource } from '@mastra/core/workspace'
+
+//import { VersionedSkillSource } from '@mastra/core/workspace'
+//import { SandboxContent } from '../components/ai-elements/sandbox';
+import { fastembed } from '@mastra/fastembed'
+import { S3Filesystem } from '@mastra/s3'
+
+
+export const s3filesystem = new S3Filesystem({
+  bucket: 'my-bucket',
+  region: 'us-east-1',
+  endpoint: 'http://localhost:9000',
+  accessKeyId: 'minioadmin',
+  secretAccessKey: 'minioadmin',
+})
+
 
 export const localWorkspacePath = process.env.WORKSPACE_PATH ?? './workspace'
 export const daytonaWorkspacePath =
     process.env.DAYTONA_WORKSPACE_PATH ?? './daytona-workspace'
-export const workspaceSkillPaths = ['.agents/skills', '/skills', './**/skills']
+export const workspaceSkillPaths = [ 'skills', './**/skills']
 export const agentFsAgentId =
     process.env.AGENTFS_AGENT_ID ?? 'agentFs-db'
 export const sandboxPathEnv = process.env.PATH ?? ''
@@ -52,6 +117,9 @@ export const filesystemLifecycleState: FilesystemLifecycle = {
     status: 'pending',
 }
 
+export const filesystemLifecycleStateHook: FilesystemLifecycle = {
+    status: 'pending',
+}
 export const sandboxLifecycleState: SandboxLifecycle = {
     status: 'pending',
 }
@@ -94,10 +162,6 @@ export const sandboxStopHook: SandboxLifecycleHook = async ({ sandbox }) => {
 }
 
 export const workspaceLspConfig: LSPConfig = {
-  binaryOverrides: {
-    typescript: 'typescript-language-server --stdio',
-    eslint: 'vscode-eslint-language-server --stdio',
-  },
   searchPaths: [process.cwd()],
   root: localWorkspacePath,
   diagnosticTimeout: 5000,
@@ -107,10 +171,6 @@ export const workspaceLspConfig: LSPConfig = {
 }
 
 export const daytonaLspConfig: LSPConfig = {
-    binaryOverrides: {
-        typescript: 'typescript-language-server --stdio',
-        eslint: 'vscode-eslint-language-server --stdio',
-    },
     root: daytonaWorkspacePath,
     diagnosticTimeout: 5_000,
     initTimeout: 15_000,
@@ -119,63 +179,10 @@ export const daytonaLspConfig: LSPConfig = {
     packageRunner: 'npx --yes',
 }
 
-export const workspaceLspServers: LSPServerDef[] = [
-    {
-        id: 'typescript',
-        name: 'TypeScript Language Server',
-        languageIds: [
-            'typescript',
-            'typescriptreact',
-            'javascript',
-            'javascriptreact',
-        ],
-        markers: ['package.json', 'tsconfig.json', 'jsconfig.json'],
-        command: () => 'typescript-language-server --stdio',
-        initialization: () => ({
-            preferences: {
-                includeCompletionsForModuleExports: true,
-            },
-        }),
-    },
-    {
-        id: 'eslint',
-        name: 'ESLint Language Server',
-        languageIds: [
-            'typescript',
-            'typescriptreact',
-            'javascript',
-            'javascriptreact',
-        ],
-        markers: ['eslint.config.js', '.eslintrc.js', '.eslintrc.cjs', '.eslintrc.json'],
-        command: () => 'vscode-eslint-language-server --stdio',
-        initialization: () => ({
-            validate: 'on',
-        }),
-    },
-]
 
 export const workspaceLspDiagnostics: LSPDiagnostic[] = []
 export const agentFsSdk = AgentFS
 
-export const localTypescriptOnlyLspConfig: LSPConfig = {
-    ...workspaceLspConfig,
-    disableServers: ['eslint'],
-}
-
-export const localEslintOnlyLspConfig: LSPConfig = {
-    ...workspaceLspConfig,
-    disableServers: ['typescript'],
-}
-
-export const daytonaTypescriptOnlyLspConfig: LSPConfig = {
-    ...daytonaLspConfig,
-    disableServers: ['eslint'],
-}
-
-export const daytonaEslintOnlyLspConfig: LSPConfig = {
-    ...daytonaLspConfig,
-    disableServers: ['typescript'],
-}
 
 export const workspaceSpawnOptions: SpawnProcessOptions = {
     cwd: localWorkspacePath,
@@ -302,9 +309,7 @@ export const mainWorkspace = new Workspace({
     vectorStore: libsqlvector,
     embedder: async (text: string) => {
     const { embedding } = await embed({
-      model: new ModelRouterEmbeddingModel(
-              'google/gemini-embedding-2-preview'
-          ),
+      model: fastembed.base,
       value: text,
     })
     return embedding
@@ -337,100 +342,32 @@ export const mainWorkspace = new Workspace({
                 },
             },
         },
+
+
     },
     skills: ['/skills'],
     bm25: {
     k1: 1.5,
     b: 0.75,
     },
+    autoIndexPaths: ['/docs', '/support/faq', '/skills', '/**/*.md', '/**/*.txt'],
     //skillSource: new VersionedSkillSource(versionTree, blobStore, versionCreatedAt),
 })
 
-export const localFilesystemOnlyWorkspace = new Workspace({
-    id: 'local-filesystem-only-workspace',
-    name: 'LocalFilesystemOnlyWorkspace',
-    filesystem: new LocalFilesystem(mainFilesystemOptions),
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
-
-export const localSandboxOnlyWorkspace = new Workspace({
-    id: 'local-sandbox-only-workspace',
-    name: 'LocalSandboxOnlyWorkspace',
-    sandbox: new LocalSandbox(mainSandboxOptions),
-    lsp: workspaceLspConfig,
-})
-
-export const localReadOnlyWorkspace = new Workspace({
-    id: 'local-readonly-workspace',
-    name: 'LocalReadonlyWorkspace',
-    filesystem: new LocalFilesystem({
-        ...mainFilesystemOptions,
-        id: 'filesystem-readonly',
-        readOnly: true,
-    }),
-    sandbox: new LocalSandbox(mainSandboxOptions),
-    lsp: workspaceLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
-
-export const localApprovalWorkspace = new Workspace({
-    id: 'local-approval-workspace',
-    name: 'LocalApprovalWorkspace',
-    filesystem: new LocalFilesystem(mainFilesystemOptions),
-    sandbox: new LocalSandbox(mainSandboxOptions),
-    lsp: workspaceLspConfig,
-    tools: {
-        [WORKSPACE_TOOLS.FILESYSTEM.WRITE_FILE]: {
-            requireReadBeforeWrite: true,
-        },
-        [WORKSPACE_TOOLS.FILESYSTEM.EDIT_FILE]: {
-            requireReadBeforeWrite: true,
-        },
-        [WORKSPACE_TOOLS.SANDBOX.EXECUTE_COMMAND]: {
-            requireApproval: true,
-        },
-        [WORKSPACE_TOOLS.FILESYSTEM.AST_EDIT]: {
-            requireReadBeforeWrite: true,
-        },
-        [WORKSPACE_TOOLS.FILESYSTEM.DELETE]: {
-            requireApproval: true,
-        },
+const handle = await mainSandbox.processes.spawn('typescript-language-server --stdio', {
+    cwd: '/',
+    env: {
+        ...process.env,
+        NODE_ENV: 'development',
     },
-    skills: workspaceSkillPaths,
-    bm25: true,
+    timeout: 60_000,
 })
 
-export const localLspWorkspace = new Workspace({
-    id: 'local-lsp-workspace',
-    name: 'LocalLspWorkspace',
-    filesystem: new LocalFilesystem(mainFilesystemOptions),
-    sandbox: new LocalSandbox(mainSandboxOptions),
-    lsp: workspaceLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
-
-export const localTypescriptLspWorkspace = new Workspace({
-    id: 'local-typescript-lsp-workspace',
-    name: 'LocalTypescriptLspWorkspace',
-    filesystem: new LocalFilesystem(mainFilesystemOptions),
-    sandbox: new LocalSandbox(mainSandboxOptions),
-    lsp: localTypescriptOnlyLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
-
-export const localEslintLspWorkspace = new Workspace({
-    id: 'local-eslint-lsp-workspace',
-    name: 'LocalEslintLspWorkspace',
-    filesystem: new LocalFilesystem(mainFilesystemOptions),
-    sandbox: new LocalSandbox(mainSandboxOptions),
-    lsp: localEslintOnlyLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
+const connection = createMessageConnection(
+  new StreamMessageReader(handle.reader),
+  new StreamMessageWriter(handle.writer),
+)
+connection.listen()
 
 export const agentFsWorkspace = new Workspace({
     id: 'agentfs-workspace',
@@ -456,9 +393,7 @@ export const agentFsWorkspace = new Workspace({
     vectorStore: libsqlvector,
     embedder: async (text: string) => {
     const { embedding } = await embed({
-      model: new ModelRouterEmbeddingModel(
-              'google/gemini-embedding-2-preview'
-          ),
+      model: fastembed.base,
       value: text,
     })
     return embedding
@@ -467,25 +402,6 @@ export const agentFsWorkspace = new Workspace({
     bm25: true,
 })
 
-export const agentFsReadOnlyWorkspace = new Workspace({
-    id: 'agentfs-readonly-workspace',
-    name: 'AgentFSReadonlyWorkspace',
-    filesystem: new AgentFSFilesystem(
-        typeof agentFsDbPath === 'string' && agentFsDbPath.length > 0
-            ? {
-                  id: 'agentfs-filesystem-readonly',
-                  path: agentFsDbPath,
-                  readOnly: true,
-              }
-            : {
-                  id: 'agentfs-filesystem-readonly',
-                  agentId: agentFsAgentId,
-                  readOnly: true,
-              }
-    ),
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
 
 export const daytonaSandbox = new DaytonaSandbox({
     id: 'daytona-sandbox',
@@ -507,76 +423,12 @@ export const daytonaWorkspace = new Workspace({
     bm25: true,
 })
 
-export const daytonaLspWorkspace = new Workspace({
-    id: 'daytona-lsp-workspace',
-    name: 'DaytonaLspWorkspace',
-    filesystem: new LocalFilesystem(daytonaFilesystemOptions),
-    sandbox: new DaytonaSandbox({
-        id: 'daytona-lsp-sandbox',
-        name: 'Daytona LSP Sandbox',
-        image: 'node:20-slim',
-        resources: { cpu: 2, memory: 4, disk: 6 },
-        language: 'typescript',
-        timeout: 120_000,
-        apiKey: process.env.DAYTONA_API_KEY,
-        apiUrl: process.env.DAYTONA_API_URL,
-    }),
-    lsp: daytonaLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
 
-export const daytonaTypescriptLspWorkspace = new Workspace({
-    id: 'daytona-typescript-lsp-workspace',
-    name: 'DaytonaTypescriptLspWorkspace',
-    filesystem: new LocalFilesystem(daytonaFilesystemOptions),
-    sandbox: new DaytonaSandbox({
-        id: 'daytona-typescript-lsp-sandbox',
-        name: 'Daytona TypeScript LSP Sandbox',
-        image: 'node:20-slim',
-        resources: { cpu: 2, memory: 4, disk: 6 },
-        language: 'typescript',
-        timeout: 120_000,
-        apiKey: process.env.DAYTONA_API_KEY,
-        apiUrl: process.env.DAYTONA_API_URL,
-    }),
-    lsp: daytonaTypescriptOnlyLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
-
-export const daytonaEslintLspWorkspace = new Workspace({
-    id: 'daytona-eslint-lsp-workspace',
-    name: 'DaytonaEslintLspWorkspace',
-    filesystem: new LocalFilesystem(daytonaFilesystemOptions),
-    sandbox: new DaytonaSandbox({
-        id: 'daytona-eslint-lsp-sandbox',
-        name: 'Daytona ESLint LSP Sandbox',
-        image: 'node:20-slim',
-        resources: { cpu: 2, memory: 4, disk: 6 },
-        language: 'typescript',
-        timeout: 120_000,
-        apiKey: process.env.DAYTONA_API_KEY,
-        apiUrl: process.env.DAYTONA_API_URL,
-    }),
-    lsp: daytonaEslintOnlyLspConfig,
-    skills: workspaceSkillPaths,
-    bm25: true,
-})
 
 export const workspaceVariants = {
     mainWorkspace,
-    localFilesystemOnlyWorkspace,
-    localSandboxOnlyWorkspace,
-    localReadOnlyWorkspace,
-    localApprovalWorkspace,
-    localLspWorkspace,
-    localTypescriptLspWorkspace,
-    localEslintLspWorkspace,
     agentFsWorkspace,
-    agentFsReadOnlyWorkspace,
     daytonaWorkspace,
-    daytonaLspWorkspace,
-    daytonaTypescriptLspWorkspace,
-    daytonaEslintLspWorkspace,
+    // Add more workspace variants here
+    // variantName: new Workspace({ ... })
 } as const

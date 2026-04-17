@@ -1,7 +1,7 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { TracingContext } from '@mastra/core/observability'
-import type { InferUITool } from '@mastra/core/tools'
+import type { InferToolInput, InferToolOutput, InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import * as cheerio from 'cheerio'
 import { XMLParser } from 'fast-xml-parser'
@@ -1096,6 +1096,8 @@ export const fetchTool = createTool({
 })
 
 export type FetchUITool = InferUITool<typeof fetchTool>
+export type FetchToolOutput = InferToolOutput<typeof fetchTool>
+export type FetchToolInput = InferToolInput<typeof fetchTool>
 
 interface ScheduledFetchJob {
     jobId: string

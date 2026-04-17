@@ -184,16 +184,17 @@ import {
 import { mainHarness } from './harness'
 import { supervisorAgent } from './agents/supervisor-agent'
 import { mastraAuth } from './auth'
-import { agentFsWorkspace } from './workspaces'
+import { agentFsWorkspace, daytonaSandbox, mainWorkspace } from './workspaces'
 import { MastraEditor } from '@mastra/editor'
 //import { MastraCompositeStore } from '@mastra/core/storage'
 import { ArcadeToolProvider } from '@mastra/editor/arcade'
 import { ComposioToolProvider } from '@mastra/editor/composio'
+import { GoogleVoice } from '@mastra/voice-google'
+import main from '@/lib/auth-dev'
 //import { PosthogExporter } from '@mastra/posthog'
 
 export const mastra = new Mastra({
     workspace: agentFsWorkspace,
-    
     workflows: {
         weatherWorkflow,
         contentStudioWorkflow,
@@ -339,13 +340,9 @@ export const mastra = new Mastra({
                 apiKey: process.env.ARCADE_API_KEY!,
                 }),
             },
-            sandboxes: {
-                // Optional: restrict certain modules or APIs for security
-            },
-            filesystems: {
-
+            //sandboxes:{[daytonaSandbox.id]: daytonaSandbox},
+            //filesystems: { [s3FilesystemProvider.id]: s3FilesystemProvider },
                 // Optional: configure storage limits, allowed file types, etc.
-            },
              // Optional: add a custom toolbar with specific tools or actions
         }
     ),
@@ -360,7 +357,11 @@ export const mastra = new Mastra({
         notes: notesMCP,
         codingA2A: codingA2AMcpServer,
     },
-
+    tts: {
+        // Optional: Add text-to-speech capabilities to mastra for voice-enabled agents
+       // google: new GoogleVoice(),
+    },
+    // Example of agent-specific configuration using instructions
     storage: libsqlstorage,
     vectors: { libsqlvector },
     logger: log,

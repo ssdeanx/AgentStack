@@ -8,7 +8,8 @@ import {
 import { InternalSpans } from '@mastra/core/observability'
 import { USER_ID_CONTEXT_KEY, type AgentRequestContext } from './request-context'
 import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
-
+import { agentFsWorkspace } from '../workspaces'
+import { LIBSQL_PROMPT } from '@mastra/libsql'
 const INDEX_NAME_CONTEXT_KEY = 'indexName' as const
 const CHUNKING_STRATEGY_CONTEXT_KEY = 'chunkingStrategy' as const
 
@@ -71,6 +72,7 @@ User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
 
 ## Rules
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
+{$LIBSQL_PROMPT}
 
 `
     },
@@ -82,6 +84,10 @@ User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
             internal: InternalSpans.AGENT,
         },
     },
+    workspace: agentFsWorkspace,
+    scorers: {},
+    workflows: {},
+    maxRetries: 5,
     //outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 

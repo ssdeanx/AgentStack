@@ -9,6 +9,7 @@ import {
   type AgentRequestContext,
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
+import { agentFsWorkspace } from '../workspaces'
 
 export type ReportRuntimeContext = AgentRequestContext
 log.info('Initializing Report Agent...')
@@ -75,6 +76,7 @@ export const reportAgent = new Agent({
   scorers: {},
   workflows: {},
   maxRetries: 5,
+  workspace: agentFsWorkspace,
 })
 
 // --- IGNORE ---
