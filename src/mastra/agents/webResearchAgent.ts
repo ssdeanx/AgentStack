@@ -10,6 +10,7 @@ import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { fetchTool } from '../tools'
 import { LibsqlMemory } from '../config/libsql';
+import { agentFsWorkspace } from '../workspaces'
 
 export type WebResearchRuntimeContext = AgentRequestContext<{
     researchPhase?: string
@@ -104,6 +105,7 @@ Provide structured results with:
             internal: InternalSpans.ALL,
         },
     },
+    workspace: agentFsWorkspace,
     outputProcessors: [
 
     //    new BatchPartsProcessor({

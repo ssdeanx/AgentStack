@@ -12,6 +12,7 @@ import {
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
 import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
+import { agentFsWorkspace } from '../workspaces'
 
 log.info('Initializing SEO Agent...')
 
@@ -223,6 +224,7 @@ You are an SEO Specialist and Content Optimizer. Your expertise covers all aspec
       internal: InternalSpans.ALL,
     },
   },
+  workspace: agentFsWorkspace,
   defaultOptions: {
     delegation: {
       onDelegationStart: async context => {

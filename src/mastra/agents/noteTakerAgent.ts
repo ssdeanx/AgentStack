@@ -19,5 +19,5 @@ export const noteTakerAgent = new Agent({
             internal: InternalSpans.ALL,
         },
     },
-    voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
+    //voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
 })

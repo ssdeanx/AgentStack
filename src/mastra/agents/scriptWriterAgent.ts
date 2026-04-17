@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
@@ -51,7 +51,7 @@ User: ${userTier} | Lang: ${language}
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },

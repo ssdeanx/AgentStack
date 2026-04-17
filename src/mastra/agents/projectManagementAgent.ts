@@ -12,6 +12,7 @@ import {
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
 import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
+import { agentFsWorkspace } from '../workspaces'
 
 log.info('Initializing Project Management Agent...')
 
@@ -267,6 +268,7 @@ You are a Professional Project Manager. Your expertise covers project planning, 
             internal: InternalSpans.ALL,
         },
     },
+    workspace: agentFsWorkspace,
     defaultOptions: {
         delegation: {
             onDelegationStart: async context => {

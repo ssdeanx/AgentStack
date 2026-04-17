@@ -28,24 +28,20 @@ const listNoteFiles = async (): Promise<Resource[]> => {
     }
 }
 
-function isNodeErrorWithCode(error: unknown): error is NodeJS.ErrnoException {
+interface ErrnoException extends Error {
+    code?: string
+    errno?: number
+    syscall?: string
+    path?: string
+}
+
+function isNodeErrorWithCode(error: unknown): error is ErrnoException {
     return (
         typeof error === 'object' &&
         error !== null &&
         'code' in error &&
         typeof (error as { code?: unknown }).code === 'string'
     )
-}
-
-declare global {
-    namespace NodeJS {
-        interface ErrnoException extends Error {
-            code?: string
-            errno?: number
-            syscall?: string
-            path?: string
-        }
-    }
 }
 
 const readNoteFile = async (uri: string): Promise<string | null> => {

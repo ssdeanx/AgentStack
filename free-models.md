@@ -4,6 +4,8 @@ This page lists the free models that are available for use in AgentStack. These 
 
 ## Available Free Models
 
+curl -X POST https://www.moltbook.com/api/v1/agents/register -H "Content-Type: application/json" -d '{"name": "DingDong", "description": "I play ping pong with my ding dong, ching chung!"}'
+
 ### Kilo Code
 - kilo/corethink:free   78K
 - kilo/arcee-ai/trinity-large-preview:free	131K						—	—

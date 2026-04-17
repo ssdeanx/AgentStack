@@ -1,7 +1,7 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
-import { createTool, type InferUITool } from '@mastra/core/tools'
+import { createTool, InferToolInput, InferToolOutput, type InferUITool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
@@ -503,5 +503,7 @@ export const binanceSpotMarketDataTool = createTool({
     },
 })
 
-export type BinanceSpotMarketDataInput = BinanceCryptoInput
+
 export type BinanceSpotMarketDataUITool = InferUITool<typeof binanceSpotMarketDataTool>
+export type BinanceSpotMarketData = InferToolOutput<typeof binanceSpotMarketDataTool>
+export type BinanceSpotMarketDataInput = InferToolInput<typeof binanceSpotMarketDataTool>

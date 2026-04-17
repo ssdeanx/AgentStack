@@ -8,7 +8,7 @@ type BrowserConnectionMode = 'browserbase' | 'cdp'
 type ScreencastFormat = 'jpeg' | 'png'
 type StagehandEnvironment = 'LOCAL' | 'BROWSERBASE'
 
-const DEFAULT_CHROME_CDP_URL = 'http://127.0.0.1:9222'
+const DEFAULT_CHROME_CDP_URL = 'http://localhost:9222'
 const DEFAULT_BROWSER_TIMEOUT_MS = 30000
 const DEFAULT_STAGEHAND_DOM_SETTLE_TIMEOUT_MS = 5000
 const DEFAULT_STAGEHAND_MODEL = 'google/gemini-3.1-flash-lite-preview'
@@ -327,7 +327,7 @@ export const browserRuntimeConfig = {
 }
 
 export const agentBrowser = new AgentBrowser({
-  headless: agentBrowserHeadless,
+  headless: true,
   viewport: sharedViewport,
   timeout: agentBrowserTimeoutMs,
   cdpUrl: () => chromeCdpUrl,
@@ -337,7 +337,7 @@ export const agentBrowser = new AgentBrowser({
 })
 
 export const stagehandBrowser = new StagehandBrowser({
-  headless: stagehandHeadless,
+  headless: true,
   model:
     readStringEnv(['STAGEHAND_MODEL'], DEFAULT_STAGEHAND_MODEL) ??
     DEFAULT_STAGEHAND_MODEL,

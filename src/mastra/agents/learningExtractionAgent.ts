@@ -10,6 +10,7 @@ import {
     type AgentRequestContext,
 } from './request-context'
 import { LibsqlMemory } from '../config/libsql'
+import { agentFsWorkspace } from '../workspaces'
 
 export type LearningExtractionAgentContext = AgentRequestContext<{
     researchPhase?: string
@@ -73,5 +74,6 @@ Extract the single most important learning and create one relevant follow-up que
     },
     workflows: {},
     maxRetries: 5,
+    workspace: agentFsWorkspace,
   //  outputProcessors: [new TokenLimiterProcessor(128000)],
 })

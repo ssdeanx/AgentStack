@@ -8,6 +8,11 @@
  */
 import { SpanType } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
+import type {
+    InferToolInput,
+    InferToolOutput,
+    InferUITool,
+} from '@mastra/core/tools'
 import { z } from 'zod'
 import { getJson } from 'serpapi'
 import { log } from '../config/logger'
@@ -19,32 +24,86 @@ export interface SerpApiNewsContext extends RequestContext {
     userId?: string
 }
 
+interface SerpApiNewsSource {
+    name: string
+    authors?: string[]
+}
+
 interface SerpApiNewsArticle {
+    position?: number
     title: string
     link: string
-    source: { name: string }
+    source?: SerpApiNewsSource | string
     date: string
+    description?: string
     snippet?: string
     thumbnail?: string
 }
 
+interface SerpApiMenuLink {
+    title: string
+    topic_token?: string
+    serpapi_link?: string
+}
+
 interface SerpApiNewsResponse {
     news_results?: SerpApiNewsArticle[]
-    search_information?: { total_results?: number }
+    menu_links?: SerpApiMenuLink[]
+    search_information?: { total_results?: number | string }
+}
+
+interface SerpApiTrendTimelineValue {
+    query?: string
+    value?: string | number
+    extracted_value?: number
+}
+
+interface SerpApiTrendTimelinePoint {
+    date?: string
+    timestamp: string
+    values?: SerpApiTrendTimelineValue[]
+    averages?: Array<{ query: string; value: number }>
+}
+
+interface SerpApiTrendAverage {
+    query: string
+    value: number
+}
+
+interface SerpApiTrendRelatedQueryItem {
+    query: string
+    value: string
+    extracted_value?: number
+    link?: string
+    serpapi_link?: string
+}
+
+interface SerpApiTrendTopic {
+    value: string
+    title: string
+    type: string
+}
+
+interface SerpApiTrendRelatedTopicItem {
+    topic: SerpApiTrendTopic
+    value: string
+    extracted_value?: number
+    link?: string
+    serpapi_link?: string
 }
 
 interface SerpApiTrendsResponse {
     interest_over_time?: {
-        timeline_data?: Array<{
-            timestamp: string
-            values?: Array<{ value?: number }>
-        }>
+        timeline_data?: SerpApiTrendTimelinePoint[]
+        averages?: SerpApiTrendAverage[]
     }
     related_queries?: {
-        rising?: Array<{ query: string }>
+        rising?: SerpApiTrendRelatedQueryItem[]
+        top?: SerpApiTrendRelatedQueryItem[]
     }
     related_topics?: {
-        rising?: Array<{ topic: string }>
+        rising?: SerpApiTrendRelatedTopicItem[]
+        top?: SerpApiTrendRelatedTopicItem[]
     }
 }
 
@@ -131,9 +190,16 @@ const googleNewsOutputSchema = z.object({
     newsArticles: z
         .array(
             z.object({
+                position: z.number().optional(),
                 title: z.string(),
                 link: z.url(),
                 source: z.string(),
+                sourceDetails: z
+                    .object({
+                        name: z.string(),
+                        authors: z.array(z.string()).optional(),
+                    })
+                    .optional(),
                 date: z.string(),
                 snippet: z.string(),
                 thumbnail: z.url().optional(),
@@ -144,6 +210,16 @@ const googleNewsOutputSchema = z.object({
         .number()
         .optional()
         .describe('Total number of results available'),
+    menuLinks: z
+        .array(
+            z.object({
+                title: z.string(),
+                topicToken: z.string(),
+                serpapiLink: z.url(),
+            })
+        )
+        .optional()
+        .describe('Topic and section links from the news navigation menu'),
 })
 
 /**
@@ -258,27 +334,78 @@ export const googleNewsTool = createTool({
             }
             const response = await getJson(params)
             const newsResponse = response as SerpApiNewsResponse
+            const menuLinks = newsResponse.menu_links
+                ?.map((menuLink) => {
+                    if (
+                        !menuLink.title ||
+                        !menuLink.topic_token ||
+                        !menuLink.serpapi_link
+                    ) {
+                        return null
+                    }
+
+                    return {
+                        title: menuLink.title,
+                        topicToken: menuLink.topic_token,
+                        serpapiLink: menuLink.serpapi_link,
+                    }
+                })
+                .filter(
+                    (
+                        menuLink
+                    ): menuLink is {
+                        title: string
+                        topicToken: string
+                        serpapiLink: string
+                    } => menuLink !== null
+                )
+            const totalResultsRaw = newsResponse.search_information?.total_results
+            const totalResults =
+                typeof totalResultsRaw === 'string'
+                    ? Number(totalResultsRaw)
+                    : totalResultsRaw
             const newsArticles =
                 newsResponse.news_results?.map(
                     (article: {
+                        position?: number
                         title: string
                         link: string
-                        source: { name: string }
+                        source?:
+                            | { name: string; authors?: string[] }
+                            | string
                         date: string
                         snippet?: string
                         thumbnail?: string
+                        description?: string
                     }) => ({
+                        position: article.position,
                         title: article.title,
                         link: article.link,
-                        source: article.source?.name ?? 'Unknown',
+                        source:
+                            typeof article.source === 'string'
+                                ? article.source
+                                : article.source?.name ?? 'Unknown',
+                        sourceDetails:
+                            typeof article.source === 'object' &&
+                            article.source !== null
+                                ? {
+                                      name: article.source.name,
+                                      authors: article.source.authors,
+                                  }
+                                : undefined,
                         date: article.date,
-                        snippet: article.snippet ?? '',
+                        snippet: article.snippet ?? article.description ?? '',
                         thumbnail: article.thumbnail,
                     })
                 ) ?? []
             const result = {
                 newsArticles,
-                totalResults: newsResponse.search_information?.total_results,
+                totalResults:
+                    typeof totalResults === 'number' &&
+                    Number.isFinite(totalResults)
+                        ? totalResults
+                        : undefined,
+                menuLinks,
             }
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -349,6 +476,7 @@ export const googleNewsLiteTool = createTool({
         newsArticles: z
             .array(
                 z.object({
+                    position: z.number().optional(),
                     title: z.string(),
                     link: z.url(),
                     source: z.string(),
@@ -418,6 +546,7 @@ export const googleNewsLiteTool = createTool({
 
             const newsResultsSchema = z.array(
                 z.object({
+                    position: z.number().optional(),
                     title: z.string(),
                     link: z.string(),
                     source: z.object({ name: z.string() }).optional(),
@@ -431,6 +560,7 @@ export const googleNewsLiteTool = createTool({
             const newsArticles =
                 parsed.success && parsed.data.news_results
                     ? parsed.data.news_results.map((article) => ({
+                                                    position: article.position,
                           title: article.title,
                           link: article.link,
                           source: article.source?.name ?? 'Unknown',
@@ -532,16 +662,90 @@ const googleTrendsOutputSchema = z.object({
     interestOverTime: z
         .array(
             z.object({
+                date: z.string().optional(),
                 timestamp: z.string(),
-                value: z.number(),
+                values: z.array(
+                    z.object({
+                        query: z.string().optional(),
+                        value: z.string(),
+                        extractedValue: z.number(),
+                    })
+                ),
             })
         )
         .describe('Interest values over time'),
-    relatedQueries: z
-        .array(z.string())
+
+    averages: z
+        .array(
+            z.object({
+                query: z.string(),
+                value: z.number(),
+            })
+        )
         .optional()
-        .describe('Related search queries'),
-    relatedTopics: z.array(z.string()).optional().describe('Related topics'),
+        .describe('Average values for each queried term'),
+    relatedQueries: z
+        .object({
+            rising: z
+                .array(
+                    z.object({
+                        query: z.string(),
+                        value: z.string(),
+                        extractedValue: z.number().optional(),
+                        link: z.url().optional(),
+                        serpapiLink: z.url().optional(),
+                    })
+                )
+                .optional(),
+            top: z
+                .array(
+                    z.object({
+                        query: z.string(),
+                        value: z.string(),
+                        extractedValue: z.number().optional(),
+                        link: z.url().optional(),
+                        serpapiLink: z.url().optional(),
+                    })
+                )
+                .optional(),
+        })
+        .optional()
+        .describe('Related search queries broken down by rising and top'),
+    relatedTopics: z
+        .object({
+            rising: z
+                .array(
+                    z.object({
+                        topic: z.object({
+                            value: z.string(),
+                            title: z.string(),
+                            type: z.string(),
+                        }),
+                        value: z.string(),
+                        extractedValue: z.number().optional(),
+                        link: z.url().optional(),
+                        serpapiLink: z.url().optional(),
+                    })
+                )
+                .optional(),
+            top: z
+                .array(
+                    z.object({
+                        topic: z.object({
+                            value: z.string(),
+                            title: z.string(),
+                            type: z.string(),
+                        }),
+                        value: z.string(),
+                        extractedValue: z.number().optional(),
+                        link: z.url().optional(),
+                        serpapiLink: z.url().optional(),
+                    })
+                )
+                .optional(),
+        })
+        .optional()
+        .describe('Related topics broken down by rising and top'),
     averageInterest: z
         .number()
         .optional()
@@ -652,9 +856,24 @@ export const googleTrendsTool = createTool({
             const response = await getJson(params)
 
             const timelinePointSchema = z.object({
+                date: z.string().optional(),
                 timestamp: z.string(),
                 values: z
-                    .array(z.object({ value: z.number() }))
+                    .array(
+                        z.object({
+                            query: z.string().optional(),
+                            value: z.union([z.string(), z.number()]),
+                            extracted_value: z.number().optional(),
+                        })
+                    )
+                    .optional(),
+                averages: z
+                    .array(
+                        z.object({
+                            query: z.string(),
+                            value: z.number(),
+                        })
+                    )
                     .optional(),
             })
 
@@ -663,6 +882,14 @@ export const googleTrendsTool = createTool({
                     interest_over_time: z
                         .object({
                             timeline_data: z.array(timelinePointSchema).optional(),
+                            averages: z
+                                .array(
+                                    z.object({
+                                        query: z.string(),
+                                        value: z.number(),
+                                    })
+                                )
+                                .optional(),
                         })
                         .optional(),
                 })
@@ -672,32 +899,86 @@ export const googleTrendsTool = createTool({
                 parsed.success && parsed.data.interest_over_time?.timeline_data
                     ? parsed.data.interest_over_time.timeline_data.map(
                           (point) => ({
+                              date: point.date,
                               timestamp: point.timestamp,
-                              value: point.values?.[0]?.value ?? 0,
+                              values: (point.values ?? []).map((value) => ({
+                                  query: value.query,
+                                  value: String(value.value),
+                                  extractedValue:
+                                      value.extracted_value ??
+                                      (typeof value.value === 'number'
+                                          ? value.value
+                                          : Number(value.value) || 0),
+                              })),
                           })
                       )
                     : []
 
             const trendsResponse = response as SerpApiTrendsResponse
-            const relatedQueries = trendsResponse.related_queries?.rising?.map(
-                (q: { query: string }) => q.query
-            )
+            const relatedQueries = trendsResponse.related_queries
+                ? {
+                      rising:
+                          trendsResponse.related_queries.rising?.map(
+                              (query) => ({
+                                  query: query.query,
+                                  value: query.value,
+                                  extractedValue: query.extracted_value,
+                                  link: query.link,
+                                  serpapiLink: query.serpapi_link,
+                              })
+                          ) ?? [],
+                      top:
+                          trendsResponse.related_queries.top?.map((query) => ({
+                              query: query.query,
+                              value: query.value,
+                              extractedValue: query.extracted_value,
+                              link: query.link,
+                              serpapiLink: query.serpapi_link,
+                          })) ?? [],
+                  }
+                : undefined
 
-            const relatedTopics = trendsResponse.related_topics?.rising?.map(
-                (t: { topic: string }) => t.topic
-            )
+            const relatedTopics = trendsResponse.related_topics
+                ? {
+                      rising:
+                          trendsResponse.related_topics.rising?.map((topic) => ({
+                              topic: topic.topic,
+                              value: topic.value,
+                              extractedValue: topic.extracted_value,
+                              link: topic.link,
+                              serpapiLink: topic.serpapi_link,
+                          })) ?? [],
+                      top:
+                          trendsResponse.related_topics.top?.map((topic) => ({
+                              topic: topic.topic,
+                              value: topic.value,
+                              extractedValue: topic.extracted_value,
+                              link: topic.link,
+                              serpapiLink: topic.serpapi_link,
+                          })) ?? [],
+                  }
+                : undefined
+
+            const averages =
+                parsed.success && parsed.data.interest_over_time?.averages
+                    ? parsed.data.interest_over_time.averages.map((average) => ({
+                          query: average.query,
+                          value: average.value,
+                      }))
+                    : undefined
 
             const averageInterest =
                 interestOverTime.length > 0
                     ? interestOverTime.reduce(
-                          (sum: number, item: { value: number }) =>
-                              sum + item.value,
+                          (sum: number, item: { values: Array<{ extractedValue: number }> }) =>
+                              sum + (item.values[0]?.extractedValue ?? 0),
                           0
                       ) / interestOverTime.length
                     : undefined
 
             const result = {
                 interestOverTime,
+                averages,
                 relatedQueries,
                 relatedTopics,
                 averageInterest,
@@ -740,12 +1021,19 @@ export const googleTrendsTool = createTool({
         }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const relatedQueryCount =
+            (output.relatedQueries?.rising?.length ?? 0) +
+            (output.relatedQueries?.top?.length ?? 0)
+        const relatedTopicCount =
+            (output.relatedTopics?.rising?.length ?? 0) +
+            (output.relatedTopics?.top?.length ?? 0)
+
         log.info('Google Trends analysis completed', {
             toolCallId,
             toolName,
             dataPoints: output?.interestOverTime?.length ?? 0,
-            relatedQueries: output?.relatedQueries?.length ?? 0,
-            relatedTopics: output?.relatedTopics?.length ?? 0,
+            relatedQueries: relatedQueryCount,
+            relatedTopics: relatedTopicCount,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
@@ -898,3 +1186,16 @@ export const googleAutocompleteTool = createTool({
         }
     },
 })
+
+export type GoogleNewsToolUI = InferUITool<typeof googleNewsTool>
+export type GoogleNewsLiteToolUI = InferUITool<typeof googleNewsLiteTool>
+export type GoogleTrendsToolUI = InferUITool<typeof googleTrendsTool>
+export type GoogleAutocompleteToolUI = InferUITool<typeof googleAutocompleteTool>
+export type GoogleTrendsToolOutput = InferToolOutput<typeof googleTrendsTool>
+export type GoogleTrendsToolInput = InferToolInput<typeof googleTrendsTool>
+export type GoogleNewsToolOutput = InferToolOutput<typeof googleNewsTool>
+export type GoogleNewsToolInput = InferToolInput<typeof googleNewsTool>
+export type GoogleNewsLiteToolOutput = InferToolOutput<typeof googleNewsLiteTool>
+export type GoogleNewsLiteToolInput = InferToolInput<typeof googleNewsLiteTool>
+export type GoogleAutocompleteToolOutput = InferToolOutput<typeof googleAutocompleteTool>
+export type GoogleAutocompleteToolInput = InferToolInput<typeof googleAutocompleteTool>

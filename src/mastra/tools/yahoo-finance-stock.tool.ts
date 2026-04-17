@@ -1,7 +1,7 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
-import { createTool, type InferUITool } from '@mastra/core/tools'
+import { createTool, InferToolInput, InferToolOutput, type InferUITool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
@@ -359,5 +359,7 @@ export const yahooFinanceStockQuotesTool = createTool({
     },
 })
 
-export type YahooFinanceStockQuotesInput = YahooInput
+
 export type YahooFinanceStockQuotesUITool = InferUITool<typeof yahooFinanceStockQuotesTool>
+export type YahooFinanceStockQuotesOutput = InferToolOutput<typeof yahooFinanceStockQuotesTool>
+export type YahooFinanceStockQuotesInput = InferToolInput<typeof yahooFinanceStockQuotesTool>
