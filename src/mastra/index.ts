@@ -184,13 +184,13 @@ import {
 import { mainHarness } from './harness'
 import { supervisorAgent } from './agents/supervisor-agent'
 import { mastraAuth } from './auth'
-import { agentFsWorkspace, daytonaSandbox, mainWorkspace } from './workspaces'
+import { agentFsWorkspace } from './workspaces'
 import { MastraEditor } from '@mastra/editor'
 //import { MastraCompositeStore } from '@mastra/core/storage'
 import { ArcadeToolProvider } from '@mastra/editor/arcade'
 import { ComposioToolProvider } from '@mastra/editor/composio'
-import { GoogleVoice } from '@mastra/voice-google'
-import main from '@/lib/auth-dev'
+//import { GoogleVoice } from '@mastra/voice-google'
+//import { composioAgent } from './agents/compsio'
 //import { PosthogExporter } from '@mastra/posthog'
 
 export const mastra = new Mastra({
@@ -252,6 +252,10 @@ export const mastra = new Mastra({
         scriptWriterAgent,
         stockAnalysisAgent,
         weatherAgent,
+        // composio
+        //composioAgent,
+
+
         // CSV/Data Pipeline Agents
         dataExportAgent,
         dataIngestionAgent,
@@ -441,7 +445,7 @@ export const mastra = new Mastra({
             origin: process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? 'http://localhost:3000', // your frontend origin
             credentials: true,
             allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-           // allowHeaders: ['*', 'Authorization', 'Content-Type', 'x-user-id', 'x-role', 'accept-language', 'x-research-phase', 'api-key'],
+            allowHeaders: ['*', 'Authorization', 'Content-Type', 'x-user-id', 'x-role', 'accept-language', 'x-research-phase', 'api-key'],
            // exposeHeaders: ['Authorization', 'Content-Type', 'x-user-id', 'x-role', 'accept-language', 'x-research-phase', 'api-key'],
         },
         build: {

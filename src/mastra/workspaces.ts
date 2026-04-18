@@ -90,7 +90,7 @@ import { fastembed } from '@mastra/fastembed'
 import { S3Filesystem } from '@mastra/s3'
 
 
-export const s3filesystem = new S3Filesystem({
+const s3filesystem = new S3Filesystem({
   bucket: 'my-bucket',
   region: 'us-east-1',
   endpoint: 'http://localhost:9000',
@@ -202,11 +202,20 @@ export const mainFilesystemOptions: LocalFilesystemOptions = {
 export const mainSandboxOptions: LocalSandboxOptions = {
     id: 'sandbox',
     workingDirectory: localWorkspacePath,
+    isolation: 'none',
+    instructions: 'This is the main sandbox for the workspace. You can use this sandbox to execute commands and run processes as part of your tasks. Always be careful when executing commands and make sure to follow the instructions provided by the user',
+    nativeSandbox: {
+        allowNetwork: true, // Block network access (default)
+        readWritePaths: ['*'], // Additional writable paths
+        readOnlyPaths: [], // Additional read-only paths
+        allowSystemBinaries: true, // Allow access to system binaries (default: false)
+    },
     onStart: sandboxStartHook,
     onStop: sandboxStopHook,
     env: {
         PATH: sandboxPathEnv,
         NODE_ENV: sandboxNodeEnv,
+        API_URL: process.env.API_URL ?? 'http://localhost:4111/api',
     },
     timeout: 120_000,
 }
@@ -305,12 +314,23 @@ export const mainWorkspace = new Workspace({
     id: 'main-Workspace',
     name: 'MainWorkspace',
     filesystem: mainFilesystem,
-    sandbox: mainSandbox,
+    sandbox:new LocalSandbox(mainSandboxOptions),
     vectorStore: libsqlvector,
+
     embedder: async (text: string) => {
     const { embedding } = await embed({
-      model: fastembed.base,
+      model: fastembed,
       value: text,
+      maxRetries: 3,
+      abortSignal: new AbortController().signal,
+      providerOptions: {
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: true,
+        recordOutputs: true,
+        functionId: 'mainWorkspace-embedder',
+        },
     })
     return embedding
     },
@@ -354,20 +374,20 @@ export const mainWorkspace = new Workspace({
     //skillSource: new VersionedSkillSource(versionTree, blobStore, versionCreatedAt),
 })
 
-const handle = await mainSandbox.processes.spawn('typescript-language-server --stdio', {
-    cwd: '/',
-    env: {
-        ...process.env,
-        NODE_ENV: 'development',
-    },
-    timeout: 60_000,
-})
+//const handle = await mainSandbox.processes.spawn('typescript-language-server --stdio', {
+//    cwd: '/',
+//    env: {
+//        ...process.env,
+//        NODE_ENV: 'development',
+//    },
+//    timeout: 60_000,
+//})
 
-const connection = createMessageConnection(
-  new StreamMessageReader(handle.reader),
-  new StreamMessageWriter(handle.writer),
-)
-connection.listen()
+//const connection = createMessageConnection(
+//  new StreamMessageReader(handle.reader),
+//  new StreamMessageWriter(handle.writer),
+//)
+//connection.listen()
 
 export const agentFsWorkspace = new Workspace({
     id: 'agentfs-workspace',
@@ -393,8 +413,16 @@ export const agentFsWorkspace = new Workspace({
     vectorStore: libsqlvector,
     embedder: async (text: string) => {
     const { embedding } = await embed({
-      model: fastembed.base,
+      model: fastembed,
       value: text,
+      maxRetries: 3,
+      abortSignal: new AbortController().signal,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: true,
+        recordOutputs: true,
+        functionId: 'mainWorkspace-embedder',
+        },
     })
     return embedding
     },

@@ -543,7 +543,7 @@ content indexing, or semantic search capabilities.
         const chunkOverlap = inputData.chunkOverlap ?? 50
         const indexName = inputData.indexName ?? 'memory_messages_768'
         const embeddingModel =
-            inputData.embeddingModel ?? fastembed.base
+            inputData.embeddingModel ?? fastembed
         const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
         // Check if operation was already cancelled
@@ -564,7 +564,7 @@ content indexing, or semantic search capabilities.
         logToolExecution('mdocument:chunker', { input: inputData })
 
         const span = getOrCreateSpan({
-            type: SpanType.TOOL_CALL,
+            type: SpanType.MODEL_CHUNK,
             name: 'mdocument:chunker',
             input: {
                 documentLength: inputData.documentContent.length,
@@ -760,6 +760,12 @@ content indexing, or semantic search capabilities.
                             ),
                             maxRetries: 3,
                             abortSignal: new AbortController().signal,
+                            experimental_telemetry: {
+                                isEnabled: true,
+                                recordInputs: true,
+                                recordOutputs: true,
+                                functionId: 'document-chunking-tool-embedMany',
+                            },
                         })
                         allEmbeddings.push(...result.embeddings)
                     }
@@ -786,7 +792,7 @@ content indexing, or semantic search capabilities.
                 }
             }
 
-            // Store chunks in PgVector if embeddings were generated
+            // Store chunks in libsqlVector if embeddings were generated
             if (embeddingGenerated && embeddings.length > 0) {
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -801,7 +807,7 @@ content indexing, or semantic search capabilities.
 
                 // Ensure index exists with the same dimension as embeddings
                 try {
-                    await pgVector.createIndex({
+                    await libsqlvector.createIndex({
                         indexName,
                         dimension: embeddings[0].length,
                     })
@@ -845,7 +851,7 @@ content indexing, or semantic search capabilities.
 
                 // Store vectors with metadata
                 if (finalVectors.length > 0) {
-                    await pgVector.upsert({
+                    await libsqlvector.upsert({
                         indexName,
                         vectors: finalVectors,
                         metadata: finalMetadata,
@@ -1007,7 +1013,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
         const chunkOverlap = inputData.chunkOverlap ?? 50
         const indexName = inputData.indexName ?? 'memory_messages_768'
         const embeddingModel =
-            inputData.embeddingModel ?? fastembed.base
+            inputData.embeddingModel ?? fastembed
         const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
         // Check if operation was already cancelled
@@ -1028,7 +1034,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
         logToolExecution('libsql:chunker', { input: inputData })
 
         const span = getOrCreateSpan({
-            type: SpanType.TOOL_CALL,
+            type: SpanType.MODEL_CHUNK,
             name: 'libsql:chunker',
             input: {
                 documentLength: inputData.documentContent.length,
@@ -1218,9 +1224,15 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
                         )
                         const result = await embedMany({
                             values: batch,
-                            model: fastembed.base,
+                            model: fastembed,
                             maxRetries: 3,
                             abortSignal: new AbortController().signal,
+                            experimental_telemetry: {
+                                isEnabled: true,
+                                recordInputs: true,
+                                recordOutputs: true,
+                                functionId: 'libsql-embedder',
+                            },
                         })
                         allEmbeddings.push(...result.embeddings)
                     }
@@ -1342,7 +1354,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
                 processingTimeMs: totalProcessingTime,
             }
 
-            logStepEnd('libsql-chunker', output, totalProcessingTime)
+            logStepEnd('libsql:chunker', output, totalProcessingTime)
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -1464,16 +1476,6 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Document reranker completed', {
-            toolCallId,
-            toolName,
-            documentCount: output.rerankedDocuments.length,
-            processingTimeMs: output.processingTimeMs,
-            aborted: resolveAbortSignal(abortSignal).aborted,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const writer = context.writer
         const tracingContext = context.tracingContext
@@ -1502,7 +1504,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
         // Use the existing tracing context if available to create a child span.
         const span = tracingContext?.currentSpan?.createChildSpan({
-            type: SpanType.TOOL_CALL,
+            type: SpanType.MODEL_CHUNK,
             name: 'document:reranker',
             input: {
                 userQuery: inputData.userQuery,
@@ -1530,7 +1532,15 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             const embeddingStartTime = Date.now()
             const { embedding: queryEmbedding } = await embed({
                 value: inputData.userQuery,
-                model: fastembed.base,
+                model: fastembed,
+                maxRetries: 3,
+                abortSignal: new AbortController().signal,
+                experimental_telemetry: {
+                    isEnabled: true,
+                    recordInputs: true,
+                    recordOutputs: true,
+                    functionId: 'rerank-embedder',
+                },
             })
             const embeddingTime = Date.now() - embeddingStartTime
 
@@ -1567,7 +1577,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             })
             const searchStartTime = Date.now()
             // NOTE: PGVector query accepts Mongo/Sift-style filter at runtime
-            const initialResults = await pgVector.query({
+            const initialResults = await libsqlvector.query({
                 indexName,
                 queryVector: queryEmbedding,
                 topK: initialTopK,
