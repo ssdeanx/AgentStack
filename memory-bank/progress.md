@@ -1,3 +1,20 @@
+# Progress Update (2026-04-17 - weavingapi TBC-only cache and world latency)
+
+- Updated `src/mastra/public/workspace/weavingapi.md` to a TBC-only shaman weaving implementation with cached spell-rank resolution and world-latency-aware cast timing.
+- Preserved the explicit spell-ID table as the hot-path gate while keeping the Vanilla/TBC Lightning Bolt, Chain Lightning, Healing Wave, Lesser Healing Wave, and Chain Heal rank groups cached once.
+- Switched the main timing path to `GetTimePreciseSec()` when available, with `GetTime()` fallback, and made `GetNetStats()` refresh on every prediction pass instead of using a half-second cache window.
+- Kept world latency as the primary offset with home/realm latency as fallback, and refreshed spell haste automatically on each prediction pass so rating and aura changes stay in sync.
+- Tracked the active spell during casts so `UNIT_AURA` and other refresh events can re-predict the live cast immediately instead of waiting for the next cast event.
+- Kept `SWING_TIMER_WILL_CLIPPED` payload compatibility by continuing to emit cast duration rather than absolute timestamps.
+- Left `src/mastra/public/workspace/swingtimer.md` untouched.
+- Hardened the shared spellcast handler so stop/interrupt events clear stale casting state, and untracked cast starts now emit an explicit clear update instead of leaving the weaving HUD stuck on a previous cast.
+
+# Progress Update (2026-04-17 - swingtimer precise-clock and aura refresh)
+
+- Updated `src/mastra/public/workspace/swingtimer.md` to use `_G.GetTimePreciseSec` (with `GetTime` fallback) for precise melee swing timing while keeping latency frame-cached, and bumped the swingtimer version/changelog to reflect the final delta-correction and reset-safe behavior.
+- Seeded the latency cache on load, removed the duplicate shadowed latency helper path, and switched combat latency to prefer the world connection so swing timing tracks the combat channel first.
+- Changed `UNIT_AURA` to rescale swing speed immediately, added `PLAYER_TALENT_UPDATE` so melee speed also resyncs after talent swaps, wired the swing delta event into the actual swing reset/speed-change paths, made the main/off delta correction track observed swing error instead of staying at zero and zero itself during equipment resets, and added a real `ResetTimers()` implementation for equipment changes while leaving the parry branch untouched.
+
 # Progress Update (2026-04-16 - technical-analysis diagnostics fixed)
 
 - Resolved the final `get_errors` issues in `src/mastra/tools/technical-analysis.tool.ts` by correcting leaked return-type annotations, re-typing the MACD/ADX mappings, and restarting the VS Code TypeScript server.
@@ -569,6 +586,11 @@
 - Validated `app/chat/workspaces/page.tsx` and `app/chat/tools/page.tsx` with targeted ESLint; both are clean.
 
 # Progress
+
+## Completed
+- Reworked `src/mastra/public/workspace/weavingapi.md` to be nil-safe for missing spell ranks, using highest-valid-rank resolution per spell family instead of hardcoded WotLK-only lookups.
+- Updated weaving prediction to use live spell haste, melee haste, and latency-aware cast timing while leaving `src/mastra/public/workspace/swingtimer.md` unchanged.
+- Preserved the existing WeakAuras event names and swing-state handoff contract, with safer guards around `GetSpellInfo`, `UnitAttackSpeed`, and swing clip checks.
 
 ## Completed
 - Replaced the deprecated `FormEvent`-style submit typing in the auth screens with native submit-event typing.

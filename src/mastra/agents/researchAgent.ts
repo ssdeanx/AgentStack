@@ -391,8 +391,8 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
   },
   //voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
   defaultOptions: {
-        autoResumeSuspendedTools: true,
-        //includeRawChunks: true,
+        //autoResumeSuspendedTools: true,
+        includeRawChunks: true,
         modelSettings: {
             temperature: 0.2,
             //maxOutputTokens: 64000,
@@ -409,11 +409,11 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
             thinkingLevel: 'medium',
           },
           //cachedContent: "Use cached content when available to reduce latency and costs, but ensure freshness for time-sensitive queries. Prefer cached data for static information and use real-time fetches for news, trends, and financial data.",
-          //streamFunctionCallArguments: true,
+          streamFunctionCallArguments: true,
           mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
           threshold: 'OFF', // Set to 'OFF' to disable thresholding and allow all tool calls
           //labels: "research-agent",
-          //serviceTier: 'flex',
+          serviceTier: 'flex',
         } satisfies GoogleLanguageModelOptions,
     },
   },

@@ -22,7 +22,7 @@ const fileTransport: LoggerTransport = new FileTransport({
 // Logger intentionally contains no tracing logic. Observability exporters/bridges handle traces separately.
 export const log = new PinoLogger({
     name: 'MastraLogger',
-    level: 'info',
+    level: 'debug',
     prettyPrint: true, // Set to false in production to disable pretty printing and output raw JSON
     transports: {
         file: fileTransport,
