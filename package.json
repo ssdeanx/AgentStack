@@ -227,7 +227,6 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.5",
     "react-jsx-parser": "^2.4.1",
-    "react-mentions": "^4.4.10",
     "react-resizable-panels": "^4.10.0",
     "recharts": "^3.8.1",
     "rehype": "^13.0.2",
