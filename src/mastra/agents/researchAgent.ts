@@ -57,6 +57,7 @@ import { createDiscordAdapter } from '@chat-adapter/discord'
 import { google } from '../config/google'
 import {
   TokenLimiter,
+  TokenLimiterProcessor,
   ToolSearchProcessor,
   //TokenLimiter
 } from '@mastra/core/processors'
@@ -328,13 +329,13 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 - **GitHub channel delivery**: If the request arrives from a GitHub issue or PR comment thread, respond in concise GitHub-flavored Markdown with a direct answer, bullet findings, source links, and the clearest next action or blocker.
 `,
       providerOptions: {
-        google: {
-          responseModalities: ['TEXT'],
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingLevel: 'medium',
-          },
-        } satisfies GoogleLanguageModelOptions,
+     // google: {
+         //responseModalities: ['TEXT'],
+         // thinkingConfig: {
+         //    includeThoughts: true,
+         //    thinkingLevel: 'medium',
+         //  },
+       // satisfies GoogleLanguageModelOptions,
       },
     }
   },
@@ -358,7 +359,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
   maxRetries: 5,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.AGENT,
+      //internal: InternalSpans.MODEL,
     },
   },
   //voice: gvoice,
@@ -367,10 +368,10 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
       tools: researchAgentTools,
       search: { topK: 5 },
     }),
-    //new TokenLimiter(64000),
+    new TokenLimiter(12000),
   ],
   outputProcessors: [
-  //  new TokenLimiterProcessor(128000),
+    new TokenLimiterProcessor(200000),
     //     new BatchPartsProcessor({
     //         batchSize: 10,
     //        maxWaitTime: 75,
@@ -392,7 +393,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
   //voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
   defaultOptions: {
         //autoResumeSuspendedTools: true,
-        includeRawChunks: true,
+        //includeRawChunks: true,
         modelSettings: {
             temperature: 0.2,
             //maxOutputTokens: 64000,
@@ -402,19 +403,19 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
             maxRetries: 5,
         },
         providerOptions: {
-        google: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingLevel: 'medium',
-          },
+        //google: {
+         // responseModalities: ['TEXT', 'IMAGE'],
+         // thinkingConfig: {
+         //   includeThoughts: true,
+         //   thinkingLevel: 'medium',
+         // },
           //cachedContent: "Use cached content when available to reduce latency and costs, but ensure freshness for time-sensitive queries. Prefer cached data for static information and use real-time fetches for news, trends, and financial data.",
-          streamFunctionCallArguments: true,
-          mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
-          threshold: 'OFF', // Set to 'OFF' to disable thresholding and allow all tool calls
+          //streamFunctionCallArguments: true,
+          //mediaResolution: "MEDIA_RESOLUTION_MEDIUM",
+          //threshold: 'OFF', // Set to 'OFF' to disable thresholding and allow all tool calls
           //labels: "research-agent",
-          serviceTier: 'flex',
-        } satisfies GoogleLanguageModelOptions,
+          //serviceTier: 'standard',
+       // } satisfies GoogleLanguageModelOptions,
     },
   },
 })

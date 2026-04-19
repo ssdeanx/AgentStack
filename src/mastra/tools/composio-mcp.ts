@@ -21,9 +21,9 @@ const composioMcp = new MCPClient({
     composio: {
       url: new URL(`https://connect.composio.dev/mcp?apiKey=${composioKey}`),
     },
-    //googleSheets: {
-    //  url: new URL(`https://mcp.composio.dev/googlesheets/${composioKey}`),
-    //},
+    googleSheets: {
+      url: new URL(`https://backend.composio.dev/v3/mcp/bdb604fb-b165-47cb-bf90-cc45ba604c20/mcp?user_id=agentstack`),
+    },
     //gmail: {
     //  url: new URL(`https://mcp.composio.dev/gmail/${composioKey}`),
     //},
