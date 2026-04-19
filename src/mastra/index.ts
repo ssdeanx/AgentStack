@@ -1,3 +1,4 @@
+import { ObservabilityDuckDBConfig } from './../../node_modules/@mastra/duckdb/dist/storage/domains/observability/index.d';
 import { chatRoute, networkRoute, workflowRoute } from '@mastra/ai-sdk'
 import { Mastra } from '@mastra/core'
 import { getAuthenticatedUser } from '@mastra/server/auth'
@@ -190,8 +191,13 @@ import { MastraEditor } from '@mastra/editor'
 import { ArcadeToolProvider } from '@mastra/editor/arcade'
 import { ComposioToolProvider } from '@mastra/editor/composio'
 //import { GoogleVoice } from '@mastra/voice-google'
-//import { composioAgent } from './agents/compsio'
+import { composioAgent } from './agents/compsio'
+import { MastraCompositeStore, FilesystemStore } from '@mastra/core/storage'
 //import { PosthogExporter } from '@mastra/posthog'
+//import { DuckDBStore } from '@mastra/duckdb'
+import { duckStore } from './config/duckdb'
+
+
 
 export const mastra = new Mastra({
     workspace: agentFsWorkspace,
@@ -345,7 +351,7 @@ export const mastra = new Mastra({
                 }),
             },
             //sandboxes:{[daytonaSandbox.id]: daytonaSandbox},
-            //filesystems: { [s3FilesystemProvider.id]: s3FilesystemProvider },
+            //filesystems: new FilesystemStore({ dir: '.mastra-storage' }),
                 // Optional: configure storage limits, allowed file types, etc.
              // Optional: add a custom toolbar with specific tools or actions
         }
@@ -366,7 +372,16 @@ export const mastra = new Mastra({
        // google: new GoogleVoice(),
     },
     // Example of agent-specific configuration using instructions
-    storage: libsqlstorage,
+    storage: new MastraCompositeStore({
+    id: 'composite',
+    name: 'Composite Store',
+    default: libsqlstorage,
+    editor: new FilesystemStore({ dir: '.mastra-storage' }),
+    domains: {
+      //memory: new MemoryLibSQL({ url: 'file:./local.db' }),
+      observability: duckStore.observability,
+        }
+    }),
     vectors: { libsqlvector },
     logger: log,
     observability: new Observability({

@@ -235,3 +235,6 @@ src/mastra/public/workspace/tbc-shaman.md
 *storybook.log
 storybook-static
 
+src/mastra/public/store.duckdb
+src/mastra/public/store.duckdb.wal
+blender.md
