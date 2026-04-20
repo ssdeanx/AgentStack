@@ -13,6 +13,40 @@ import { SpanType } from '@mastra/core/observability'
 import { httpFetch } from '../lib/http-client'
 const fetch = httpFetch
 
+type PolygonJsonPrimitive = string | number | boolean | null
+type PolygonJsonValue = PolygonJsonPrimitive | PolygonJsonObject | PolygonJsonValue[]
+
+interface PolygonJsonObject {
+    [key: string]: PolygonJsonValue
+}
+
+const polygonJsonValueSchema: z.ZodType<PolygonJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(polygonJsonValueSchema),
+        z.record(z.string(), polygonJsonValueSchema),
+    ])
+)
+
+const polygonStockQuotesOutputSchema = z.object({
+    data: polygonJsonValueSchema.describe(
+        'The stock quotes data returned from Polygon.io API'
+    ),
+    metadata: z
+        .object({
+            function: z.string(),
+            symbol: z.string().optional(),
+            status: z.string().optional(),
+            request_id: z.string().optional(),
+            count: z.number().optional(),
+        })
+        .optional(),
+    error: z.string().optional(),
+})
+
 /**
  * Governance-aware Runtime Context for Polygon.io tools
  * Includes security, tenant, and access control information
@@ -44,11 +78,12 @@ interface PolygonRuntimeContext extends RequestContext {
 }
 
 interface PolygonApiResponse {
-    [key: string]: unknown
+    [key: string]: PolygonJsonValue
     status?: string
     request_id?: string
     count?: number
     error?: string
+    data?: PolygonJsonValue
 }
 
 /**
@@ -82,22 +117,8 @@ export const polygonStockQuotesTool = createTool({
             .optional()
             .describe('Sort order for results'),
     }),
-    outputSchema: z.object({
-        data: z
-            .any()
-            .describe('The stock quotes data returned from Polygon.io API'),
-        metadata: z
-            .object({
-                function: z.string(),
-                symbol: z.string().optional(),
-                status: z.string().optional(),
-                request_id: z.string().optional(),
-                count: z.number().optional(),
-            })
-            .optional(),
-        error: z.string().optional(),
-    }),
-
+    outputSchema: polygonStockQuotesOutputSchema,
+    strict: true,
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -370,7 +391,7 @@ export const polygonStockQuotesTool = createTool({
         log.info('Polygon stock quotes tool input streaming started', {
             toolCallId,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputStart',
         })
     },
@@ -379,7 +400,7 @@ export const polygonStockQuotesTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
@@ -387,7 +408,7 @@ export const polygonStockQuotesTool = createTool({
         log.info('Polygon stock quotes received input', {
             toolCallId,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 symbol: input.symbol,
                 function: input.function,
@@ -397,8 +418,27 @@ export const polygonStockQuotesTool = createTool({
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Polygon ${output.metadata?.function ?? 'quotes'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.error !== undefined && output.error !== ''
+                ? {
+                      type: 'text' as const,
+                      text: `Failed: ${output.error}`,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${String(output.metadata?.count ?? 0)} result(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const hasError = output.error !== undefined && output.error !== null && output.error.length > 0
+        const hasError =
+            typeof output.error === 'string' && output.error.length > 0
         const dataPoints = output.metadata?.count ?? 0
         log[hasError ? 'warn' : 'info']('Polygon stock quotes completed', {
             toolCallId,
@@ -478,6 +518,7 @@ export const polygonStockAggregatesTool = createTool({
             .optional(),
         error: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -792,6 +833,7 @@ export const polygonStockFundamentalsTool = createTool({
             })
             .optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -1152,6 +1194,7 @@ export const polygonCryptoQuotesTool = createTool({
             .optional(),
         error: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -1474,6 +1517,7 @@ export const polygonCryptoAggregatesTool = createTool({
             .optional(),
         error: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -1772,6 +1816,7 @@ export const polygonCryptoSnapshotsTool = createTool({
             .optional(),
         error: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer

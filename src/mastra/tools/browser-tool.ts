@@ -170,10 +170,11 @@ export const browserTool = createTool({
         ...browserPageOptionsSchema.shape,
     }),
     outputSchema: browserToolOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Browser tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             experimental_context,
             hook: 'onInputStart',
@@ -184,7 +185,7 @@ export const browserTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             experimental_context,
             hook: 'onInputDelta',
         })
@@ -192,7 +193,7 @@ export const browserTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Browser tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             url: input.url,
             abortSignal: abortSignal?.aborted,
             experimental_context,
@@ -491,7 +492,7 @@ export const screenshotTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Screenshot tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -501,24 +502,24 @@ export const screenshotTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Screenshot tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             url: input.url,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log[output.success ? 'info' : 'warn']('Screenshot tool completed', {
+        log[output?.success ?? false ? 'info' : 'warn']('Screenshot tool completed', {
             toolCallId,
             toolName,
-            success: output.success,
+            success: output?.success ?? false,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -537,6 +538,32 @@ export const pdfGeneratorTool = createTool({
         timeout: z.number().int().nonnegative().optional().default(30000),
     }),
     outputSchema: pdfToolOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('PDF generator tool input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('PDF generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('PDF generator tool received input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -627,37 +654,12 @@ export const pdfGeneratorTool = createTool({
             return { success: false, url: inputData.url, message: errorMsg }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('PDF generator tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('PDF generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('PDF generator tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log[output.success ? 'info' : 'warn']('PDF generator tool completed', {
+        log[output?.success ?? false ? 'info' : 'warn']('PDF generator tool completed', {
             toolCallId,
             toolName,
-            success: output.success,
+            success: output?.success ?? false,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -817,7 +819,7 @@ export const clickAndExtractTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Click and extract tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -827,26 +829,26 @@ export const clickAndExtractTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Click and extract tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             url: input.url,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log[output.success ? 'info' : 'warn'](
+        log[output?.success ?? false ? 'info' : 'warn'](
             'Click and extract tool completed',
             {
                 toolCallId,
                 toolName,
-                success: output.success,
+                success: output?.success ?? false,
                 abortSignal: abortSignal?.aborted,
                 hook: 'onOutput',
             }
@@ -983,7 +985,7 @@ export const fillFormTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Fill form tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -993,14 +995,14 @@ export const fillFormTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Fill form tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             url: input.url,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -1158,7 +1160,7 @@ export const googleSearch = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google search tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -1168,14 +1170,14 @@ export const googleSearch = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google search tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             query: input.query,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -1321,7 +1323,7 @@ export const extractTablesTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Extract tables tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -1331,14 +1333,14 @@ export const extractTablesTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Extract tables tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             url: input.url,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -1488,7 +1490,7 @@ export const monitorPageTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Monitor page tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -1498,14 +1500,14 @@ export const monitorPageTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Monitor page tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             url: input.url,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',

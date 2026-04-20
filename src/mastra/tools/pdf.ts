@@ -21,6 +21,7 @@ export const readPDF = createTool({
     outputSchema: z.object({
         content: z.string(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId }) => {
         log.info('readPDF tool input streaming started', {
             toolCallId,
@@ -41,16 +42,6 @@ export const readPDF = createTool({
                 pdfPath: input.pdfPath,
             },
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName }) => {
-        log.info('readPDF completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                content: output.content,
-            },
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
@@ -111,5 +102,19 @@ export const readPDF = createTool({
                 content: `Error scanning PDF: ${errorMsg}`,
             }
         }
+    },
+    toModelOutput: (output: { content: string }) => ({
+        type: 'text',
+        value: output.content,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log.info('readPDF completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                contentLength: output.content.length,
+            },
+            hook: 'onOutput',
+        })
     },
 })

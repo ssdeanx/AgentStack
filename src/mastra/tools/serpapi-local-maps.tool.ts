@@ -425,6 +425,7 @@ export const googleLocalTool = createTool({
         'Search Google Local for nearby businesses and locations. Returns normalized business details including ratings, review counts, map IDs, contact data, hours, and navigation links. Best for location discovery and place research.',
     inputSchema: googleLocalInputSchema,
     outputSchema: googleLocalOutputSchema,
+    strict: true,
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Local received input', {
             toolCallId,
@@ -598,7 +599,7 @@ export const googleLocalTool = createTool({
         log.info('Google Local completed', {
             toolCallId,
             toolName,
-            placeCount: output.localResults.length,
+            placeCount: output?.localResults?.length ?? 0,
             aborted: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -614,6 +615,7 @@ export const googleMapsReviewsTool = createTool({
         'Fetch Google Maps reviews for a business or place using either the Maps data ID or place ID. Returns structured place details, review topics, and normalized review entries for downstream analysis.',
     inputSchema: googleMapsReviewsInputSchema,
     outputSchema: googleMapsReviewsOutputSchema,
+    strict: true,
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Maps Reviews received input', {
             toolCallId,
@@ -849,7 +851,7 @@ export const googleMapsReviewsTool = createTool({
         log.info('Google Maps Reviews completed', {
             toolCallId,
             toolName,
-            reviewCount: output.reviews.length,
+            reviewCount: output?.reviews?.length ?? 0,
             topicCount: output.topics?.length ?? 0,
             aborted: abortSignal?.aborted,
             hook: 'onOutput',

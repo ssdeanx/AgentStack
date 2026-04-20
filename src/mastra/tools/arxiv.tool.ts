@@ -249,10 +249,11 @@ export const arxivTool = createTool({
         start_index: z.number(),
         max_results: z.number(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ArXiv tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -262,14 +263,14 @@ export const arxivTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ArXiv tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             query: input.query,
             maxResults: input.max_results,
             abortSignal: abortSignal?.aborted,
@@ -512,7 +513,7 @@ export const arxivTool = createTool({
         log.info('ArXiv search completed', {
             toolCallId,
             toolName,
-            entryCount: output.papers.length,
+            entryCount: output?.papers?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -575,7 +576,7 @@ export const arxivPdfParserTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ArXiv PDF parser input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -585,14 +586,14 @@ export const arxivPdfParserTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ArXiv PDF parser received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             arxivId: input.arxivId,
             maxPages: input.maxPages,
             abortSignal: abortSignal?.aborted,
@@ -1010,7 +1011,7 @@ export const arxivPaperDownloaderTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ArXiv paper downloader input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -1020,14 +1021,14 @@ export const arxivPaperDownloaderTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ArXiv paper downloader received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             arxivId: input.arxivId,
             includePdf: input.includePdfContent,
             format: input.format,

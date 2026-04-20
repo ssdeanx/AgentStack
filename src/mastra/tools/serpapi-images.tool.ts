@@ -158,6 +158,24 @@ export const googleImagesTool = createTool({
         'Search Google Images and return structured image results, inline images, suggested searches, and a compact knowledge-graph summary. Useful for visual research, inspiration, and image source discovery.',
     inputSchema: googleImagesInputSchema,
     outputSchema: googleImagesOutputSchema,
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google Images input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Images received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Images received input', {
             toolCallId,
@@ -314,11 +332,60 @@ export const googleImagesTool = createTool({
             })
         }
     },
+    toModelOutput: (output: z.infer<typeof googleImagesOutputSchema>) => {
+        const featuredThumbnails =
+            output.inlineImages?.length && output.inlineImages.length > 0
+                ? output.inlineImages.slice(0, 3).map((image) => image.thumbnail)
+                : output.imagesResults.slice(0, 3).map((image) => image.thumbnail)
+
+        const textParts = [
+            {
+                type: 'text' as const,
+                text: `Google Images returned ${output.imagesResults.length} image result(s).`,
+            },
+            output.knowledgeGraph?.title
+                ? {
+                      type: 'text' as const,
+                      text: [
+                          `Knowledge graph: ${output.knowledgeGraph.title}`,
+                          output.knowledgeGraph.type
+                              ? `Type: ${output.knowledgeGraph.type}`
+                              : undefined,
+                          output.knowledgeGraph.description,
+                          output.knowledgeGraph.merchantDescription,
+                      ]
+                          .filter((part): part is string => Boolean(part))
+                          .join(' — '),
+                  }
+                : undefined,
+            output.inlineImageSuggestedSearches?.length
+                ? {
+                      type: 'text' as const,
+                      text: `Suggested searches: ${output.inlineImageSuggestedSearches
+                          .slice(0, 5)
+                          .map((search) => search.name)
+                          .join(', ')}`,
+                  }
+                : undefined,
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        )
+
+        const imageParts = featuredThumbnails.map((url) => ({
+            type: 'image-url' as const,
+            url,
+        }))
+
+        return {
+            type: 'content',
+            value: [...textParts, ...imageParts],
+        }
+    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Google Images completed', {
             toolCallId,
             toolName,
-            imageCount: output.imagesResults.length,
+            imageCount: output?.imagesResults?.length ?? 0,
             aborted: abortSignal?.aborted,
             hook: 'onOutput',
         })

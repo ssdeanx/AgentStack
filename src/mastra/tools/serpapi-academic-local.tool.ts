@@ -173,6 +173,7 @@ export const googleScholarTool = createTool({
         'Search Google Scholar for academic papers and citations. Filter by year range, include/exclude patents, and sort by relevance or date. Returns paper title, authors, publication, year, citation count, and PDF links when available. Useful for research and finding academic sources.',
     inputSchema: googleScholarInputSchema,
     outputSchema: googleScholarOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google Scholar tool input streaming started', {
             toolCallId,
@@ -401,10 +402,11 @@ export const googleFinanceTool = createTool({
         'Get stock quotes and financial data from Google Finance. Returns current price, change, market cap, volume, high/low, and recent financial news. Use for real-time stock information and market data.',
     inputSchema: googleFinanceInputSchema,
     outputSchema: googleFinanceOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google Finance tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -413,7 +415,7 @@ export const googleFinanceTool = createTool({
         log.info('Google Finance tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -421,7 +423,7 @@ export const googleFinanceTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Finance received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 query: input.query,
                 exchange: input.exchange,
@@ -595,10 +597,11 @@ export const yelpSearchTool = createTool({
         'Search Yelp for local businesses and reviews. Requires location parameter. Filter by price range, open now status, and sort by recommended, rating, or review count. Returns business name, rating, reviews, address, phone, hours, and photos. Best for finding local services and restaurants.',
     inputSchema: yelpSearchInputSchema,
     outputSchema: yelpSearchOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Yelp Search tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -607,7 +610,7 @@ export const yelpSearchTool = createTool({
         log.info('Yelp Search tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -615,7 +618,7 @@ export const yelpSearchTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Yelp Search received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 query: input.query,
                 location: input.location,
@@ -741,7 +744,7 @@ export const yelpSearchTool = createTool({
         log.info('Yelp Search completed', {
             toolCallId,
             toolName,
-            outputData: { businessCount: output.businesses.length },
+            outputData: { businessCount: output?.businesses?.length ?? 0 },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

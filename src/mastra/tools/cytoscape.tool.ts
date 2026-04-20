@@ -11,6 +11,28 @@ export interface CytoscapeContext extends RequestContext {
     workspaceId?: string
 }
 
+type CytoscapeJsonPrimitive = string | number | boolean | null
+type CytoscapeJsonValue =
+    | CytoscapeJsonPrimitive
+    | CytoscapeJsonObject
+    | CytoscapeJsonValue[]
+
+interface CytoscapeJsonObject {
+    [key: string]: CytoscapeJsonValue
+}
+
+let cytoscapeJsonValueSchema: z.ZodType<CytoscapeJsonValue>
+cytoscapeJsonValueSchema = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(cytoscapeJsonValueSchema),
+        z.record(z.string(), cytoscapeJsonValueSchema),
+    ])
+)
+
 export const cytoscapeTool = createTool({
     id: 'cytoscape-generator',
     description: 'Generates Cytoscape.js compatible graph data structures',
@@ -21,7 +43,7 @@ export const cytoscapeTool = createTool({
                     id: z.string(),
                     label: z.string().optional(),
                     type: z.string().optional(),
-                    data: z.record(z.string(), z.unknown()).optional(),
+                    data: z.record(z.string(), cytoscapeJsonValueSchema).optional(),
                     position: z
                         .object({ x: z.number(), y: z.number() })
                         .optional(),
@@ -36,7 +58,7 @@ export const cytoscapeTool = createTool({
                     target: z.string(),
                     label: z.string().optional(),
                     type: z.string().optional(),
-                    data: z.record(z.string(), z.unknown()).optional(),
+                    data: z.record(z.string(), cytoscapeJsonValueSchema).optional(),
                 })
             )
             .describe('Graph edges'),
@@ -49,7 +71,7 @@ export const cytoscapeTool = createTool({
         elements: z.array(
             z.object({
                 group: z.enum(['nodes', 'edges']),
-                data: z.record(z.string(), z.unknown()),
+                data: z.record(z.string(), cytoscapeJsonValueSchema),
                 position: z.object({ x: z.number(), y: z.number() }).optional(),
                 classes: z.array(z.string()).optional(),
             })
@@ -59,6 +81,7 @@ export const cytoscapeTool = createTool({
             animate: z.boolean().optional(),
         }),
     }),
+    strict: true,
     execute: async (input, context) => {
         const { nodes, edges, layout } = input
         const writer = context?.writer
@@ -248,6 +271,10 @@ export const cytoscapeTool = createTool({
             },
         }
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onInputStart: ({ toolCallId }) => {
         log.info('Cytoscape generator tool input streaming started', {
             toolCallId,
@@ -268,10 +295,11 @@ export const cytoscapeTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ toolCallId, toolName }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Cytoscape generator tool completed', {
             toolCallId,
             toolName,
+            elementCount: output?.elements?.length ?? 0,
             hook: 'onOutput',
         })
     },

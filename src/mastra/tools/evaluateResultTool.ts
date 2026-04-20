@@ -13,6 +13,10 @@ const evaluateResultOutputSchema = z.object({
 })
 
 type EvaluateResultOutput = z.infer<typeof evaluateResultOutputSchema>
+const evaluateResultFallbackOutput: EvaluateResultOutput = {
+    isRelevant: false,
+    reason: '',
+}
 
 export const evaluateResultTool = createTool({
     id: 'evaluate-result',
@@ -33,6 +37,7 @@ export const evaluateResultTool = createTool({
             .optional(),
     }),
     outputSchema: evaluateResultOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId }) => {
         log.info('Evaluate result tool input streaming started', {
             toolCallId,
@@ -55,10 +60,6 @@ export const evaluateResultTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    toModelOutput: (output: EvaluateResultOutput) => ({
-        type: 'text',
-        value: `${output.isRelevant ? 'Relevant' : 'Not relevant'}: ${output.reason}`,
-    }),
     execute: async (inputData, context) => {
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -305,10 +306,18 @@ export const evaluateResultTool = createTool({
             }
         }
     },
-    onOutput: ({ toolCallId, toolName }) => {
+    toModelOutput: (output: EvaluateResultOutput) => ({
+        type: 'text',
+        value: `${output.isRelevant ? 'Relevant' : 'Not relevant'}: ${output.reason}`,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Evaluate result completed', {
             toolCallId,
             toolName,
+            outputData: {
+                isRelevant: output.isRelevant,
+                reason: output.reason,
+            },
             hook: 'onOutput',
         })
     },

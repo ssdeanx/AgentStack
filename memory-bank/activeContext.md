@@ -1,3 +1,30 @@
+# Active Context Update (2026-04-20 - calendar tool cross-platform refactor)
+
+- Refactored `src/mastra/tools/calendar-tool.ts` from a macOS-only AppleScript reader into a platform-aware calendar source selector.
+- Auto-selection now supports `macos-calendar`, `windows-outlook`, and `ics-file` sources via `process.platform` and the `CALENDAR_SOURCE` / `CALENDAR_ICS_PATH` env vars.
+- Added a Linux-compatible ICS fallback reader plus a Windows Outlook PowerShell reader, while preserving the existing macOS Calendar path.
+- Added `src/mastra/tools/tests/calendar-tool.test.ts` covering source selection and ICS parsing; the targeted vitest run passed.
+
+# Active Context Update (2026-04-20 - tools folder crash scan)
+
+- Scanned `src/mastra/tools` for the same unsafe direct `.length` pattern that caused the earlier runtime crash.
+- Hardened additional tool hooks and model-output helpers in `arxiv.tool.ts`, `calendar-tool.ts`, `downsample.tool.ts`, `editor-agent-tool.ts`, `extractLearningsTool.ts`, `git-local.tool.ts`, `github.ts`, `image-tool.ts`, `polygon-tools.ts`, `serpapi-academic-local.tool.ts`, `serpapi-images.tool.ts`, `serpapi-local-maps.tool.ts`, `serpapi-news-trends.tool.ts`, and `url-tool.ts`.
+- The remaining direct `.length` scans in the folder are mostly `messages.length` reads, which are a broader follow-up pass rather than the same output-null crash class.
+
+# Active Context Update (2026-04-20 - weather temperature-unit narrowed)
+
+- Removed the global `temperature-unit` injection from `src/mastra/index.ts` so the shared agent request context no longer carries a celsius/fahrenheit default for every agent.
+- `weatherTool` still defaults to `celsius` locally when the weather request context does not provide a temperature unit, so weather lookups continue to work without exposing the unit globally.
+- `weatherAgent` remains the only agent wired to `weatherTool` in the current codebase.
+- Hardened the weather tool lifecycle hooks so missing `messages` or `output` values cannot crash the callback path.
+
+# Active Context Update (2026-04-20 - SerpAPI googleSearchTool crash fix)
+
+- The repeated Mastra runtime crash was traced to `src/mastra/tools/serpapi-search.tool.ts`, specifically `googleSearchTool.onOutput` dereferencing nested output fields without guards.
+- `googleSearchTool` now accepts SerpAPI's numeric `searchInfo.totalResults` response shape and uses optional chaining for all `onOutput` nested reads.
+- `googleAiOverviewTool.onOutput` was hardened at the same time so a missing output payload cannot trip the same `length` error again.
+- The failing stack traces were coming from generated `.mastra/output/tools/*.mjs` files, but the source fix is in the checked-in SerpAPI tool module.
+
 # Active Context Update (2026-04-18 - Blender MCP / FPV research)
 
 - Blender 5.1 is compatible with the official Blender MCP server page, which requires Blender 5.1 or newer and warns that LLM-generated code executes in Blender without guards.

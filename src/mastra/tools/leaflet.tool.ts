@@ -10,6 +10,45 @@ export interface LeafletToolContext extends RequestContext {
     workspaceId?: string
 }
 
+type LeafletJsonPrimitive = string | number | boolean | null
+type LeafletJsonValue =
+    | LeafletJsonPrimitive
+    | LeafletJsonObject
+    | LeafletJsonValue[]
+
+interface LeafletJsonObject {
+    [key: string]: LeafletJsonValue
+}
+
+const leafletJsonValueSchema: z.ZodType<LeafletJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(leafletJsonValueSchema),
+        z.record(z.string(), leafletJsonValueSchema),
+    ])
+)
+
+const leafletToolOutputSchema = z.object({
+    geoJSON: leafletJsonValueSchema,
+    center: z.object({
+        lat: z.number(),
+        lng: z.number(),
+    }),
+    zoom: z.number(),
+    markers: z.array(
+        z.object({
+            position: z.array(z.number()),
+            popup: z.string().optional(),
+            category: z.string().optional(),
+        })
+    ),
+})
+
+type LeafletToolOutput = z.infer<typeof leafletToolOutputSchema>
+
 export const leafletTool = createTool({
     id: 'leaflet-generator',
     description: 'Generates Leaflet/GeoJSON compatible map data structures',
@@ -22,7 +61,7 @@ export const leafletTool = createTool({
                     title: z.string().optional(),
                     description: z.string().optional(),
                     category: z.string().optional(),
-                    properties: z.record(z.string(), z.unknown()).optional(),
+                    properties: z.record(z.string(), leafletJsonValueSchema).optional(),
                 })
             )
             .describe('Map points/markers'),
@@ -43,21 +82,8 @@ export const leafletTool = createTool({
             .describe('Map center point (auto-calculated if omitted)'),
         zoom: z.number().optional().default(13),
     }),
-    outputSchema: z.object({
-        geoJSON: z.unknown(),
-        center: z.object({
-            lat: z.number(),
-            lng: z.number(),
-        }),
-        zoom: z.number(),
-        markers: z.array(
-            z.object({
-                position: z.array(z.number()),
-                popup: z.string().optional(),
-                category: z.string().optional(),
-            })
-        ),
-    }),
+    outputSchema: leafletToolOutputSchema,
+    strict: true,
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -273,6 +299,19 @@ export const leafletTool = createTool({
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output: LeafletToolOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Generated Leaflet map with ${output.markers.length} marker(s)`,
+            },
+            {
+                type: 'text' as const,
+                text: `Center: ${output.center.lat}, ${output.center.lng} | Zoom: ${String(output.zoom)}`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Leaflet generator tool completed', {
             toolCallId,

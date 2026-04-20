@@ -12,6 +12,20 @@ export interface DateTimeToolContext extends RequestContext {
     allowFutureDates?: boolean
 }
 
+type DateTimeOperationResult =
+    | string
+    | number
+    | boolean
+    | {
+          years?: number
+          months?: number
+          days?: number
+          hours?: number
+          minutes?: number
+          seconds?: number
+      }
+    | null
+
 export const dateTimeTool = createTool({
     id: 'datetime',
     description: 'Parse, format, and manipulate dates and times',
@@ -87,10 +101,11 @@ export const dateTimeTool = createTool({
         input: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('DateTime tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -99,7 +114,7 @@ export const dateTimeTool = createTool({
         log.info('DateTime tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -107,7 +122,7 @@ export const dateTimeTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('DateTime tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: { operation: input.operation },
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -140,7 +155,6 @@ export const dateTimeTool = createTool({
                 'tool.input.input': inputData.input,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         // Create child span for operation
@@ -165,7 +179,7 @@ export const dateTimeTool = createTool({
         })
 
         try {
-            let result: any
+            let result: DateTimeOperationResult
 
             switch (inputData.operation) {
                 case 'now': {
@@ -173,7 +187,6 @@ export const dateTimeTool = createTool({
                     result = now.toISOString()
                     break
                 }
-
                 case 'parse': {
                     if (!inputData.input) {
                         throw new Error(
@@ -409,10 +422,11 @@ export const timeZoneTool = createTool({
         operation: z.string(),
         message: z.string().optional(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Timezone tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -421,7 +435,7 @@ export const timeZoneTool = createTool({
         log.info('Timezone tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -429,7 +443,7 @@ export const timeZoneTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Timezone tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: { operation: input.operation, timezone: input.timezone },
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',

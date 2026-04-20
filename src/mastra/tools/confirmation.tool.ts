@@ -23,10 +23,11 @@ const confirmationTool = createTool({
     resumeSchema: z.object({
         confirmed: z.boolean(),
     }),
-        onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Confirmation tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -35,7 +36,7 @@ const confirmationTool = createTool({
         log.info('Confirmation tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -43,7 +44,7 @@ const confirmationTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Confirmation tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: { action: input.action },
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',

@@ -1,13 +1,13 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
-import { execSync } from 'child_process'
 import { z } from 'zod'
+
 import { log } from '../config/logger'
+import { BaseToolRequestContext } from './request-context.utils'
+import { RequestContext } from '@mastra/core/request-context'
 
-import type { RequestContext } from '@mastra/core/request-context'
-import type { BaseToolRequestContext } from './request-context.utils'
 
-interface CalendarEvent {
+export interface CalendarEvent {
     title: string
     startDate: Date
     endDate: Date
@@ -15,160 +15,371 @@ interface CalendarEvent {
     description?: string
 }
 
-class LocalCalendarReader {
-    getEvents(): CalendarEvent[] {
-        const script = `
-          tell application "Calendar"
-            set eventList to {}
-            set startDate to (current date) - 7 * days
-            set endDate to (current date) + 365 * days
+type CalendarDataFormat = 'auto' | 'json' | 'ics'
 
-            repeat with calendarAccount in calendars
-              set eventList to eventList & (every event of calendarAccount whose start date is greater than or equal to startDate and start date is less than or equal to endDate)
-            end repeat
+const calendarAnnotations = {
+    title: 'Calendar Data Lookup',
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+} as const
 
-            set output to ""
-            repeat with anEvent in eventList
-              set theTitle to summary of anEvent
-              set theStart to start date of anEvent as string
-              set theEnd to end date of anEvent as string
-              set theLoc to location of anEvent
-              set theDesc to description of anEvent
+const calendarEventOutputSchema = z.object({
+    title: z.string(),
+    startDate: z.iso.datetime({ offset: true }),
+    endDate: z.iso.datetime({ offset: true }),
+    location: z.string().optional(),
+    description: z.string().optional(),
+})
 
-              if theLoc is missing value then
-                set theLoc to ""
-              end if
-              if theDesc is missing value then
-                set theDesc to ""
-              end if
+const calendarDataItemSchema = z.object({
+    title: z.string(),
+    startDate: z.string(),
+    endDate: z.string().optional(),
+    location: z.string().optional(),
+    description: z.string().optional(),
+})
 
-              set output to output & theTitle & "|" & theStart & "|" & theEnd & "|" & theLoc & "|" & theDesc & "
-    "
-            end repeat
+const calendarDataInputSchema = z.object({
+    calendarData: z.string().optional(),
+    calendarFormat: z.enum(['auto', 'json', 'ics']).optional().default('auto'),
+})
 
-            return output
-          end tell
-        `
+const calendarDateInputSchema = z.union([
+    z.iso.datetime({ offset: true }),
+    z.iso.date(),
+])
 
-        try {
-            const result = execSync(`osascript -e '${script}'`).toString()
-            return this.parseAppleScriptOutput(result)
-        } catch (error) {
-            if (error instanceof Error) {
-                log.info(`Raw AppleScript error: ${error.message}`)
-                throw new Error(`Failed to read Mac calendar: ${error.message}`, {
-                    cause: error,
-                })
-            } else {
-                log.info('An unknown error occurred')
-                throw new Error('Failed to read Mac calendar', {
-                    cause: error,
-                })
-            }
-        }
+const listEventsOutputSchema = z.object({
+    content: z.string(),
+    events: z.array(calendarEventOutputSchema).optional(),
+    count: z.number().int().nonnegative().optional(),
+})
+
+const calendarEventListSchema = z.object({
+    events: z.array(calendarEventOutputSchema),
+    count: z.number().int().nonnegative(),
+})
+
+const freeSlotSchema = z.object({
+    start: z.iso.datetime({ offset: true }),
+    end: z.iso.datetime({ offset: true }),
+    durationMinutes: z.number().int().positive(),
+})
+
+const busyPeriodSchema = z.object({
+    title: z.string(),
+    start: z.iso.datetime({ offset: true }),
+    end: z.iso.datetime({ offset: true }),
+})
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+}
+
+function parseCalendarDate(value: string): Date {
+    const trimmed = value.trim()
+    if (!trimmed) {
+        return new Date('')
     }
 
-    private parseAppleScriptOutput(output: string): CalendarEvent[] {
-        const events: CalendarEvent[] = []
+    const dateOnly = trimmed.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/)
+    if (dateOnly) {
+        const [, year, month, day] = dateOnly
+        return new Date(Number(year), Number(month) - 1, Number(day))
+    }
 
-        const lines = output.split('\n').filter((line) => line.trim())
+    const compactDateOnly = trimmed.match(/^([0-9]{4})([0-9]{2})([0-9]{2})$/)
+    if (compactDateOnly) {
+        const [, year, month, day] = compactDateOnly
+        return new Date(Number(year), Number(month) - 1, Number(day))
+    }
 
-        for (const line of lines) {
-            try {
-                const [title, startDateStr, endDateStr, location, description] =
-                    line.split('|')
+    return new Date(trimmed)
+}
 
-                const startStandardized = startDateStr
-                    .split(',')[1] // Remove day name
-                    .replace(' at ', ' ') // Remove 'at'
-                    .trim() // 'January 3, 2025 9:00:00 AM'
+function normalizeCalendarEvent(candidate: unknown): CalendarEvent | null {
+    const parsed = calendarDataItemSchema.safeParse(candidate)
+    if (!parsed.success) {
+        return null
+    }
 
-                const startDate = new Date(startStandardized || '')
+    const title = parsed.data.title.trim()
+    const startDate = parseCalendarDate(parsed.data.startDate)
+    const endDate = parseCalendarDate(parsed.data.endDate ?? parsed.data.startDate)
 
-                const endStandardized = endDateStr
-                    .split(',')[1] // Remove day name
-                    .replace(' at ', ' ') // Remove 'at'
-                    .trim() // 'January 3, 2025 9:00:00 AM'
-                const endDate = new Date(endStandardized || '')
+    if (
+        !title ||
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(endDate.getTime())
+    ) {
+        return null
+    }
 
-                const event: CalendarEvent = {
-                    title: title.trim(),
-                    startDate,
-                    endDate,
-                    location: location.trim() || '',
-                    description: description.trim() || '',
-                }
-
-                events.push(event)
-            } catch (error) {
-                log.error('Failed to parse event line', {
-                    line,
-                    message: (error as Error).message,
-                })
-            }
-        }
-
-        return events.sort(
-            (a, b) => a.startDate.getTime() - b.startDate.getTime()
-        )
+    return {
+        title,
+        startDate,
+        endDate,
+        location: parsed.data.location?.trim() || undefined,
+        description: parsed.data.description?.trim() || undefined,
     }
 }
 
-const reader = new LocalCalendarReader()
+function sortCalendarEvents(events: Array<CalendarEvent>): CalendarEvent[] {
+    return [...events].sort(
+        (left, right) => left.startDate.getTime() - right.startDate.getTime()
+    )
+}
+
+function parseCalendarJsonEvents(jsonContent: string): CalendarEvent[] {
+    const trimmed = jsonContent.trim()
+    if (!trimmed) {
+        return []
+    }
+
+    let parsed: unknown
+    try {
+        parsed = JSON.parse(trimmed) as unknown
+    } catch (error) {
+        log.warn('Failed to parse calendar JSON data', {
+            error: error instanceof Error ? error.message : String(error),
+        })
+        return []
+    }
+
+    const candidates = Array.isArray(parsed)
+        ? parsed
+        : isRecord(parsed) && Array.isArray(parsed.events)
+          ? parsed.events
+          : parsed && typeof parsed === 'object'
+            ? [parsed]
+            : []
+
+    return sortCalendarEvents(
+        candidates.flatMap((candidate) => {
+            const event = normalizeCalendarEvent(candidate)
+            return event ? [event] : []
+        })
+    )
+}
+
+function parseIcsDate(rawValue: string): Date {
+    const value = rawValue.trim()
+    if (!value) {
+        return new Date('')
+    }
+
+    const isUtc = value.endsWith('Z')
+    const normalizedValue = isUtc ? value.slice(0, -1) : value
+
+    const dateOnly = normalizedValue.match(/^([0-9]{4})([0-9]{2})([0-9]{2})$/)
+    if (dateOnly) {
+        const [, year, month, day] = dateOnly
+        return new Date(Number(year), Number(month) - 1, Number(day))
+    }
+
+    const dateTime = normalizedValue.match(
+        /^([0-9]{4})([0-9]{2})([0-9]{2})T([0-9]{2})([0-9]{2})([0-9]{2})?$/
+    )
+    if (dateTime) {
+        const [, year, month, day, hour, minute, second = '0'] = dateTime
+        if (isUtc) {
+            return new Date(
+                Date.UTC(
+                    Number(year),
+                    Number(month) - 1,
+                    Number(day),
+                    Number(hour),
+                    Number(minute),
+                    Number(second)
+                )
+            )
+        }
+
+        return new Date(
+            Number(year),
+            Number(month) - 1,
+            Number(day),
+            Number(hour),
+            Number(minute),
+            Number(second)
+        )
+    }
+
+    return new Date(value)
+}
+
+function unescapeIcsText(value: string): string {
+    return value
+        .replace(/\\n/gi, '\n')
+        .replace(/\\,/g, ',')
+        .replace(/\\;/g, ';')
+        .replace(/\\\\/g, '\\')
+}
+
+function getIcsLineValue(line: string): string {
+    const separatorIndex = line.indexOf(':')
+    return separatorIndex === -1 ? '' : line.slice(separatorIndex + 1)
+}
+
+function unfoldIcsLines(content: string): Array<string> {
+    const lines = content.replace(/\r\n/g, '\n').split('\n')
+    const unfolded: Array<string> = []
+
+    for (const line of lines) {
+        if ((line.startsWith(' ') || line.startsWith('\t')) && unfolded.length > 0) {
+            unfolded[unfolded.length - 1] += line.slice(1)
+        } else {
+            unfolded.push(line)
+        }
+    }
+
+    return unfolded
+}
+
+export function parseIcsCalendarEvents(icsContent: string): CalendarEvent[] {
+    const events: Array<CalendarEvent> = []
+    const lines = unfoldIcsLines(icsContent)
+
+    let currentEvent: Partial<CalendarEvent> = {}
+    let inEvent = false
+
+    for (const line of lines) {
+        if (line === 'BEGIN:VEVENT') {
+            currentEvent = {}
+            inEvent = true
+            continue
+        }
+
+        if (line === 'END:VEVENT') {
+            if (inEvent && currentEvent.title && currentEvent.startDate) {
+                events.push({
+                    title: currentEvent.title,
+                    startDate: currentEvent.startDate,
+                    endDate: currentEvent.endDate ?? currentEvent.startDate,
+                    location: currentEvent.location,
+                    description: currentEvent.description,
+                })
+            }
+
+            currentEvent = {}
+            inEvent = false
+            continue
+        }
+
+        if (!inEvent) {
+            continue
+        }
+
+        if (line.startsWith('SUMMARY')) {
+            currentEvent.title = unescapeIcsText(getIcsLineValue(line).trim())
+            continue
+        }
+
+        if (line.startsWith('DTSTART')) {
+            currentEvent.startDate = parseIcsDate(getIcsLineValue(line))
+            continue
+        }
+
+        if (line.startsWith('DTEND')) {
+            currentEvent.endDate = parseIcsDate(getIcsLineValue(line))
+            continue
+        }
+
+        if (line.startsWith('LOCATION')) {
+            currentEvent.location = unescapeIcsText(getIcsLineValue(line).trim())
+            continue
+        }
+
+        if (line.startsWith('DESCRIPTION')) {
+            currentEvent.description = unescapeIcsText(getIcsLineValue(line).trim())
+        }
+    }
+
+    return sortCalendarEvents(events)
+}
+
+export function resolveCalendarEvents(
+    calendarData?: string,
+    calendarFormat: CalendarDataFormat = 'auto'
+): CalendarEvent[] {
+    const trimmed = calendarData?.trim() ?? ''
+    if (!trimmed) {
+        return []
+    }
+
+    if (calendarFormat === 'json') {
+        return parseCalendarJsonEvents(trimmed)
+    }
+
+    if (calendarFormat === 'ics') {
+        return parseIcsCalendarEvents(trimmed)
+    }
+
+    return trimmed.startsWith('{') || trimmed.startsWith('[')
+        ? parseCalendarJsonEvents(trimmed)
+        : parseIcsCalendarEvents(trimmed)
+}
+
+function createReadOnlyHooks(
+    toolLabel: string,
+    inputSummary: (input: unknown) => Record<string, unknown>,
+    outputSummary: (output: unknown) => Record<string, unknown>
+) {
+    return {
+        onInputStart: ({ toolCallId, messages, abortSignal }: { toolCallId: string; messages?: Array<unknown>; abortSignal?: AbortSignal }) => {
+            log.info(`${toolLabel} tool input streaming started`, {
+                toolCallId,
+                messageCount: messages?.length ?? 0,
+                abortSignal: abortSignal?.aborted,
+                hook: 'onInputStart',
+            })
+        },
+        onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }: { inputTextDelta: string; toolCallId: string; messages?: Array<unknown>; abortSignal?: AbortSignal }) => {
+            log.info(`${toolLabel} tool received input chunk`, {
+                toolCallId,
+                inputTextDelta,
+                messageCount: messages?.length ?? 0,
+                abortSignal: abortSignal?.aborted,
+                hook: 'onInputDelta',
+            })
+        },
+        onInputAvailable: ({ input, toolCallId, messages, abortSignal }: { input: unknown; toolCallId: string; messages?: Array<unknown>; abortSignal?: AbortSignal }) => {
+            log.info(`${toolLabel} tool received input`, {
+                toolCallId,
+                inputData: inputSummary(input),
+                messageCount: messages?.length ?? 0,
+                abortSignal: abortSignal?.aborted,
+                hook: 'onInputAvailable',
+            })
+        },
+        onOutput: ({ output, toolCallId, toolName, abortSignal }: { output?: unknown; toolCallId: string; toolName: string; abortSignal?: AbortSignal }) => {
+            log.info(`${toolLabel} tool completed`, {
+                toolCallId,
+                toolName,
+                outputData: outputSummary(output),
+                abortSignal: abortSignal?.aborted,
+                hook: 'onOutput',
+            })
+        },
+    }
+}
 
 export const listEvents = createTool({
     id: 'listEvents',
-    description:
-        'List all calendar events from the local macOS Calendar app within a date range',
-    inputSchema: z.object({
-        startDate: z.string().describe('Start date filter (ISO string format)'),
+    description: 'List calendar events from provided calendar data within a date range',
+    strict: true,
+    inputSchema: calendarDataInputSchema.extend({
+        startDate: calendarDateInputSchema.describe('Start date filter (ISO date or datetime string)'),
     }),
-    outputSchema: z.object({
-        content: z.string(),
-        events: z
-            .array(
-                z.object({
-                    title: z.string(),
-                    startDate: z.string(),
-                    endDate: z.string(),
-                    location: z.string().optional(),
-                    description: z.string().optional(),
-                })
-            )
-            .optional(),
-        count: z.number().optional(),
-    }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Calendar list events tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Calendar list events received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Calendar list events received input', {
-            toolCallId,
-            inputData: { startDate: input.startDate },
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    outputSchema: listEventsOutputSchema,
+    mcp: { annotations: calendarAnnotations },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
-        const userId = requestContext?.all.userId
-        const workspaceId = requestContext?.all.workspaceId
+        const requestContext = context.requestContext as
+            | RequestContext<BaseToolRequestContext>
+            | undefined
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-list-events',
@@ -176,44 +387,44 @@ export const listEvents = createTool({
             metadata: {
                 'tool.id': 'calendar-list-events',
                 'tool.input.startDate': inputData.startDate,
-                'user.id': userId,
-                'workspace.id': workspaceId,
+                'user.id': requestContext?.all.userId,
+                'workspace.id': requestContext?.all.workspaceId,
             },
             requestContext: context.requestContext,
             tracingContext: context.tracingContext,
         })
 
-        log.debug('Executing calendar list events for user', {
-            userId,
-        })
-
         await writer?.custom({
             type: 'data-tool-progress',
+            transient: true,
             data: {
                 status: 'in-progress',
-                message: `Input: startDate="${inputData.startDate}" - 📅 Reading local calendar events`,
+                message: '📅 Reading calendar data',
                 stage: 'listEvents',
             },
             id: 'listEvents',
         })
+
         try {
-            const events = reader.getEvents()
+            const requestedStartDate = new Date(inputData.startDate)
+            const events = resolveCalendarEvents(
+                inputData.calendarData,
+                inputData.calendarFormat ?? 'auto'
+            ).filter((event) => event.startDate >= requestedStartDate)
 
             const formattedEvents = events.map((event) => ({
-                title: event.title || '',
+                title: event.title,
                 startDate: event.startDate.toISOString(),
                 endDate: event.endDate.toISOString(),
                 location: event.location,
                 description: event.description,
             }))
 
-            log.info(`Found ${String(events.length)} calendar events`)
-
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `Input: startDate="${inputData.startDate}" - ✅ Found ${String(events.length)} events`,
+                    message: `✅ Found ${String(events.length)} events`,
                     stage: 'listEvents',
                 },
                 id: 'listEvents',
@@ -232,71 +443,64 @@ export const listEvents = createTool({
                 events: formattedEvents,
                 count: events.length,
             }
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error'
             log.error(`Calendar read failed: ${errorMsg}`)
             span?.error({
-                error: e instanceof Error ? e : new Error(errorMsg),
+                error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
             return { content: `Error: ${errorMsg}` }
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Calendar list events completed', {
-            toolCallId,
-            toolName,
-            eventsFound: output.count ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: {
+            count: output.count,
+            titles: output.events?.slice(0, 5).map((event) => event.title) ?? [],
+        },
+    }),
+    ...createReadOnlyHooks(
+        'Calendar list events',
+        (input) => (isRecord(input) ? { startDate: input.startDate } : {}),
+        (output) => (isRecord(output) ? { count: output.count ?? 0 } : { count: 0 })
+    ),
 })
 
 export const getTodayEvents = createTool({
     id: 'getTodayEvents',
-    description: 'Get all calendar events for today',
-    inputSchema: z.object({}),
-    outputSchema: z.object({
-        events: z.array(
-            z.object({
-                title: z.string(),
-                startDate: z.string(),
-                endDate: z.string(),
-                location: z.string().optional(),
-                description: z.string().optional(),
-            })
-        ),
-        count: z.number(),
-    }),
+    description: 'Get all calendar events for today from provided calendar data',
+    strict: true,
+    inputSchema: calendarDataInputSchema,
+    outputSchema: calendarEventListSchema,
+    mcp: { annotations: calendarAnnotations },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
-        const userId = requestContext?.all.userId
-        const workspaceId = requestContext?.all.workspaceId
+        const requestContext = context.requestContext as
+            | RequestContext<BaseToolRequestContext>
+            | undefined
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-today-events',
             input: inputData,
             metadata: {
                 'tool.id': 'calendar-today-events',
-                'user.id': userId,
-                'workspace.id': workspaceId,
+                'user.id': requestContext?.all.userId,
+                'workspace.id': requestContext?.all.workspaceId,
             },
             requestContext: context.requestContext,
         })
 
-        log.debug('Executing get today events for user', {
-            userId,
-        })
-
         await writer?.write({
             type: 'progress',
-            data: { message: "📅 Getting today's events..." },
+            data: { message: '📅 Getting today\'s events...' },
         })
 
         try {
-            const allEvents = reader.getEvents()
+            const allEvents = resolveCalendarEvents(
+                inputData.calendarData,
+                inputData.calendarFormat ?? 'auto'
+            )
             const today = new Date()
             today.setHours(0, 0, 0, 0)
             const tomorrow = new Date(today)
@@ -308,7 +512,7 @@ export const getTodayEvents = createTool({
             })
 
             const formattedEvents = todayEvents.map((event) => ({
-                title: event.title || '',
+                title: event.title,
                 startDate: event.startDate.toISOString(),
                 endDate: event.endDate.toISOString(),
                 location: event.location,
@@ -331,83 +535,70 @@ export const getTodayEvents = createTool({
             span?.end()
 
             return { events: formattedEvents, count: todayEvents.length }
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error'
             log.error(`Today events read failed: ${errorMsg}`)
             span?.error({
-                error: e instanceof Error ? e : new Error(errorMsg),
+                error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
             return { events: [], count: 0 }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Today events tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Today events tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Today events tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Today events tool completed', {
-            toolCallId,
-            toolName,
-            eventsFound: output.count,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Today's calendar events: ${String(output.count)}`,
+            },
+            output.events.length
+                ? {
+                      type: 'text' as const,
+                      text: `Titles:\n- ${output.events
+                          .slice(0, 5)
+                          .map((event) => event.title)
+                          .join('\n- ')}`,
+                  }
+                : undefined,
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
+    ...createReadOnlyHooks(
+        'Today events',
+        () => ({}),
+        (output) => (isRecord(output) ? { count: output.count ?? 0 } : { count: 0 })
+    ),
 })
 
 export const getUpcomingEvents = createTool({
     id: 'getUpcomingEvents',
-    description:
-        'Get upcoming calendar events within a specified number of days',
-    inputSchema: z.object({
-        days: z.number().default(7).describe('Number of days to look ahead'),
-        limit: z
-            .number()
-            .optional()
-            .default(10)
-            .describe('Maximum number of events to return'),
+    description: 'Get upcoming calendar events within a specified number of days',
+    strict: true,
+    inputSchema: calendarDataInputSchema.extend({
+        days: z.number().int().positive().max(365).default(7),
+        limit: z.number().int().positive().max(100).default(10),
     }),
     outputSchema: z.object({
         events: z.array(
             z.object({
                 title: z.string(),
-                startDate: z.string(),
-                endDate: z.string(),
+                startDate: z.string().datetime({ offset: true }),
+                endDate: z.string().datetime({ offset: true }),
                 location: z.string().optional(),
                 description: z.string().optional(),
-                daysFromNow: z.number(),
+                daysFromNow: z.number().int().nonnegative(),
             })
         ),
-        count: z.number(),
+        count: z.number().int().nonnegative(),
     }),
-
+    mcp: { annotations: calendarAnnotations },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
-        const userId = requestContext?.all.userId
-        const workspaceId = requestContext?.all.workspaceId
+        const requestContext = context.requestContext as
+            | RequestContext<BaseToolRequestContext>
+            | undefined
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-upcoming-events',
@@ -416,43 +607,36 @@ export const getUpcomingEvents = createTool({
                 'tool.id': 'calendar-upcoming-events',
                 'tool.input.days': inputData.days,
                 'tool.input.limit': inputData.limit,
-                'user.id': userId,
-                'workspace.id': workspaceId,
+                'user.id': requestContext?.all.userId,
+                'workspace.id': requestContext?.all.workspaceId,
             },
             requestContext: context.requestContext,
         })
 
-        log.debug('Executing get upcoming events for user', {
-            userId,
-        })
-
         await writer?.write({
             type: 'progress',
-            data: {
-                message: `📅 Getting events for next ${String(inputData.days)} days...`,
-            },
+            data: { message: '📅 Looking ahead for upcoming events...' },
         })
 
         try {
-            const allEvents = reader.getEvents()
+            const allEvents = resolveCalendarEvents(
+                inputData.calendarData,
+                inputData.calendarFormat ?? 'auto'
+            )
             const now = new Date()
-            const futureDate = new Date()
-            futureDate.setDate(futureDate.getDate() + (inputData.days ?? 7))
+            const futureDate = new Date(now)
+            futureDate.setDate(futureDate.getDate() + inputData.days)
 
             const upcomingEvents = allEvents
-                .filter((event) => {
-                    const eventStart = new Date(event.startDate)
-                    return eventStart >= now && eventStart <= futureDate
-                })
-                .slice(0, inputData.limit ?? 10)
+                .filter((event) => event.startDate >= now && event.startDate <= futureDate)
+                .slice(0, inputData.limit)
 
             const formattedEvents = upcomingEvents.map((event) => {
-                const eventDate = new Date(event.startDate)
-                const diffTime = eventDate.getTime() - now.getTime()
+                const diffTime = event.startDate.getTime() - now.getTime()
                 const daysFromNow = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
                 return {
-                    title: event.title || '',
+                    title: event.title,
                     startDate: event.startDate.toISOString(),
                     endDate: event.endDate.toISOString(),
                     location: event.location,
@@ -477,69 +661,63 @@ export const getUpcomingEvents = createTool({
             span?.end()
 
             return { events: formattedEvents, count: upcomingEvents.length }
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error'
             log.error(`Upcoming events read failed: ${errorMsg}`)
             span?.error({
-                error: e instanceof Error ? e : new Error(errorMsg),
+                error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
             return { events: [], count: 0 }
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Upcoming events tool completed', {
-            toolCallId,
-            toolName,
-            eventsFound: output.count,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Upcoming events found: ${String(output.count)}`,
+            },
+            output.events.length
+                ? {
+                      type: 'text' as const,
+                      text: `Titles:\n- ${output.events
+                          .slice(0, 5)
+                          .map((event) => event.title)
+                          .join('\n- ')}`,
+                  }
+                : undefined,
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
+    ...createReadOnlyHooks(
+        'Upcoming events',
+        (input) => (isRecord(input) ? { days: input.days, limit: input.limit } : {}),
+        (output) => (isRecord(output) ? { count: output.count ?? 0 } : { count: 0 })
+    ),
 })
 
 export const findFreeSlots = createTool({
     id: 'findFreeSlots',
-    description: 'Find free time slots in your calendar for scheduling',
-    inputSchema: z.object({
-        date: z.string().describe('Date to find free slots for (ISO string)'),
-        workdayStart: z
-            .number()
-            .optional()
-            .default(9)
-            .describe('Workday start hour (0-23)'),
-        workdayEnd: z
-            .number()
-            .optional()
-            .default(17)
-            .describe('Workday end hour (0-23)'),
-        minimumSlotMinutes: z
-            .number()
-            .optional()
-            .default(30)
-            .describe('Minimum slot duration in minutes'),
+    description: 'Find free time slots in provided calendar data for scheduling',
+    strict: true,
+    inputSchema: calendarDataInputSchema.extend({
+        date: calendarDateInputSchema,
+        workdayStart: z.number().int().min(0).max(23).optional().default(9),
+        workdayEnd: z.number().int().min(0).max(23).optional().default(17),
+        minimumSlotMinutes: z.number().int().positive().optional().default(30),
     }),
     outputSchema: z.object({
-        freeSlots: z.array(
-            z.object({
-                start: z.string(),
-                end: z.string(),
-                durationMinutes: z.number(),
-            })
-        ),
-        busyPeriods: z.array(
-            z.object({
-                title: z.string(),
-                start: z.string(),
-                end: z.string(),
-            })
-        ),
+        freeSlots: z.array(freeSlotSchema),
+        busyPeriods: z.array(busyPeriodSchema),
     }),
+    mcp: { annotations: calendarAnnotations },
     execute: async (inputData, context) => {
         const writer = context.writer
-        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
-        const userId = requestContext?.all.userId
-        const workspaceId = requestContext?.all.workspaceId
+        const requestContext = context.requestContext as
+            | RequestContext<BaseToolRequestContext>
+            | undefined
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-free-slots',
@@ -547,14 +725,10 @@ export const findFreeSlots = createTool({
             metadata: {
                 'tool.id': 'calendar-free-slots',
                 'tool.input.date': inputData.date,
-                'user.id': userId,
-                'workspace.id': workspaceId,
+                'user.id': requestContext?.all.userId,
+                'workspace.id': requestContext?.all.workspaceId,
             },
             requestContext: context.requestContext,
-        })
-
-        log.debug('Executing find free slots for user', {
-            userId,
         })
 
         await writer?.write({
@@ -563,7 +737,10 @@ export const findFreeSlots = createTool({
         })
 
         try {
-            const allEvents = reader.getEvents()
+            const allEvents = resolveCalendarEvents(
+                inputData.calendarData,
+                inputData.calendarFormat ?? 'auto'
+            )
             const targetDate = new Date(inputData.date)
             targetDate.setHours(0, 0, 0, 0)
 
@@ -571,11 +748,8 @@ export const findFreeSlots = createTool({
             nextDay.setDate(nextDay.getDate() + 1)
 
             const dayEvents = allEvents
-                .filter((event) => {
-                    const eventStart = new Date(event.startDate)
-                    return eventStart >= targetDate && eventStart < nextDay
-                })
-                .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+                .filter((event) => event.startDate >= targetDate && event.startDate < nextDay)
+                .sort((left, right) => left.startDate.getTime() - right.startDate.getTime())
 
             const workStart = new Date(targetDate)
             workStart.setHours(inputData.workdayStart ?? 9, 0, 0, 0)
@@ -583,16 +757,8 @@ export const findFreeSlots = createTool({
             const workEnd = new Date(targetDate)
             workEnd.setHours(inputData.workdayEnd ?? 17, 0, 0, 0)
 
-            const freeSlots: Array<{
-                start: string
-                end: string
-                durationMinutes: number
-            }> = []
-            const busyPeriods: Array<{
-                title: string
-                start: string
-                end: string
-            }> = []
+            const freeSlots: Array<{ start: string; end: string; durationMinutes: number }> = []
+            const busyPeriods: Array<{ title: string; start: string; end: string }> = []
 
             let currentTime = workStart
 
@@ -602,8 +768,7 @@ export const findFreeSlots = createTool({
 
                 if (eventStart > currentTime) {
                     const slotDuration =
-                        (eventStart.getTime() - currentTime.getTime()) /
-                        (1000 * 60)
+                        (eventStart.getTime() - currentTime.getTime()) / (1000 * 60)
                     if (slotDuration >= (inputData.minimumSlotMinutes ?? 30)) {
                         freeSlots.push({
                             start: currentTime.toISOString(),
@@ -625,8 +790,7 @@ export const findFreeSlots = createTool({
             }
 
             if (currentTime < workEnd) {
-                const slotDuration =
-                    (workEnd.getTime() - currentTime.getTime()) / (1000 * 60)
+                const slotDuration = (workEnd.getTime() - currentTime.getTime()) / (1000 * 60)
                 if (slotDuration >= (inputData.minimumSlotMinutes ?? 30)) {
                     freeSlots.push({
                         start: currentTime.toISOString(),
@@ -650,51 +814,49 @@ export const findFreeSlots = createTool({
             span?.end()
 
             return { freeSlots, busyPeriods }
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error'
             log.error(`Free slots search failed: ${errorMsg}`)
             span?.error({
-                error: e instanceof Error ? e : new Error(errorMsg),
+                error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
             return { freeSlots: [], busyPeriods: [] }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Find free slots tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Find free slots tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Find free slots tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            date: input.date,
-            workdayStart: input.workdayStart,
-            workdayEnd: input.workdayEnd,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Find free slots tool completed', {
-            toolCallId,
-            toolName,
-            slotsFound: output.freeSlots.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Free slots found: ${String(output.freeSlots.length)}; busy periods: ${String(output.busyPeriods.length)}`,
+            },
+            output.freeSlots.length
+                ? {
+                      type: 'text' as const,
+                      text: `First free slots:\n- ${output.freeSlots
+                          .slice(0, 3)
+                          .map(
+                              (slot) =>
+                                  `${slot.start} → ${slot.end} (${String(slot.durationMinutes)} min)`
+                          )
+                          .join('\n- ')}`,
+                  }
+                : undefined,
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
+    ...createReadOnlyHooks(
+        'Find free slots',
+        (input) => (isRecord(input) ? { date: input.date } : {}),
+        (output) =>
+            isRecord(output)
+                ? {
+                      freeSlotCount: Array.isArray(output.freeSlots)
+                          ? output.freeSlots.length
+                          : 0,
+                  }
+                : { freeSlotCount: 0 }
+    ),
 })

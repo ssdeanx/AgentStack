@@ -30,10 +30,11 @@ export const colorChangeTool = createTool({
     description: 'Changes the background color',
     inputSchema: ColorChangeInputSchema,
     outputSchema: ColorChangeOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Color change tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -42,7 +43,7 @@ export const colorChangeTool = createTool({
         log.info('Color change received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -50,20 +51,10 @@ export const colorChangeTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Color change received complete input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             color: input.color,
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Color change completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            success: output.success,
-            color: output.color,
-            hook: 'onOutput',
         })
     },
     execute: async (input, context) => {
@@ -151,5 +142,21 @@ export const colorChangeTool = createTool({
             )
             throw error
         }
+    },
+    toModelOutput: (output: { success: boolean; color: string }) => ({
+        type: 'text',
+        value: output.success
+            ? `Background color changed to ${output.color}`
+            : 'Background color change failed',
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Color change completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            success: output.success,
+            color: output.color,
+            hook: 'onOutput',
+        })
     },
 })

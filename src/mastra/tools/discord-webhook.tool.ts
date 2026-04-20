@@ -38,6 +38,7 @@ export const discordWebhookTool = createTool({
         channel_id: z.string().optional(),
         timestamp: z.string().optional(),
     }),
+    strict: true,
     execute: async (input: DiscordWebhookInput): Promise<DiscordWebhookOutput> => {
         if (DISCORD_WEBHOOK_URL === '') {
             throw new Error('DISCORD_WEBHOOK_URL is not configured')
@@ -85,6 +86,12 @@ export const discordWebhookTool = createTool({
             ...data,
         }
     },
+    toModelOutput: (output: DiscordWebhookOutput) => ({
+        type: 'text',
+        value: output.ok
+            ? `Discord message sent successfully (${output.status})`
+            : 'Discord message failed',
+    }),
 })
 
 export type DiscordWebhookUITool = InferUITool<typeof discordWebhookTool>

@@ -1,3 +1,31 @@
+# Progress Update (2026-04-20 - calendar tool cross-platform refactor)
+
+- Reworked `src/mastra/tools/calendar-tool.ts` to select a calendar source by platform instead of assuming macOS Calendar.
+- Added Windows Outlook support and a Linux-compatible ICS-file fallback, both behind the same tool interface.
+- Exposed `getCalendarSourceKind`, `createCalendarSource`, and `parseIcsCalendarEvents` for unit testing.
+- Added `src/mastra/tools/tests/calendar-tool.test.ts`; targeted vitest run passed (`5 passed, 0 failed`).
+
+# Progress Update (2026-04-20 - tools folder crash scan)
+
+- Confirmed the earlier Mastra crash pattern also appeared in several other tools via direct `.length` reads on optional output payloads.
+- Hardened output handling in the following files: `arxiv.tool.ts`, `calendar-tool.ts`, `downsample.tool.ts`, `editor-agent-tool.ts`, `extractLearningsTool.ts`, `git-local.tool.ts`, `github.ts`, `image-tool.ts`, `polygon-tools.ts`, `serpapi-academic-local.tool.ts`, `serpapi-images.tool.ts`, `serpapi-local-maps.tool.ts`, `serpapi-news-trends.tool.ts`, and `url-tool.ts`.
+- The folder still contains many `messages.length` reads in input hooks; those are a separate broader hardening pass if you want to eliminate that class too.
+
+# Progress Update (2026-04-20 - weather temperature-unit narrowed)
+
+- Removed the shared request-context `temperature-unit` injection from `src/mastra/index.ts` so only the weather tool can fall back to `celsius` locally.
+- Confirmed `weatherTool` is only wired into `weatherAgent` in the current agent set.
+- Cleaned the now-unused `TemperatureUnit` / `TEMPERATURE_UNIT_CONTEXT_KEY` imports from `src/mastra/index.ts`.
+- Hardened `src/mastra/tools/weather-tool.ts` so its input/output hooks use optional chaining and no longer assume `messages` or `output` are always present.
+
+# Progress Update (2026-04-20 - SerpAPI googleSearchTool crash fix)
+
+- Traced the repeated `Cannot read properties of undefined (reading 'length')` error to the Google Search tool generated hook logs.
+- Patched `src/mastra/tools/serpapi-search.tool.ts` so `googleSearchTool.onOutput` no longer assumes nested output fields are always present.
+- Updated the Google Search output schema so `searchInfo.totalResults` accepts the numeric value SerpAPI is returning.
+- Hardened `googleAiOverviewTool.onOutput` with the same defensive pattern to avoid the same crash if an overview payload is missing.
+- Next verification step: re-run the workflow or agent path that was invoking `googleSearchTool` and confirm the error does not reappear.
+
 # Progress Update (2026-04-18 - Blender MCP / FPV research)
 
 - Confirmed the official Blender MCP server supports Blender 5.1+ and found the key safety caveat: it runs LLM-generated code in Blender without guards, so it should be isolated from sensitive data.

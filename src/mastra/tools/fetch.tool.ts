@@ -762,12 +762,13 @@ export const fetchTool = createTool({
         'Production fetch/search tool with RE2 filtering and markdown output. No fallback, no file writes.',
     inputSchema: fetchToolInputSchema,
     outputSchema: fetchToolOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         
         
         log.info('Fetch tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -776,7 +777,7 @@ export const fetchTool = createTool({
         log.info('Fetch tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -784,7 +785,7 @@ export const fetchTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Fetch tool input available', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             url: input.url,
             query: input.query,
@@ -1084,12 +1085,15 @@ export const fetchTool = createTool({
         }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const parsed = fetchToolOutputSchema.safeParse(output)
+        const safeOutput = parsed.success ? parsed.data : undefined
+
         log.info('Fetch tool completed', {
             toolCallId,
             toolName,
             abortSignal: abortSignal?.aborted,
-            mode: output.mode,
-            resultCount: output.results?.length ?? 0,
+            mode: safeOutput?.mode ?? 'unknown',
+            resultCount: safeOutput?.results?.length ?? 0,
             hook: 'onOutput',
         })
     },

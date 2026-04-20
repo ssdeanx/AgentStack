@@ -337,6 +337,7 @@ export const ichimokuCloudTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context): Promise<IchimokuCloudResult> => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -462,7 +463,7 @@ export const ichimokuCloudTool = createTool({
                 id: 'ichimoku-cloud',
             })
 
-            return { success: false, message: err.message }
+            return { success: false, results: [], message: err.message }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -508,6 +509,7 @@ export const fibonacciTool = createTool({
         levels: z.record(z.string(), z.number()).optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal

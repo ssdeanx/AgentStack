@@ -4,6 +4,7 @@ import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
+import { stringify } from 'csv-stringify/sync'
 import { log } from '../config/logger'
 
 export interface JsonToCsvRequestContext extends RequestContext {
@@ -12,12 +13,33 @@ export interface JsonToCsvRequestContext extends RequestContext {
     }
 }
 
+type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
+
+interface JsonObject {
+    [key: string]: JsonValue
+}
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(jsonValueSchema),
+        z.record(z.string(), jsonValueSchema),
+    ])
+)
+
+const jsonToCsvToolOutputSchema = z.object({
+    csv: z.string().describe('Generated CSV content'),
+})
+
 export const jsonToCsvTool = createTool({
     id: 'json-to-csv',
     description: 'Convert JSON data to CSV format. Handles arrays of objects.',
     inputSchema: z.object({
         data: z
-            .array(z.record(z.string(), z.any()))
+            .array(z.record(z.string(), jsonValueSchema))
             .describe('Array of JSON objects to convert'),
         options: z
             .object({
@@ -36,6 +58,8 @@ export const jsonToCsvTool = createTool({
                 includeHeaders: true,
             }),
     }),
+    outputSchema: jsonToCsvToolOutputSchema,
+    strict: true,
     execute: async (input, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext as
@@ -103,50 +127,32 @@ export const jsonToCsvTool = createTool({
                 )
             }
 
-            // Collect all unique keys for headers
+            const delimiter = resolvedOptions.delimiter || ','
             const headers = Array.from(
                 new Set(data.flatMap((row) => Object.keys(row)))
             )
-            const delimiter = resolvedOptions.delimiter || ','
 
-            const escapeValue = (value: unknown): string => {
-                if (value === null || value === undefined) {
-                    return ''
+            const normalizedRows = data.map((record) => {
+                const normalizedRecord: Record<string, string> = {}
+
+                for (const header of headers) {
+                    const value = record[header]
+                    normalizedRecord[header] =
+                        value === null || value === undefined
+                            ? ''
+                            : typeof value === 'object'
+                              ? JSON.stringify(value)
+                              : String(value)
                 }
-                const stringValue =
-                    typeof value === 'object'
-                        ? JSON.stringify(value)
-                        : typeof value === 'string'
-                          ? value
-                          : String(value as number | boolean | bigint)
 
-                // If value contains delimiter, quote, or newline, escape it
-                if (
-                    stringValue.includes(delimiter) ||
-                    stringValue.includes('"') ||
-                    stringValue.includes('\n') ||
-                    stringValue.includes('\r')
-                ) {
-                    return `"${stringValue.replace(/"/g, '""')}"`
-                }
-                return stringValue
-            }
+                return normalizedRecord
+            })
 
-            const rows: string[] = []
-
-            if (resolvedOptions.includeHeaders) {
-                rows.push(headers.map((h) => escapeValue(h)).join(delimiter))
-            }
-
-            for (const record of data) {
-                const typedRecord = record as Record<string, unknown>
-                const row = headers.map((header) =>
-                    escapeValue(typedRecord[header])
-                )
-                rows.push(row.join(delimiter))
-            }
-
-            const csvOutput = rows.join('\n')
+            const csvOutput = stringify(normalizedRows, {
+                header: resolvedOptions.includeHeaders,
+                columns: headers,
+                delimiter,
+            })
 
             // Update spans with successful result
             jsonCsvSpan?.update({
@@ -214,7 +220,7 @@ export const jsonToCsvTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('JSON to CSV tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -224,7 +230,7 @@ export const jsonToCsvTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
@@ -232,7 +238,7 @@ export const jsonToCsvTool = createTool({
         const options = input.options ?? {}
         log.info('JSON to CSV received complete input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             recordCount: input.data.length,
             delimiter: options.delimiter,
@@ -240,14 +246,20 @@ export const jsonToCsvTool = createTool({
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output) => ({
+        type: 'text',
+        value: output.csv,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const csvOutput =
-            typeof output === 'object' &&
-            output !== null &&
-            'csv' in output &&
-            typeof (output as { csv?: unknown }).csv === 'string'
-                ? (output as { csv: string }).csv
-                : ''
+        const parsed = jsonToCsvToolOutputSchema.safeParse(output)
+        const csvOutput = parsed.success
+            ? parsed.data.csv
+            : typeof output === 'object' &&
+                output !== null &&
+                'csv' in output &&
+                typeof (output as { csv?: string }).csv === 'string'
+              ? (output as { csv: string }).csv
+              : ''
         const csvLines = csvOutput.split('\n').length
         log.info('JSON to CSV conversion completed', {
             toolCallId,

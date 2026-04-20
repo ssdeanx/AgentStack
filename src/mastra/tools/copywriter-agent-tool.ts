@@ -15,6 +15,35 @@ export interface CopywriterRequestContext {
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
 
+const copywriterToolOutputSchema = z.object({
+    content: z.string().describe('The created content in markdown format'),
+    contentType: z.string().describe('The type of content created'),
+    title: z
+        .string()
+        .optional()
+        .describe('Suggested title for the content'),
+    summary: z.string().optional().describe('Brief summary of the content'),
+    keyPoints: z
+        .array(z.string())
+        .optional()
+        .describe('Key points or takeaways from the content'),
+    wordCount: z
+        .number()
+        .optional()
+        .describe('Approximate word count of the content'),
+})
+
+type CopywriterToolOutput = z.infer<typeof copywriterToolOutputSchema>
+
+const copywriterToolFallbackOutput: CopywriterToolOutput = {
+    content: '',
+    contentType: 'general',
+    title: undefined,
+    summary: undefined,
+    keyPoints: [],
+    wordCount: 0,
+}
+
 export const copywriterTool = createTool({
     id: 'copywriter-agent',
     description:
@@ -57,36 +86,8 @@ export const copywriterTool = createTool({
             .optional()
             .describe('Any specific requirements, guidelines, or focus areas'),
     }),
-    outputSchema: z.object({
-        content: z.string().describe('The created content in markdown format'),
-        contentType: z.string().describe('The type of content created'),
-        title: z
-            .string()
-            .optional()
-            .describe('Suggested title for the content'),
-        summary: z.string().optional().describe('Brief summary of the content'),
-        keyPoints: z
-            .array(z.string())
-            .optional()
-            .describe('Key points or takeaways from the content'),
-        wordCount: z
-            .number()
-            .optional()
-            .describe('Approximate word count of the content'),
-    }),
-    toModelOutput: (output) => ({
-        type: 'text',
-        value: [
-            output.title ? `# ${output.title}` : undefined,
-            output.summary ? `Summary: ${output.summary}` : undefined,
-            output.content,
-        ]
-            .filter(
-                (part): part is string =>
-                    typeof part === 'string' && part.trim().length > 0
-            )
-            .join('\n\n'),
-    }),
+    outputSchema: copywriterToolOutputSchema,
+    strict: true,
     execute: async (input, context) => {
         const writer = context.writer
         const mastra = context.mastra
@@ -118,7 +119,7 @@ export const copywriterTool = createTool({
         })
 
         const span = getOrCreateSpan({
-            type: SpanType.TOOL_CALL,
+            type: SpanType.AGENT_RUN,
             name: 'copywriter-generate',
             input: {
                 topic,
@@ -266,6 +267,7 @@ export const copywriterTool = createTool({
                     } else if (stream?.fullStream && writer) {
                         await writer?.custom({
                             type: 'data-tool-progress',
+                            transient: true,
                             data: {
                                 status: 'in-progress',
                                 message:
@@ -407,7 +409,7 @@ export const copywriterTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('copywriterTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -416,7 +418,7 @@ export const copywriterTool = createTool({
         log.info('copywriterTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -424,7 +426,7 @@ export const copywriterTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('copywriterTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 topic: input.topic,
                 contentType: input.contentType,
@@ -437,6 +439,35 @@ export const copywriterTool = createTool({
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output: CopywriterToolOutput) => ({
+        type: 'content',
+        value: [
+            output.title
+                ? {
+                      type: 'text' as const,
+                      text: `Title: ${output.title}`,
+                  }
+                : undefined,
+            output.summary
+                ? {
+                      type: 'text' as const,
+                      text: `Summary: ${output.summary}`,
+                  }
+                : undefined,
+            output.keyPoints?.length
+                ? {
+                      type: 'text' as const,
+                      text: `Key points:\n- ${output.keyPoints.join('\n- ')}`,
+                  }
+                : undefined,
+            {
+                type: 'text' as const,
+                text: output.content,
+            },
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('copywriterTool completed', {
             toolCallId,

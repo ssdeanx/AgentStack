@@ -347,6 +347,7 @@ export const binanceSpotMarketDataTool = createTool({
         'Fetch free Binance public spot market data including quotes, 24h stats, candles, UI klines, order book, trades, aggregate trades, average price, and exchange info. Supports one symbol or a batch of up to 10 symbols.',
     inputSchema: binanceCryptoInputSchema,
     outputSchema: z.custom<BinanceSpotMarketDataOutput>(),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Binance spot market-data input streaming started', {
             toolCallId,
@@ -489,9 +490,29 @@ export const binanceSpotMarketDataTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
+    toModelOutput: (output: BinanceSpotMarketDataOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Binance ${output.metadata.function} for ${output.metadata.symbol || 'unknown'} (${output.metadata.market})`,
+            },
+            output.metadata.symbols?.length
+                ? {
+                      type: 'text' as const,
+                      text: `Symbols: ${output.metadata.symbols.join(', ')}`,
+                  }
+                : undefined,
+            {
+                type: 'text' as const,
+                text: `Returned ${countBinanceMarketDataItems(output.data)} item(s).`,
+            },
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const data = output as BinanceSpotMarketDataOutput | undefined
-        const count = countBinanceMarketDataItems(data?.data)
+        const count = countBinanceMarketDataItems(output.data)
 
         log.info('Binance spot market-data completed', {
             toolCallId,

@@ -13,6 +13,25 @@ export interface RandomToolContext extends RequestContext {
     locale?: string
 }
 
+type RandomJsonPrimitive = string | number | boolean | null
+type RandomJsonValue = RandomJsonPrimitive | RandomJsonObject | RandomJsonValue[]
+
+interface RandomJsonObject {
+    [key: string]: RandomJsonValue
+}
+
+let randomJsonValueSchema: z.ZodType<RandomJsonValue>
+randomJsonValueSchema = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(randomJsonValueSchema),
+        z.record(z.string(), randomJsonValueSchema),
+    ])
+)
+
 export const randomGeneratorTool = createTool({
     id: 'random-generator',
     description: 'Generate random data for testing and development',
@@ -61,19 +80,12 @@ export const randomGeneratorTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        data: z
-            .union([
-                z.string(),
-                z.number(),
-                z.boolean(),
-                z.array(z.any()),
-                z.record(z.string(), z.any()),
-            ])
-            .nullable(),
+        data: randomJsonValueSchema.nullable(),
         type: z.string(),
         count: z.number(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as RandomToolContext
         const locale =
@@ -120,13 +132,7 @@ export const randomGeneratorTool = createTool({
         })
 
         try {
-            let result:
-                | string
-                | number
-                | boolean
-                | unknown[]
-                | Record<string, unknown>
-                | null = null
+            let result: RandomJsonValue | null = null
 
             if (count === 1) {
                 result = generateRandomItem(inputData.type, {
@@ -134,7 +140,7 @@ export const randomGeneratorTool = createTool({
                     locale,
                 })
             } else {
-                const items: unknown[] = []
+                const items: RandomJsonValue[] = []
                 for (let i = 0; i < count; i++) {
                     items.push(
                         generateRandomItem(inputData.type, {
@@ -204,10 +210,14 @@ export const randomGeneratorTool = createTool({
             }
         }
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Random generator tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -216,7 +226,7 @@ export const randomGeneratorTool = createTool({
         log.info('Random generator tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -224,7 +234,7 @@ export const randomGeneratorTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Random generator tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: { type: input.type, count: input.count },
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -260,7 +270,7 @@ interface RandomOptions {
 function generateRandomItem(
     type: string,
     options?: RandomOptions
-): string | number | boolean | unknown[] | Record<string, unknown> {
+): RandomJsonValue {
     switch (type) {
         case 'string':
             return generateRandomString(
@@ -459,16 +469,16 @@ function generateRandomAddress(locale = 'en'): string {
     return `${number} ${street}, ${city}`
 }
 
-function generateRandomArray(length: number, itemType: string): unknown[] {
-    const result = []
+function generateRandomArray(length: number, itemType: string): RandomJsonValue[] {
+    const result: RandomJsonValue[] = []
     for (let i = 0; i < length; i++) {
         result.push(generateRandomItem(itemType))
     }
     return result
 }
 
-function generateRandomObject(properties: number): Record<string, unknown> {
-    const result: Record<string, unknown> = {}
+function generateRandomObject(properties: number): RandomJsonObject {
+    const result: RandomJsonObject = {}
     for (let i = 0; i < properties; i++) {
         const key = `prop${i + 1}`
         const type = ['string', 'number', 'boolean'][

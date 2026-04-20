@@ -121,10 +121,11 @@ export const alphaVantageCryptoTool = createTool({
             })
             .optional(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Alpha Vantage crypto tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -133,7 +134,7 @@ export const alphaVantageCryptoTool = createTool({
         log.info('Alpha Vantage crypto tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -141,7 +142,7 @@ export const alphaVantageCryptoTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Alpha Vantage crypto received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             symbol: input.symbol,
             market: input.market,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
@@ -412,6 +413,19 @@ export const alphaVantageCryptoTool = createTool({
             throw error instanceof Error ? error : new Error(errMsg)
         }
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `${output.metadata?.function ?? 'Alpha Vantage crypto'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${Array.isArray(output.data) ? output.data.length : output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level item(s).`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Alpha Vantage crypto completed', {
             toolCallId,
@@ -508,11 +522,12 @@ export const alphaVantageStockTool = createTool({
             })
             .optional(),
     }),
+    strict: true,
 
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Alpha Vantage stock tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -521,7 +536,7 @@ export const alphaVantageStockTool = createTool({
         log.info('Alpha Vantage stock tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -529,7 +544,7 @@ export const alphaVantageStockTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Alpha Vantage stock received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             symbol: input.symbol,
             function: input.function,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
@@ -825,6 +840,10 @@ export const alphaVantageStockTool = createTool({
         }
     },
 
+    toModelOutput: (output) => ({
+        type: 'text',
+        value: `${output.metadata?.function ?? 'Alpha Vantage stock'} for ${output.metadata?.symbol ?? 'unknown'} returned ${Array.isArray(output.data) ? output.data.length : output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level item(s).`,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         const dataKeys =
             output.data !== null && typeof output.data === 'object'
@@ -958,10 +977,11 @@ export const alphaVantageTool = createTool({
             })
             .optional(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('alphaVantageTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -970,7 +990,7 @@ export const alphaVantageTool = createTool({
         log.info('alphaVantageTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -978,7 +998,7 @@ export const alphaVantageTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('alphaVantageTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 function: input.function,
                 symbol: input.symbol,
@@ -1304,6 +1324,19 @@ export const alphaVantageTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `${output.metadata?.function ?? 'Alpha Vantage'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${Array.isArray(output.data) ? output.data.length : output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level item(s).`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         const dataKeys =
             output.data !== null && typeof output.data === 'object'

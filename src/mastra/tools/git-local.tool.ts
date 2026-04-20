@@ -342,6 +342,7 @@ export const gitStatusTool = createTool({
         conflictedFiles: z.array(z.string()),
         message: z.string().optional(),
     }),
+    strict: true,
 
     execute: async (inputData, context) => {
         const writer = context?.writer
@@ -535,7 +536,7 @@ export const gitStatusTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Git status tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -544,7 +545,7 @@ export const gitStatusTool = createTool({
         log.info('Git status tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -552,7 +553,7 @@ export const gitStatusTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Git status tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: { repoPath: input.repoPath, porcelain: input.porcelain },
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -634,6 +635,7 @@ export const gitDiffTool = createTool({
         patch: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -858,6 +860,7 @@ export const gitCommitTool = createTool({
         previousHash: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -1101,6 +1104,7 @@ export const gitLogTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -1428,6 +1432,7 @@ export const gitBranchTool = createTool({
         conflicts: z.array(z.string()).optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -1827,6 +1832,7 @@ export const gitStashTool = createTool({
         diff: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -2141,6 +2147,7 @@ export const gitConfigTool = createTool({
         value: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext

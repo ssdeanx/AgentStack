@@ -14,13 +14,10 @@ import {
 
 /**
  * Shared request context for Stooq stock data.
- */
-export interface StooqStockContext extends RequestContext {
-    userId?: string
 }
-
-const stooqInputSchema = z.object({
-    function: z.enum(['quote', 'history']).default('quote'),
+            count: countStooqMarketDataItems(output.data),
+            count: countStooqMarketDataItems(output.data),
+            count: countStooqMarketDataItems(output.data),
     symbol: z.string().min(1).describe('Stock ticker symbol, e.g. AAPL or MSFT'),
     marketSuffix: z.string().default('us').describe('Stooq market suffix, e.g. us, uk, jp'),
     limit: z.number().int().min(1).max(5000).default(100),
@@ -93,6 +90,7 @@ export const stooqStockQuotesTool = createTool({
         'Fetch free Stooq stock market data without an API key, including latest quotes and historical daily bars.',
     inputSchema: stooqInputSchema,
     outputSchema: z.custom<StooqMarketDataOutput>(),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Stooq stock quotes input streaming started', {
             toolCallId,
@@ -273,12 +271,24 @@ export const stooqStockQuotesTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
+    toModelOutput: (output: StooqMarketDataOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Stooq ${output.metadata.function} for ${output.metadata.symbol} (${output.metadata.market})`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${String(countStooqMarketDataItems(output.data))} item(s).`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const data = output as StooqMarketDataOutput | undefined
         log.info('Stooq stock quotes completed', {
             toolCallId,
             toolName,
-            count: countStooqMarketDataItems(data?.data),
+            count: countStooqMarketDataItems(output.data),
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

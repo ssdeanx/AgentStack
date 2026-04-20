@@ -21,6 +21,7 @@ import { embed } from 'ai';
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm';
 import { createSupervisorAgentPatternScorer } from '../scorers/supervisor-scorers'
 import { GoogleVoice } from '@mastra/voice-google'
+import { convexMemory } from '../config/convex'
 
 const workspace = new Workspace({
   id: 'supervisor-workspace',
@@ -203,12 +204,11 @@ Operating rules:
     browserAgent,
     copywriterAgent,
   },
-  memory: LibsqlMemory,
+  memory: convexMemory,
   requestContextSchema: baseAgentRequestContextSchema,
   workspace,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.AGENT,
     },
   },
   defaultOptions: {

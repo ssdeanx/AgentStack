@@ -57,6 +57,7 @@ export { evaluateResultTool } from './evaluateResultTool'
 export { extractLearningsTool } from './extractLearningsTool'
 export { colorChangeTool } from './color-change-tool'
 export { mdocumentChunker, libsqlChunker, documentRerankerTool, mastraChunker } from './document-chunking.tool'
+export { convexChunker, convexGraphQueryTool, convexVectorQueryTool, convexRerankerTool } from './convex-rag'
 export { editorTool } from './editor-agent-tool'
 export { readPDF } from './pdf'
 export {

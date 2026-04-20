@@ -202,6 +202,7 @@ export const listRepositories = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
 
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
@@ -339,7 +340,7 @@ export const listRepositories = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('GitHub list repositories tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -349,7 +350,7 @@ export const listRepositories = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
@@ -357,7 +358,7 @@ export const listRepositories = createTool({
         const scope = input.org !== undefined && input.org !== '' ? `org:${input.org}` : 'user'
         log.info('GitHub list repositories received complete input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             scope,
             type: input.type,
@@ -455,6 +456,7 @@ export const listPullRequests = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -577,6 +579,7 @@ export const listCommits = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -696,6 +699,7 @@ export const listIssues = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -823,6 +827,7 @@ export const createIssue = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -934,6 +939,7 @@ export const createRelease = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1056,6 +1062,7 @@ export const getRepositoryInfo = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1179,6 +1186,7 @@ export const searchCode = createTool({
         totalCount: z.number().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1300,6 +1308,7 @@ export const getFileContent = createTool({
         size: z.number().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1423,6 +1432,7 @@ export const getRepoFileTree = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1572,6 +1582,7 @@ export const createPullRequest = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1681,6 +1692,7 @@ export const mergePullRequest = createTool({
         merged: z.boolean().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1781,6 +1793,7 @@ export const addIssueComment = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -1891,6 +1904,7 @@ export const getPullRequest = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -2010,6 +2024,7 @@ export const getIssue = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext

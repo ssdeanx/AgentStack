@@ -18,6 +18,11 @@ const extractLearningsOutputSchema = z.object({
 
 type ExtractLearningsOutput = z.infer<typeof extractLearningsOutputSchema>
 
+const extractLearningsFallbackOutput: ExtractLearningsOutput = {
+    learning: '',
+    followUpQuestions: [],
+}
+
 export const extractLearningsTool = createTool({
     id: 'extract-learnings',
     description:
@@ -33,14 +38,7 @@ export const extractLearningsTool = createTool({
             .describe('The search result to process'),
     }),
     outputSchema: extractLearningsOutputSchema,
-    toModelOutput: (output: ExtractLearningsOutput) => ({
-        type: 'text',
-        value:
-            output.followUpQuestions.length > 0
-                ? `Learning: ${output.learning}\n\nFollow-up question: ${output.followUpQuestions[0]}`
-                : `Learning: ${output.learning}`,
-    }),
-
+    strict: true,
     execute: async (inputData, context) => {
         const mastra = context?.mastra
         const writer = context?.writer
@@ -313,7 +311,7 @@ export const extractLearningsTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('extractLearningsTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -322,7 +320,7 @@ export const extractLearningsTool = createTool({
         log.info('extractLearningsTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -330,7 +328,7 @@ export const extractLearningsTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('extractLearningsTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 query: input.query,
                 result: {
@@ -342,21 +340,30 @@ export const extractLearningsTool = createTool({
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output: ExtractLearningsOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Learning: ${output.learning}`,
+            },
+            output.followUpQuestions.length > 0
+                ? {
+                      type: 'text' as const,
+                      text: `Follow-up questions:\n- ${output.followUpQuestions.join('\n- ')}`,
+                  }
+                : undefined,
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const parsed = z
-            .object({
-                learning: z.string(),
-                followUpQuestions: z.array(z.string()),
-            })
-            .safeParse(output)
         log.info('extractLearningsTool completed', {
             toolCallId,
             toolName,
             outputData: {
-                learning: parsed.success ? parsed.data.learning : '',
-                followUpQuestions: parsed.success
-                    ? parsed.data.followUpQuestions
-                    : [],
+                learning: output.learning,
+                followUpQuestions: output.followUpQuestions,
             },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',

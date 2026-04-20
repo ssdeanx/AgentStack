@@ -124,6 +124,7 @@ export const yahooFinanceStockQuotesTool = createTool({
         'Fetch free Yahoo Finance stock data without an API key, including latest quotes and chart history.',
     inputSchema: yahooInputSchema,
     outputSchema: z.custom<YahooMarketDataOutput>(),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Yahoo Finance stock quotes input streaming started', {
             toolCallId,
@@ -347,12 +348,24 @@ export const yahooFinanceStockQuotesTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
+    toModelOutput: (output: YahooMarketDataOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Yahoo Finance ${output.metadata.function} for ${output.metadata.symbol}`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${String(countYahooMarketDataItems(output.data))} item(s).`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const data = output as YahooMarketDataOutput | undefined
         log.info('Yahoo Finance stock quotes completed', {
             toolCallId,
             toolName,
-            count: countYahooMarketDataItems(data?.data),
+            count: countYahooMarketDataItems(output.data),
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

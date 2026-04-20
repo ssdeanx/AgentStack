@@ -57,11 +57,11 @@ export const weatherTool = createTool({
         location: z.string(),
         unit: z.string(), // Add unit to output schema
     }),
-
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Weather tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputStart',
             abortSignal: resolveAbortSignal(abortSignal).aborted,
         })
@@ -71,14 +71,14 @@ export const weatherTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Weather tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: { location: input.location },
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
@@ -86,11 +86,11 @@ export const weatherTool = createTool({
     },
 
     execute: async (inputData, context) => {
-        const {writer} = context
-        const abortController = createLinkedAbortController(context.abortSignal)
+        const writer = context?.writer
+        const abortController = createLinkedAbortController(context?.abortSignal)
         const abortSignal = abortController.signal
         const tracingContext: TracingContext | undefined =
-            context.tracingContext
+            context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal.aborted) {
@@ -107,10 +107,10 @@ export const weatherTool = createTool({
             id: 'get-weather',
         })
 
-        const requestCtx = context.requestContext as WeatherToolContext
-        const temperatureUnit = requestCtx.get('temperatureUnit') ?? 'celsius'
-        const userId = requestCtx.all.userId
-        const workspaceId = requestCtx.all.workspaceId
+        const requestCtx = context?.requestContext as WeatherToolContext | undefined
+        const temperatureUnit = requestCtx?.get('temperatureUnit') ?? 'celsius'
+        const userId = requestCtx?.all.userId
+        const workspaceId = requestCtx?.all.workspaceId
 
         log.info(
             `Fetching weather for location: ${inputData.location} in ${temperatureUnit}`,
@@ -129,7 +129,7 @@ export const weatherTool = createTool({
                 'user.id': userId,
                 'workspace.id': workspaceId,
             },
-            requestContext: context.requestContext,
+            requestContext: context?.requestContext,
             tracingContext,
         })
 
@@ -276,15 +276,28 @@ export const weatherTool = createTool({
         }
     },
 
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: output.location,
+            },
+            {
+                type: 'text' as const,
+                text: `${String(output.temperature)}${output.unit}, ${output.conditions}.`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Weather tool completed', {
             toolCallId,
             toolName,
             outputData: {
-            location: output.location,
-            temperature: output.temperature,
-            unit: output.unit,
-            conditions: output.conditions,
+                location: output.location,
+                temperature: output.temperature,
+                unit: output.unit,
+                conditions: output.conditions,
             },
             hook: 'onOutput',
             abortSignal: resolveAbortSignal(abortSignal).aborted,

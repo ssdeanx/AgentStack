@@ -137,10 +137,11 @@ export const urlValidationTool = createTool({
     description: 'Validate, parse, and analyze URLs',
     inputSchema: UrlValidationInputSchema,
     outputSchema: UrlValidationOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('URL validation tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -149,7 +150,7 @@ export const urlValidationTool = createTool({
         log.info('URL validation tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -157,7 +158,7 @@ export const urlValidationTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('URL validation tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 url: input.url,
                 operationsCount: input.operations?.length ?? 1,
@@ -172,8 +173,8 @@ export const urlValidationTool = createTool({
             toolName,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
-                success: output.success,
-                operationsCompleted: output.operations.length,
+                success: output?.success ?? false,
+                operationsCompleted: output?.operations?.length ?? 0,
             },
             hook: 'onOutput',
         })
@@ -229,7 +230,7 @@ export const urlValidationTool = createTool({
                       port?: string
                       pathname: string
                       search: string
-                      hash: string
+                        hash: string
                       query: Record<string, string>
                   }
                 | {
@@ -352,10 +353,11 @@ export const urlManipulationTool = createTool({
         'Manipulate and transform URLs with query parameters, paths, and fragments',
     inputSchema: UrlManipulationInputSchema,
     outputSchema: UrlManipulationOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('URL manipulation tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -364,7 +366,7 @@ export const urlManipulationTool = createTool({
         log.info('URL manipulation tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -372,7 +374,7 @@ export const urlManipulationTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('URL manipulation tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 baseUrl: input.baseUrl,
                 operationsCount: input.operations.length,

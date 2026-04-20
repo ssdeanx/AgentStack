@@ -19,6 +19,7 @@ export const downsampleTool = createTool({
         originalLength: z.number(),
         target: z.number(),
     }),
+    strict: true,
     execute: async (input, context) => {
         const writer = context?.writer
 
@@ -243,7 +244,7 @@ export const downsampleTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Downsample tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -252,7 +253,7 @@ export const downsampleTool = createTool({
         log.info('Downsample tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -260,7 +261,7 @@ export const downsampleTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Downsample tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 valuesCount: input.values.length,
                 target: input.target,
@@ -273,7 +274,7 @@ export const downsampleTool = createTool({
         log.info('Downsample tool completed', {
             toolCallId,
             toolName,
-            outputData: { sampledCount: output.values.length },
+            outputData: { sampledCount: output?.values?.length ?? 0 },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

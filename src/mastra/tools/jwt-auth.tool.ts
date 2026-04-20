@@ -23,10 +23,11 @@ export const jwtAuthTool = createTool({
         exp: z.number().optional(),
         iat: z.number().optional(),
     }),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('JWT auth tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -36,14 +37,14 @@ export const jwtAuthTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ toolCallId, messages, abortSignal }) => {
         log.info('JWT auth received complete input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             note: 'no parameters required',
             hook: 'onInputAvailable',

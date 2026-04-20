@@ -128,18 +128,28 @@ export const amazonSearchTool = createTool({
         'Search Amazon for products. Filter by price range, sort by relevance/price/rating, and show only Prime eligible items. Returns product title, ASIN, price, rating, review count, and Prime status.',
     inputSchema: amazonSearchInputSchema,
     outputSchema: amazonSearchOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('amazonSearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('amazonSearchTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('amazonSearchTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -150,17 +160,6 @@ export const amazonSearchTool = createTool({
                 numResults: input.numResults,
             },
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('amazonSearchTool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                products: output.products,
-            },
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
@@ -295,6 +294,21 @@ export const amazonSearchTool = createTool({
             })
         }
     },
+    toModelOutput: (output: z.infer<typeof amazonSearchOutputSchema>) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('amazonSearchTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                products: output.products,
+            },
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 // Walmart Search Tool
@@ -334,18 +348,28 @@ export const walmartSearchTool = createTool({
         'Search Walmart for products. Filter by price range and sort by relevance, price, or rating. Returns product information including title, price, rating, and links.',
     inputSchema: walmartSearchInputSchema,
     outputSchema: walmartSearchOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('walmartSearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('walmartSearchTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('walmartSearchTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -355,17 +379,6 @@ export const walmartSearchTool = createTool({
                 numResults: input.numResults,
             },
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('walmartSearchTool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
-            outputData: {
-                products: output.products,
-            },
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
@@ -486,6 +499,21 @@ export const walmartSearchTool = createTool({
             })
         }
     },
+    toModelOutput: (output: z.infer<typeof walmartSearchOutputSchema>) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('walmartSearchTool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            outputData: {
+                products: output.products,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 // eBay Search Tool
@@ -533,18 +561,28 @@ export const ebaySearchTool = createTool({
         'Search eBay for products and listings. Filter by condition (new/used/refurbished), show only Buy It Now items, and sort by relevance or price. Returns item details including price, bids, time left, and condition.',
     inputSchema: ebaySearchInputSchema,
     outputSchema: ebaySearchOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ebaySearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('ebaySearchTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ebaySearchTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -554,17 +592,6 @@ export const ebaySearchTool = createTool({
                 numResults: input.numResults,
             },
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('ebaySearchTool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
-            outputData: {
-                products: output.products,
-            },
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
@@ -713,6 +740,21 @@ export const ebaySearchTool = createTool({
             })
         }
     },
+    toModelOutput: (output: z.infer<typeof ebaySearchOutputSchema>) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('ebaySearchTool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            outputData: {
+                products: output.products,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 // Home Depot Search Tool
@@ -755,18 +797,28 @@ export const homeDepotSearchTool = createTool({
         'Search Home Depot for home improvement products. Filter by in-stock availability and sort by relevance, price, or rating. Returns product details including price, rating, availability, and links.',
     inputSchema: homeDepotSearchInputSchema,
     outputSchema: homeDepotSearchOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('homeDepotSearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('homeDepotSearchTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('homeDepotSearchTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -775,17 +827,6 @@ export const homeDepotSearchTool = createTool({
                 numResults: input.numResults,
             },
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('homeDepotSearchTool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
-            outputData: {
-                products: output.products,
-            },
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
@@ -899,6 +940,21 @@ export const homeDepotSearchTool = createTool({
                 cause: error,
             })
         }
+    },
+    toModelOutput: (output: z.infer<typeof homeDepotSearchOutputSchema>) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('homeDepotSearchTool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            outputData: {
+                products: output.products,
+            },
+            hook: 'onOutput',
+        })
     },
 })
 

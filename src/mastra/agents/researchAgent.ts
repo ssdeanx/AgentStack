@@ -66,7 +66,7 @@ import { amazonSearchTool, ebaySearchTool, homeDepotSearchTool, walmartSearchToo
 import { agentFsWorkspace } from '../workspaces';
 import { agentBrowser } from '../browsers'
 import { createMemoryState } from "@chat-adapter/state-memory";
-
+import { convexMemory } from '../config/convex'
 //const github = createGitHubAdapter({
 //  //appId: process.env.GITHUB_APP_ID!,
 //  //privateKey: process.env.GITHUB_PRIVATE_KEY!,
@@ -243,22 +243,22 @@ const researchAgentTools = {
   googleScholarTool,
   googleNewsLiteTool,
   googleTrendsTool,
-  mdocumentChunker,
-  libsqlChunker,
-  libsqlQueryTool,
-  libsqlgraphQueryTool,
+  //mdocumentChunker,
+  //libsqlChunker,
+  //libsqlQueryTool,
+  //libsqlgraphQueryTool,
   listRepositories,
-  extractLearningsTool,
-  evaluateResultTool,
+  //extractLearningsTool,
+  //evaluateResultTool,
   polygonStockQuotesTool,
   finnhubQuotesTool,
   googleFinanceTool,
   binanceSpotMarketDataTool,
   coinbaseExchangeMarketDataTool,
-  discordWebhookTool,
+  //discordWebhookTool,
   googleImagesTool,
-  googleLocalTool,
-  googleMapsReviewsTool,
+  //googleLocalTool,
+  //googleMapsReviewsTool,
   stooqStockQuotesTool,
   yahooFinanceStockQuotesTool,
   ichimokuCloudTool,
@@ -269,11 +269,14 @@ const researchAgentTools = {
   volatilityAnalysisTool,
   volumeAnalysisTool,
   statisticalAnalysisTool,
-  heikinAshiTool,
+  //heikinAshiTool,
   marketSummaryTool,
   candlestickPatternTool,
   technicalAnalysisTool,
-  amazonSearchTool, walmartSearchTool, ebaySearchTool, homeDepotSearchTool,
+  amazonSearchTool, 
+  walmartSearchTool, 
+  ebaySearchTool, 
+  //homeDepotSearchTool,
   googleSearchTool,
   googleAiOverviewTool,
 }
@@ -319,7 +322,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 - **Technical Analysis**: use 'ichimokuCloudTool', 'fibonacciTool', 'pivotPointsTool', 'trendAnalysisTool', 'momentumAnalysisTool', 'volatilityAnalysisTool', 'volumeAnalysisTool', 'statisticalAnalysisTool', 'heikinAshiTool', 'marketSummaryTool', 'candlestickPatternTool', and 'technicalAnalysisTool' for chart pattern and indicator analysis.
 - **Internal**: 'libsqlChunker' for embedding any information, 'libsqlQueryTool' for querying embedded knowledge. 'libsqlgraphQueryTool' for complex relational queries.
 - **Processing**: use workspace document tools for PDFs, Markdown, and any other filetype in the workspace;
-- **Discord**: use 'discordWebhookTool' to post short notifications or summaries to the configured Discord webhook URL.
+
 - **Stores**: 'amazonSearchTool', 'walmartSearchTool', 'ebaySearchTool', 'homeDepotSearchTool', for product research.
 
 ## Rules
@@ -343,14 +346,14 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     const role = getRoleFromContext(requestContext)
 
     if (role === 'admin') {
-      return 'kilo/x-ai/grok-code-fast-1:optimized:free'
+      return 'google/gemini-3.1-flash-preview'
     }
 
-    return 'opencode/minimax-m2.5-free'
+    return 'kilo/x-ai/grok-code-fast-1:optimized:free'
   },
   tools: researchAgentTools,
   workflows: { researchArxivDownloadWorkflow, researchArxivSearchWorkflow },
-  memory: LibsqlMemory,
+  memory: convexMemory,
   scorers: {
     //  toneConsistency: { scorer: createToneScorer() },
     //  textualDifference: { scorer: createTextualDifferenceScorer() },
@@ -371,7 +374,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     new TokenLimiter(12000),
   ],
   outputProcessors: [
-    new TokenLimiterProcessor(200000),
+    new TokenLimiterProcessor(300000),
     //     new BatchPartsProcessor({
     //         batchSize: 10,
     //        maxWaitTime: 75,

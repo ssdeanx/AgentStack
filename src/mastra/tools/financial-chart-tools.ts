@@ -20,6 +20,28 @@ const chartStreamOutputSchema = z.object({
 
 type ChartStreamOutput = z.infer<typeof chartStreamOutputSchema>
 
+type FinancialChartJsonPrimitive = string | number | boolean | null
+type FinancialChartJsonValue =
+    | FinancialChartJsonPrimitive
+    | FinancialChartJsonObject
+    | FinancialChartJsonValue[]
+
+interface FinancialChartJsonObject {
+    [key: string]: FinancialChartJsonValue
+}
+
+let financialChartJsonValueSchema: z.ZodType<FinancialChartJsonValue>
+financialChartJsonValueSchema = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(financialChartJsonValueSchema),
+        z.record(z.string(), financialChartJsonValueSchema),
+    ])
+)
+
 /**
  * Chart Supervisor Tool
  * Orchestrates the complete chart creation pipeline
@@ -81,7 +103,7 @@ export const chartSupervisorTool = createTool({
         data: z
             .object({
                 chartData: z
-                    .array(z.record(z.string(), z.unknown()))
+                    .array(z.record(z.string(), financialChartJsonValueSchema))
                     .describe('Processed data for Recharts'),
                 metadata: z.object({
                     symbols: z.array(z.string()),
@@ -113,6 +135,7 @@ export const chartSupervisorTool = createTool({
             })
         ),
     }),
+    strict: true,
 
     execute: async (inputData, context) => {
         const {
@@ -320,6 +343,14 @@ Please:
             hook: 'onInputStart',
         })
     },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartSupervisorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartSupervisorTool received input', {
             toolCallId,
@@ -335,6 +366,10 @@ Please:
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartSupervisorTool completed', {
             toolCallId,
@@ -372,7 +407,7 @@ export const chartGeneratorTool = createTool({
             ])
             .describe('The Recharts chart type to generate'),
         data: z
-            .array(z.record(z.string(), z.unknown()))
+            .array(z.record(z.string(), financialChartJsonValueSchema))
             .describe('The chart data array'),
         dataKeys: z
             .array(z.string())
@@ -415,9 +450,10 @@ export const chartGeneratorTool = createTool({
         componentName: z.string(),
         code: z.string(),
         usage: z.string(),
-        props: z.record(z.string(), z.unknown()),
+        props: z.record(z.string(), financialChartJsonValueSchema),
         dependencies: z.array(z.string()),
     }),
+    strict: true,
 
     execute: async (inputData, context) => {
         const {
@@ -610,6 +646,14 @@ Return JSON with: componentName, code, usage, props, dependencies`
             hook: 'onInputStart',
         })
     },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartGeneratorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartGeneratorTool received input', {
             toolCallId,
@@ -626,6 +670,10 @@ Return JSON with: componentName, code, usage, props, dependencies`
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartGeneratorTool completed', {
             toolCallId,
@@ -691,10 +739,12 @@ export const chartDataProcessorTool = createTool({
             .describe('Additional calculations to perform'),
     }),
     outputSchema: z.object({
-        chartData: z.array(z.record(z.string(), z.unknown())),
+        chartData: z.array(
+            z.record(z.string(), financialChartJsonValueSchema)
+        ),
         dataKeys: z.array(z.string()),
         domain: z.object({
-            x: z.array(z.unknown()),
+            x: z.array(financialChartJsonValueSchema),
             y: z.array(z.number()),
         }),
         metadata: z.object({
@@ -704,8 +754,11 @@ export const chartDataProcessorTool = createTool({
             lastUpdated: z.string(),
             interval: z.string(),
         }),
-        calculations: z.record(z.string(), z.unknown()).optional(),
+        calculations: z
+            .record(z.string(), financialChartJsonValueSchema)
+            .optional(),
     }),
+    strict: true,
 
     execute: async (inputData, context) => {
         const {
@@ -906,6 +959,14 @@ Return JSON with:
             hook: 'onInputStart',
         })
     },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartDataProcessorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartDataProcessorTool received input', {
             toolCallId,
@@ -919,6 +980,10 @@ Return JSON with:
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartDataProcessorTool completed', {
             toolCallId,
@@ -997,6 +1062,7 @@ export const chartTypeAdvisorTool = createTool({
             suggestedHeight: z.number(),
         }),
     }),
+    strict: true,
 
     execute: async (inputData, context) => {
         const {
@@ -1192,6 +1258,14 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
             hook: 'onInputStart',
         })
     },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartTypeAdvisorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartTypeAdvisorTool received input', {
             toolCallId,
@@ -1204,6 +1278,10 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
             hook: 'onInputAvailable',
         })
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartTypeAdvisorTool completed', {
             toolCallId,

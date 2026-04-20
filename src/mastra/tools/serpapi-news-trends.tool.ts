@@ -234,6 +234,7 @@ export const googleNewsTool = createTool({
         'Search Google News for current news articles. Filter by time range (hour, day, week, month, year), topic (world, business, technology, etc.), and sort by relevance or date. Returns article title, source, date, and snippet.',
     inputSchema: googleNewsInputSchema,
     outputSchema: googleNewsOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google News tool input streaming started', {
             toolCallId,
@@ -445,11 +446,15 @@ export const googleNewsTool = createTool({
             throw new Error(`Google News search failed: ${errorMessage}`, { cause: error })
         }
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Google News search completed', {
             toolCallId,
             toolName,
-            articlesFound: output.newsArticles.length,
+            articlesFound: output?.newsArticles?.length ?? 0,
             totalResults: output.totalResults,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
@@ -484,6 +489,24 @@ export const googleNewsLiteTool = createTool({
             )
             .describe('Array of news articles with minimal details'),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google News Lite input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google News Lite received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            aborted: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google News Lite received input', {
             toolCallId,
@@ -613,13 +636,17 @@ export const googleNewsLiteTool = createTool({
             })
         }
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Google News Lite tool completed', {
             toolCallId,
             toolName,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
-                articlesFound: output.newsArticles.length,
+                articlesFound: output?.newsArticles?.length ?? 0,
             },
             hook: 'onOutput',
         })
@@ -764,6 +791,7 @@ export const googleTrendsTool = createTool({
         'Analyze search trends and interest over time for specific topics. Returns interest data over time, related queries, and related topics. Use to understand topic popularity, discover trending related searches, and analyze search patterns over different time periods.',
     inputSchema: googleTrendsInputSchema,
     outputSchema: googleTrendsOutputSchema,
+    strict: true,
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Trends received input', {
             toolCallId,
@@ -773,7 +801,7 @@ export const googleTrendsTool = createTool({
                 timeRange: input.timeRange,
                 category: input.category,
             },
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
@@ -781,7 +809,7 @@ export const googleTrendsTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google Trends input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -790,7 +818,7 @@ export const googleTrendsTool = createTool({
         log.info('Google Trends received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -1022,11 +1050,11 @@ export const googleTrendsTool = createTool({
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         const relatedQueryCount =
-            (output.relatedQueries?.rising?.length ?? 0) +
-            (output.relatedQueries?.top?.length ?? 0)
+            (output?.relatedQueries?.rising?.length ?? 0) +
+            (output?.relatedQueries?.top?.length ?? 0)
         const relatedTopicCount =
-            (output.relatedTopics?.rising?.length ?? 0) +
-            (output.relatedTopics?.top?.length ?? 0)
+            (output?.relatedTopics?.rising?.length ?? 0) +
+            (output?.relatedTopics?.top?.length ?? 0)
 
         log.info('Google Trends analysis completed', {
             toolCallId,
@@ -1075,6 +1103,36 @@ export const googleAutocompleteTool = createTool({
         'Get Google search suggestions for partial queries. Returns an array of autocomplete suggestions that users commonly search for. Useful for discovering related search terms, query variations, and popular searches.',
     inputSchema: googleAutocompleteInputSchema,
     outputSchema: googleAutocompleteOutputSchema,
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google Autocomplete input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Autocomplete received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            aborted: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google Autocomplete received input', {
+            toolCallId,
+            inputData: {
+                query: input.query,
+                location: input.location,
+            },
+            messageCount: messages?.length ?? 0,
+            aborted: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
@@ -1184,6 +1242,19 @@ export const googleAutocompleteTool = createTool({
                 cause: error,
             })
         }
+    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Autocomplete completed', {
+            toolCallId,
+            toolName,
+            suggestionCount: output?.suggestions?.length ?? 0,
+            aborted: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

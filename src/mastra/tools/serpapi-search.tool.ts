@@ -75,7 +75,7 @@ const googleSearchOutputSchema = z.object({
         .describe('Related search queries'),
     searchInfo: z
         .object({
-            totalResults: z.string().optional(),
+            totalResults: z.union([z.string(), z.number()]).optional(),
             timeTaken: z.number().optional(),
         })
         .optional()
@@ -98,6 +98,7 @@ export const googleSearchTool = createTool({
         'Search Google to find current information, websites, and answers to factual questions. Returns organic search results, knowledge graph data, and related searches. Best for general web search queries.',
     inputSchema: googleSearchInputSchema,
     outputSchema: googleSearchOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, abortSignal }) => {
         log.info('Google search tool input streaming started', {
             toolCallId,
@@ -110,7 +111,7 @@ export const googleSearchTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
@@ -350,9 +351,9 @@ export const googleSearchTool = createTool({
             toolCallId,
             toolName,
             abortSignal: abortSignal?.aborted,
-            organicResults: output.organicResults.length,
-            hasKnowledgeGraph: !!output.knowledgeGraph,
-            relatedSearches: output.relatedSearches?.length ?? 0,
+            organicResults: output?.organicResults?.length ?? 0,
+            hasKnowledgeGraph: !!output?.knowledgeGraph,
+            relatedSearches: output?.relatedSearches?.length ?? 0,
             hook: 'onOutput',
         })
     },
@@ -409,6 +410,7 @@ export const googleAiOverviewTool = createTool({
         'Get AI-generated overviews from Google that synthesize information from multiple sources. Best for queries that need comprehensive answers combining multiple perspectives. Returns overview text and source citations.',
     inputSchema: googleAiOverviewInputSchema,
     outputSchema: googleAiOverviewOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, abortSignal }) => {
         log.info('AI overview tool input streaming started', {
             toolCallId,
@@ -421,7 +423,7 @@ export const googleAiOverviewTool = createTool({
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
@@ -589,10 +591,8 @@ export const googleAiOverviewTool = createTool({
             toolName,
             abortSignal: abortSignal?.aborted,
             available: output.available,
-            sourcesCount: output.sources.length,
-            hasAiOverview:
-                    output.aiOverview !== undefined &&
-                    output.aiOverview !== '',
+            sourcesCount: output.sources?.length ?? 0,
+            hasAiOverview: (output.aiOverview ?? '') !== '',
             hook: 'onOutput',
         })
     },

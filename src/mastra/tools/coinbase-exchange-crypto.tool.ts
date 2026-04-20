@@ -126,6 +126,7 @@ export const coinbaseExchangeMarketDataTool = createTool({
         'Fetch free Coinbase Exchange public crypto market data including ticker, 24h stats, candles, order book, trades, and products.',
     inputSchema: coinbaseInputSchema,
     outputSchema: z.custom<CoinbaseMarketDataOutput>(),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Coinbase Exchange market-data input streaming started', {
             toolCallId,
@@ -321,9 +322,21 @@ export const coinbaseExchangeMarketDataTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
+    toModelOutput: (output: CoinbaseMarketDataOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Coinbase Exchange ${output.metadata.function} for ${output.metadata.symbol || 'unknown'} (${output.metadata.market})`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${countCoinbaseMarketDataItems(output.data)} item(s).`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const data = output as CoinbaseMarketDataOutput | undefined
-        const count = countCoinbaseMarketDataItems(data?.data)
+        const count = countCoinbaseMarketDataItems(output.data)
 
         log.info('Coinbase Exchange market-data completed', {
             toolCallId,
