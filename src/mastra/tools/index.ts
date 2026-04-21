@@ -44,6 +44,7 @@ export * from './text-analysis.tool'
 export * from './url-tool'
 export * from './weather-tool'
 export * from './write-note'
+export * from './moltbook-tools'
 
 // Export individual tools that might not be covered by export *
 export { arxivPaperDownloaderTool } from './arxiv.tool'

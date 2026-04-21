@@ -1,10 +1,11 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
+import { readFileSync } from 'fs'
 
 import { log } from '../config/logger'
-import { BaseToolRequestContext } from './request-context.utils'
-import { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
+import type { RequestContext } from '@mastra/core/request-context'
 
 
 export interface CalendarEvent {
@@ -16,6 +17,12 @@ export interface CalendarEvent {
 }
 
 type CalendarDataFormat = 'auto' | 'json' | 'ics'
+type CalendarSourceKind = 'macos-calendar' | 'windows-outlook' | 'ics-file'
+
+interface CalendarSource {
+    name: CalendarSourceKind
+    getEvents: () => CalendarEvent[]
+}
 
 const calendarAnnotations = {
     title: 'Calendar Data Lookup',
@@ -162,6 +169,55 @@ function parseCalendarJsonEvents(jsonContent: string): CalendarEvent[] {
             return event ? [event] : []
         })
     )
+}
+
+export function getCalendarSourceKind(
+    platform: string,
+    preferredSource?: CalendarSourceKind
+): CalendarSourceKind {
+    if (preferredSource) {
+        return preferredSource
+    }
+
+    if (platform === 'darwin') {
+        return 'macos-calendar'
+    }
+
+    if (platform === 'win32') {
+        return 'windows-outlook'
+    }
+
+    return 'ics-file'
+}
+
+export function createCalendarSource(
+    platform: string,
+    preferredSource?: CalendarSourceKind,
+    icsPath?: string
+): CalendarSource {
+    const sourceKind = getCalendarSourceKind(platform, preferredSource)
+
+    if (sourceKind === 'ics-file') {
+        return {
+            name: sourceKind,
+            getEvents: () => {
+                const resolvedPath = icsPath ?? process.env.CALENDAR_ICS_PATH
+
+                if (!resolvedPath) {
+                    throw new Error(
+                        'CALENDAR_ICS_PATH must be set when using the ICS calendar source'
+                    )
+                }
+
+                return parseIcsCalendarEvents(readFileSync(resolvedPath, 'utf8'))
+            },
+        }
+    }
+
+    return {
+        name: sourceKind,
+        getEvents: () => [],
+    }
 }
 
 function parseIcsDate(rawValue: string): Date {
@@ -328,38 +384,34 @@ function createReadOnlyHooks(
     outputSummary: (output: unknown) => Record<string, unknown>
 ) {
     return {
-        onInputStart: ({ toolCallId, messages, abortSignal }: { toolCallId: string; messages?: Array<unknown>; abortSignal?: AbortSignal }) => {
+        onInputStart: ({ toolCallId, messages }: { toolCallId: string; messages?: Array<unknown> }) => {
             log.info(`${toolLabel} tool input streaming started`, {
                 toolCallId,
-                messageCount: messages?.length ?? 0,
-                abortSignal: abortSignal?.aborted,
+                messages: messages ?? [],
                 hook: 'onInputStart',
             })
         },
-        onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }: { inputTextDelta: string; toolCallId: string; messages?: Array<unknown>; abortSignal?: AbortSignal }) => {
+        onInputDelta: ({ inputTextDelta, toolCallId, messages }: { inputTextDelta: string; toolCallId: string; messages?: Array<unknown> }) => {
             log.info(`${toolLabel} tool received input chunk`, {
                 toolCallId,
                 inputTextDelta,
-                messageCount: messages?.length ?? 0,
-                abortSignal: abortSignal?.aborted,
+                messages: messages ?? [],
                 hook: 'onInputDelta',
             })
         },
-        onInputAvailable: ({ input, toolCallId, messages, abortSignal }: { input: unknown; toolCallId: string; messages?: Array<unknown>; abortSignal?: AbortSignal }) => {
+        onInputAvailable: ({ input, toolCallId, messages }: { input: unknown; toolCallId: string; messages?: Array<unknown> }) => {
             log.info(`${toolLabel} tool received input`, {
                 toolCallId,
                 inputData: inputSummary(input),
-                messageCount: messages?.length ?? 0,
-                abortSignal: abortSignal?.aborted,
+                messages: messages ?? [],
                 hook: 'onInputAvailable',
             })
         },
-        onOutput: ({ output, toolCallId, toolName, abortSignal }: { output?: unknown; toolCallId: string; toolName: string; abortSignal?: AbortSignal }) => {
+        onOutput: ({ output, toolCallId, toolName }: { output?: unknown; toolCallId: string; toolName: string }) => {
             log.info(`${toolLabel} tool completed`, {
                 toolCallId,
                 toolName,
                 outputData: outputSummary(output),
-                abortSignal: abortSignal?.aborted,
                 hook: 'onOutput',
             })
         },
@@ -619,13 +671,14 @@ export const getUpcomingEvents = createTool({
         })
 
         try {
+            const lookaheadDays = inputData.days ?? 7
             const allEvents = resolveCalendarEvents(
                 inputData.calendarData,
                 inputData.calendarFormat ?? 'auto'
             )
             const now = new Date()
             const futureDate = new Date(now)
-            futureDate.setDate(futureDate.getDate() + inputData.days)
+            futureDate.setDate(futureDate.getDate() + lookaheadDays)
 
             const upcomingEvents = allEvents
                 .filter((event) => event.startDate >= now && event.startDate <= futureDate)

@@ -310,32 +310,29 @@ export const calculatorTool = createTool({
         message: z.string().optional(),
     }),
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Calculator tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Calculator tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Calculator tool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             inputData: {
                 expression: input.expression,
                 variablesCount: Object.keys(input.variables ?? {}).length,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -499,7 +496,7 @@ export const calculatorTool = createTool({
             ? `Expression ${output.expression} = ${output.formattedResult}`
             : output.message ?? `Expression ${output.expression} could not be evaluated`,
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Calculator tool completed', {
             toolCallId,
             toolName,
@@ -507,7 +504,6 @@ export const calculatorTool = createTool({
                 success: output.success,
                 hasResult: true,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -542,33 +538,30 @@ export const unitConverterTool = createTool({
         message: z.string().optional(),
     }),
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Unit Converter tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Unit Converter tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Unit Converter tool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             inputData: {
                 value: input.value,
                 fromUnit: input.fromUnit,
                 toUnit: input.toUnit,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -699,7 +692,7 @@ export const unitConverterTool = createTool({
             : output.message ?? 'Unit conversion failed',
     }),
 
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Unit Converter tool completed', {
             toolCallId,
             toolName,
@@ -707,7 +700,6 @@ export const unitConverterTool = createTool({
                 success: output.success,
                 result: output.formattedResult,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -750,27 +742,25 @@ export const matrixCalculatorTool = createTool({
         message: z.string().optional(),
     }),
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Matrix Calculator tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Matrix Calculator tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Matrix Calculator tool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             inputData: {
                 operation: input.operation,
                 matrixADims: [
@@ -778,7 +768,6 @@ export const matrixCalculatorTool = createTool({
                     input.matrixA[0]?.length ?? 0,
                 ],
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -987,7 +976,6 @@ export const matrixCalculatorTool = createTool({
                 success: output.success,
                 operation: output.operation,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

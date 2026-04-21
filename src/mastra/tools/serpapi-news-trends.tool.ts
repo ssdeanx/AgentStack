@@ -235,24 +235,26 @@ export const googleNewsTool = createTool({
     inputSchema: googleNewsInputSchema,
     outputSchema: googleNewsOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google News tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google News received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google News received input', {
             toolCallId,
             inputData: {
@@ -262,7 +264,8 @@ export const googleNewsTool = createTool({
                 topic: input.topic,
                 numResults: input.numResults,
             },
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
@@ -450,13 +453,14 @@ export const googleNewsTool = createTool({
         type: 'json',
         value: output,
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, abortSignal, experimental_context }) => {
         log.info('Google News search completed', {
             toolCallId,
             toolName,
             articlesFound: output?.newsArticles?.length ?? 0,
             totalResults: output.totalResults,
             aborted: resolveAbortSignal(abortSignal).aborted,
+            experimental_context,
             hook: 'onOutput',
         })
     },
@@ -490,24 +494,26 @@ export const googleNewsLiteTool = createTool({
             .describe('Array of news articles with minimal details'),
     }),
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google News Lite input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, experimental_context, abortSignal }) => {
         log.info('Google News Lite received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, experimental_context, abortSignal }) => {
         log.info('Google News Lite received input', {
             toolCallId,
             inputData: {
@@ -515,7 +521,8 @@ export const googleNewsLiteTool = createTool({
                 location: input.location,
                 numResults: input.numResults,
             },
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
@@ -640,10 +647,11 @@ export const googleNewsLiteTool = createTool({
         type: 'json',
         value: output,
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, experimental_context, abortSignal }) => {
         log.info('Google News Lite tool completed', {
             toolCallId,
             toolName,
+            experimental_context,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
                 articlesFound: output?.newsArticles?.length ?? 0,
@@ -792,7 +800,7 @@ export const googleTrendsTool = createTool({
     inputSchema: googleTrendsInputSchema,
     outputSchema: googleTrendsOutputSchema,
     strict: true,
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google Trends received input', {
             toolCallId,
             inputData: {
@@ -801,26 +809,29 @@ export const googleTrendsTool = createTool({
                 timeRange: input.timeRange,
                 category: input.category,
             },
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Google Trends input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google Trends received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
+        })
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
+        log.info('Google Trends input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            experimental_context,
+            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            hook: 'onInputStart',
         })
     },
     execute: async (input, context) => {
@@ -1048,7 +1059,7 @@ export const googleTrendsTool = createTool({
             throw new Error(`Google Trends search failed: ${errorMessage}`, { cause: error })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, abortSignal, experimental_context }) => {
         const relatedQueryCount =
             (output?.relatedQueries?.rising?.length ?? 0) +
             (output?.relatedQueries?.top?.length ?? 0)
@@ -1062,6 +1073,7 @@ export const googleTrendsTool = createTool({
             dataPoints: output?.interestOverTime?.length ?? 0,
             relatedQueries: relatedQueryCount,
             relatedTopics: relatedTopicCount,
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
@@ -1104,31 +1116,34 @@ export const googleAutocompleteTool = createTool({
     inputSchema: googleAutocompleteInputSchema,
     outputSchema: googleAutocompleteOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google Autocomplete input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             aborted: resolveAbortSignal(abortSignal).aborted,
+            experimental_context,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google Autocomplete received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             aborted: resolveAbortSignal(abortSignal).aborted,
+            experimental_context,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Google Autocomplete received input', {
             toolCallId,
             inputData: {
                 query: input.query,
                 location: input.location,
             },
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
@@ -1247,11 +1262,12 @@ export const googleAutocompleteTool = createTool({
         type: 'json',
         value: output,
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, abortSignal, experimental_context }) => {
         log.info('Google Autocomplete completed', {
             toolCallId,
             toolName,
             suggestionCount: output?.suggestions?.length ?? 0,
+            experimental_context,
             aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })

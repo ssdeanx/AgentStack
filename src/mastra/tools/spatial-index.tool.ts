@@ -77,6 +77,32 @@ export const spatialIndexTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool input streaming started', {
+            toolCallId,
+            messages,
+            abortSignal,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool received input', {
+            toolCallId,
+            messages,
+            inputData: { action: input.action },
+            abortSignal,
+            hook: 'onInputAvailable',
+        })
+    },
     strict: true,
     execute: async (input, context) => {
         const writer = context?.writer
@@ -198,33 +224,7 @@ export const spatialIndexTool = createTool({
             throw err
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Spatial Index tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Spatial Index tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Spatial Index tool received input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: { action: input.action },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    toModelOutput: (output: SpatialIndexToolOutput) => {
+    toModelOutput: (output) => {
         return {
             type: 'json',
             value: output,

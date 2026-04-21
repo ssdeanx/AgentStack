@@ -217,29 +217,26 @@ export const jsonToCsvTool = createTool({
             throw new Error(errorMessage, { cause: error })
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('JSON to CSV tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('JSON to CSV tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         const options = input.options ?? {}
         log.info('JSON to CSV received complete input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             recordCount: input.data.length,
             delimiter: options.delimiter,
             includeHeaders: options.includeHeaders,
@@ -250,7 +247,7 @@ export const jsonToCsvTool = createTool({
         type: 'text',
         value: output.csv,
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         const parsed = jsonToCsvToolOutputSchema.safeParse(output)
         const csvOutput = parsed.success
             ? parsed.data.csv
@@ -264,7 +261,6 @@ export const jsonToCsvTool = createTool({
         log.info('JSON to CSV conversion completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             csvLines,
             csvLength: csvOutput.length,
             hook: 'onOutput',

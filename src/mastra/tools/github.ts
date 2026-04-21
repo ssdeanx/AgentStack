@@ -84,6 +84,13 @@ interface GitHubTreeResponse {
     truncated?: boolean
 }
 
+type GitHubJsonPrimitive = string | number | boolean | null
+type GitHubJsonValue = GitHubJsonPrimitive | GitHubJsonObject | GitHubJsonValue[]
+
+interface GitHubJsonObject {
+    [key: string]: GitHubJsonValue
+}
+
 interface GitHubSearchItem {
     name: string
     path: string
@@ -203,7 +210,36 @@ export const listRepositories = createTool({
         message: z.string().optional(),
     }),
     strict: true,
-
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('GitHub list repositories tool input streaming started', {
+            toolCallId,
+            messages,
+            abortSignal,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('GitHub list repositories tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const scope = input.org !== undefined && input.org !== '' ? `org:${input.org}` : 'user'
+        log.info('GitHub list repositories received complete input', {
+            toolCallId,
+            messages,
+            abortSignal,
+            scope,
+            type: input.type,
+            sort: input.sort,
+            perPage: input.perPage,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as
             | GithubToolContext
@@ -337,36 +373,6 @@ export const listRepositories = createTool({
             return { success: false, message: errorMsg }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('GitHub list repositories tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('GitHub list repositories tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const scope = input.org !== undefined && input.org !== '' ? `org:${input.org}` : 'user'
-        log.info('GitHub list repositories received complete input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            scope,
-            type: input.type,
-            sort: input.sort,
-            perPage: input.perPage,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         if (output.success && output.repositories) {
             log.info('GitHub list repositories completed', {
@@ -410,7 +416,7 @@ interface GitHubIssue {
     updated_at: string
     labels?: Array<{ name: string }>
     comments: number
-    pull_request?: Record<string, unknown> | null
+    pull_request?: GitHubJsonObject | null
 }
 
 interface GitHubCommit {
@@ -756,15 +762,11 @@ export const listIssues = createTool({
                     number: issue.number,
                     title: issue.title,
                     state: issue.state,
-                    author:
-                        ((issue.user as Record<string, unknown>)
-                            ?.login as string) ?? 'unknown',
+                    author: issue.user?.login ?? 'unknown',
                     url: issue.html_url,
                     createdAt: issue.created_at,
                     updatedAt: issue.updated_at,
-                    labels: (
-                        (issue.labels as Array<Record<string, unknown>>) ?? []
-                    ).map((l) => l.name as string),
+                    labels: issue.labels?.map((label) => label.name) ?? [],
                     comments: issue.comments,
                 }))
 
@@ -1245,9 +1247,7 @@ export const searchCode = createTool({
             const results = items.map((item) => ({
                 name: item.name,
                 path: item.path,
-                repository:
-                    ((item.repository as Record<string, unknown>)
-                        ?.full_name as string) ?? 'unknown',
+                repository: item.repository?.full_name ?? 'unknown',
                 url: item.html_url,
                 sha: item.sha,
             }))

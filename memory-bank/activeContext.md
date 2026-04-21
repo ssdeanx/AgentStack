@@ -1,3 +1,33 @@
+# Active Context Update (2026-04-21 - inline hook tool hardening)
+
+- Rebuilt `src/mastra/tools/discord-webhook.tool.ts` so every hook is inline, the payload is built inline, and the file no longer relies on fake local hook helpers.
+- Reworked `src/mastra/tools/copywriter-agent-tool.ts` to use the repo's structured streaming pattern with `ChunkType`, inline hooks, and no message-count hook noise.
+- Replaced the Moltbook placeholder in `src/mastra/tools/moltbook-tools.ts` with a real axios-backed tool set that uses inline hooks and explicit output schemas.
+- Targeted `get_errors` on the edited tool files is clean.
+
+# Active Context Update (2026-04-21 - Moltbook filesystem hardening)
+
+- `src/mastra/tools/moltbook-tools.ts` now uses `mainFilesystem` from `src/mastra/workspaces.ts` for avatar uploads instead of `node:path` / `node:fs`.
+- The Moltbook avatar upload now validates the workspace file with `mainFilesystem.stat`, reads it with `mainFilesystem.readFile`, and converts the result into a `Blob` without Node filesystem imports.
+- `src/mastra/tools/AGENTS.md` now explicitly requires `mainFilesystem` for workspace file access and bans `node:path` / `node:fs` imports in tools.
+- Targeted `get_errors` on `src/mastra/tools/moltbook-tools.ts` is clean.
+
+# Active Context Update (2026-04-21 - Moltbook axios tools and URL-aware output hardening)
+
+- Added a full axios-backed Moltbook tool set in `src/mastra/tools/moltbook-tools.ts`, wired through the shared HTTP client, and exported it from `src/mastra/tools/index.ts`.
+- Added `MOLTBOOK_API_KEY` to `.env.example` so the authenticated Moltbook tools have a documented placeholder.
+- Added `src/mastra/tools/tool-output-formatters.ts` and hardened the remaining SERP, fetch, and arXiv tools with URL-aware `toModelOutput` mappings.
+- Confirmed targeted `get_errors` is clean on the edited tool files and the shared HTTP helper.
+- The earlier chat diagnostics, lint-task, typedRoutes, and Mastra hook hardening work remains in place.
+
+# Active Context Update (2026-04-20 - Mastra tool hook hardening sweep)
+
+- Continued the `src/mastra/tools` hardening pass to keep Mastra lifecycle hooks in the correct tool-object position and signature shape.
+- Confirmed the installed `@mastra/core/dist/tools/types.d.ts` exposes top-level `onInputStart`, `onInputDelta`, `onInputAvailable`, `toModelOutput`, and `onOutput` hooks directly on `createTool` objects, so the cleanup preserved top-level hooks instead of moving to a nested `hooks` object.
+- Fixed `confirmation.tool.ts`, `random-generator.tool.ts`, and `text-analysis.tool.ts` so their input hooks are ordered before `execute` and their output hooks remain after `execute`.
+- Repaired `image-tool.ts` hook signatures/formatting and restored `financial-chart-tools.ts` / `polygon-tools.ts` through large-batch structural cleanup.
+- The chart file repair was verified by direct file reads; the remaining analyzer warnings appear to be tooling noise rather than a different hook API shape.
+
 # Active Context Update (2026-04-20 - calendar tool cross-platform refactor)
 
 - Refactored `src/mastra/tools/calendar-tool.ts` from a macOS-only AppleScript reader into a platform-aware calendar source selector.
@@ -993,6 +1023,22 @@
 - Next immediate step: continue remaining GSAP + dashboard fixes and verify agent deep-link chat flow end-to-end.
 
 # Active Context
+
+## Active Context Update (2026-04-20 - chat adapter inventory research)
+- Inspected the installed `@chat-adapter/*` packages under `node_modules` and confirmed the repo currently has platform adapters for `discord`, `github`, `gchat`, and `slack`.
+- Confirmed the available state backends are `state-memory`, `state-redis`, and `state-ioredis`, plus shared chat utilities in `@chat-adapter/shared`.
+- Key adapter capabilities discovered for future staging:
+  - Discord: HTTP interactions, optional gateway listener, DM/mention handling, reactions, slash commands, and card-to-embed rendering.
+  - Slack: single-workspace or OAuth multi-workspace installs, signing-secret webhook verification, interactive payloads, modals, scheduled messages, reactions, and encrypted installation storage.
+  - GitHub: PAT or GitHub App auth, single-tenant or multi-tenant modes, PR conversation comments, review comment threads, issue comments, and reactions.
+  - Google Chat: mention-based webhooks plus optional Workspace Events / PubSub subscriptions for full-space capture, card v2 conversion, and service-account/ADC auth.
+- No code exports were changed; this is reference-only context for the next channel expansion pass.
+
+## Active Context Update (2026-04-20 - shared channel config extraction)
+- Moved the research agent's channel adapters, handlers, inline media/links, and thread-context setup into `src/mastra/config/channels.ts`.
+- `src/mastra/agents/researchAgent.ts` now imports `researchAgentChannels` from the shared config module instead of owning the channel block inline.
+- Added a config barrel export in `src/mastra/config/index.ts` and documented `channels.ts` in `src/mastra/config/AGENTS.md` as the canonical channel location.
+- Targeted ESLint on the edited Mastra TypeScript files was clean; the TypeScript compile check was skipped by the environment.
 
 ## Active Context Update (2026-04-17 - weavingapi nil-safety and haste-aware prediction)
 - Reworked `src/mastra/public/workspace/weavingapi.md` so it now resolves the highest valid rank per spell family, avoiding nil `castTime` crashes when a WotLK-only rank is missing on a TBC/Classic client.

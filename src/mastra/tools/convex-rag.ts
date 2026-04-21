@@ -262,31 +262,28 @@ Features:
     inputSchema: ConvexDocumentChunkingInputSchema,
     outputSchema: ConvexDocumentChunkingOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Convex chunker tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Convex chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Convex chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
-            messageCount: messages?.length ?? 0,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputAvailable',
         })
     },
@@ -486,7 +483,7 @@ Features:
                 }))
 
                 const finalVectors: number[][] = []
-                const finalMetadata: Array<Record<string, unknown>> = []
+                const finalMetadata: ConvexJsonObject[] = []
                 const finalIds: string[] = []
 
                 if (embeddings.length > 0) {
@@ -564,13 +561,12 @@ Features:
             span?.end()
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Convex chunker completed', {
             toolCallId,
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -638,22 +634,20 @@ Features:
     inputSchema: ConvexDocumentRerankerInputSchema,
     outputSchema: ConvexDocumentRerankerOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Convex reranker tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Convex reranker received complete input', {
             toolCallId,
             userQuery: input.userQuery,
             indexName: input.indexName,
             topK: input.topK,
-            messageCount: messages?.length ?? 0,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputAvailable',
         })
     },

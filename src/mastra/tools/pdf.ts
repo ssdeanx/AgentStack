@@ -22,22 +22,25 @@ export const readPDF = createTool({
         content: z.string(),
     }),
     strict: true,
-    onInputStart: ({ toolCallId }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('readPDF tool input streaming started', {
             toolCallId,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('readPDF received input chunk', {
             toolCallId,
             inputTextDelta,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('readPDF received input', {
             toolCallId,
+            messages: messages ?? [],
             inputData: {
                 pdfPath: input.pdfPath,
             },

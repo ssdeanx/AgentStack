@@ -14,7 +14,11 @@ import { httpFetch } from '../lib/http-client'
 const fetch = httpFetch
 
 type PolygonJsonPrimitive = string | number | boolean | null
-type PolygonJsonValue = PolygonJsonPrimitive | PolygonJsonObject | PolygonJsonValue[]
+type PolygonJsonValue =
+    | PolygonJsonPrimitive
+    | PolygonJsonObject
+    | PolygonJsonValue[]
+    | undefined
 
 interface PolygonJsonObject {
     [key: string]: PolygonJsonValue
@@ -119,6 +123,37 @@ export const polygonStockQuotesTool = createTool({
     }),
     outputSchema: polygonStockQuotesOutputSchema,
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            inputData: {
+                symbol: input.symbol,
+                function: input.function,
+                limit: input.limit,
+                sort: input.sort,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -387,37 +422,6 @@ export const polygonStockQuotesTool = createTool({
             throw normalizedError
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Polygon stock quotes tool input streaming started', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Polygon stock quotes tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Polygon stock quotes received input', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                symbol: input.symbol,
-                function: input.function,
-                limit: input.limit,
-                sort: input.sort,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
     toModelOutput: (output) => ({
         type: 'content',
         value: [
@@ -519,6 +523,39 @@ export const polygonStockAggregatesTool = createTool({
         error: z.string().optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon aggregates tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon aggregates tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon aggregates received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            inputData: {
+                symbol: input.symbol,
+                multiplier: input.multiplier,
+                timespan: input.timespan,
+                from: input.from,
+                to: input.to,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -777,6 +814,40 @@ export const polygonStockAggregatesTool = createTool({
             throw normalizedError
         }
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Polygon aggregates for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.error !== undefined && output.error !== ''
+                ? {
+                      type: 'text' as const,
+                      text: `Failed: ${output.error}`,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${String(output.metadata?.count ?? 0)} result(s).`,
+                  },
+        ],
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const hasError = typeof output.error === 'string' && output.error.length > 0
+        const dataPoints = output.metadata?.count ?? 0
+        log[hasError ? 'warn' : 'info']('Polygon aggregates completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                symbol: output.metadata?.symbol,
+                dataPoints,
+                hasError,
+                error: output.error,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type PolygonStockAggregatesUITool = InferUITool<
@@ -834,6 +905,37 @@ export const polygonStockFundamentalsTool = createTool({
             .optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon fundamentals tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon fundamentals tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon fundamentals received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            inputData: {
+                function: input.function,
+                symbol: input.symbol,
+                limit: input.limit,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -1147,6 +1249,32 @@ export const polygonStockFundamentalsTool = createTool({
             throw normalizedError
         }
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Polygon ${output.metadata?.function ?? 'fundamentals'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${String(output.metadata?.count ?? 0)} result(s).`,
+            },
+        ],
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const dataPoints = output.metadata?.count ?? 0
+        log.info('Polygon fundamentals completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                symbol: output.metadata?.symbol,
+                dataPoints,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type PolygonStockFundamentalsUITool = InferUITool<
@@ -1195,6 +1323,33 @@ export const polygonCryptoQuotesTool = createTool({
         error: z.string().optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto quotes tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto quotes tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto quotes received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            inputData: { function: input.function, symbol: input.symbol, limit: input.limit },
+            hook: 'onInputAvailable',
+        })
+    },
+
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -1450,6 +1605,40 @@ export const polygonCryptoQuotesTool = createTool({
             throw normalizedError
         }
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Polygon ${output.metadata?.function ?? 'crypto quotes'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.error !== undefined && output.error !== ''
+                ? {
+                      type: 'text' as const,
+                      text: `Failed: ${output.error}`,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${String(output.metadata?.count ?? 0)} result(s).`,
+                  },
+        ],
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const hasError = typeof output.error === 'string' && output.error.length > 0
+        const dataPoints = output.metadata?.count ?? 0
+        log[hasError ? 'warn' : 'info']('Polygon crypto quotes completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                symbol: output.metadata?.symbol,
+                dataPoints,
+                hasError,
+                error: output.error,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type PolygonCryptoQuotesUITool = InferUITool<
@@ -1518,6 +1707,39 @@ export const polygonCryptoAggregatesTool = createTool({
         error: z.string().optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto aggregates tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto aggregates tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto aggregates received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            inputData: {
+                symbol: input.symbol,
+                multiplier: input.multiplier,
+                timespan: input.timespan,
+                from: input.from,
+                to: input.to,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -1777,6 +1999,40 @@ export const polygonCryptoAggregatesTool = createTool({
             throw normalizedError
         }
     },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Polygon crypto aggregates for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.error !== undefined && output.error !== ''
+                ? {
+                      type: 'text' as const,
+                      text: `Failed: ${output.error}`,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${String(output.metadata?.count ?? 0)} result(s).`,
+                  },
+        ],
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const hasError = typeof output.error === 'string' && output.error.length > 0
+        const dataPoints = output.metadata?.count ?? 0
+        log[hasError ? 'warn' : 'info']('Polygon crypto aggregates completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                symbol: output.metadata?.symbol,
+                dataPoints,
+                hasError,
+                error: output.error,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type PolygonCryptoAggregatesUITool = InferUITool<
@@ -1817,6 +2073,33 @@ export const polygonCryptoSnapshotsTool = createTool({
         error: z.string().optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto snapshots tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto snapshots tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon crypto snapshots received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages?.length ?? 0,
+            inputData: { limit: input.limit },
+            hook: 'onInputAvailable',
+        })
+    },
+
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -2034,6 +2317,39 @@ export const polygonCryptoSnapshotsTool = createTool({
 
             throw normalizedError
         }
+    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Polygon crypto snapshots result`,
+            },
+            output.error !== undefined && output.error !== ''
+                ? {
+                      type: 'text' as const,
+                      text: `Failed: ${output.error}`,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${String(output.metadata?.count ?? 0)} result(s).`,
+                  },
+        ],
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const hasError = typeof output.error === 'string' && output.error.length > 0
+        const dataPoints = output.metadata?.count ?? 0
+        log[hasError ? 'warn' : 'info']('Polygon crypto snapshots completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                dataPoints,
+                hasError,
+                error: output.error,
+            },
+            hook: 'onOutput',
+        })
     },
 })
 

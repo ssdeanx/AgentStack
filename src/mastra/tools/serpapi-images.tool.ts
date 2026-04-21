@@ -159,24 +159,22 @@ export const googleImagesTool = createTool({
     inputSchema: googleImagesInputSchema,
     outputSchema: googleImagesOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        onInputStart: ({ toolCallId, messages }) => {
         log.info('Google Images input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted,
+                messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Google Images received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted,
+                messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Google Images received input', {
             toolCallId,
             inputData: {
@@ -186,8 +184,7 @@ export const googleImagesTool = createTool({
                 pageIndex: input.pageIndex,
                 filters: input.filters,
             },
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted,
+                messages: messages ?? [],
             hook: 'onInputAvailable',
         })
     },
@@ -381,12 +378,11 @@ export const googleImagesTool = createTool({
             value: [...textParts, ...imageParts],
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Google Images completed', {
             toolCallId,
             toolName,
             imageCount: output?.imagesResults?.length ?? 0,
-            aborted: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

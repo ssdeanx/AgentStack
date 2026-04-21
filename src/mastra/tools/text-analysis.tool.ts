@@ -62,6 +62,35 @@ export const textAnalysisTool = createTool({
         message: z.string().optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Text analysis tool input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Text analysis tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Text analysis tool received input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            inputData: {
+                textLength: input.text?.length ?? 0,
+                operationsCount: input.operations?.length ?? 0,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -222,35 +251,10 @@ export const textAnalysisTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Text analysis tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Text analysis tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Text analysis tool received input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                textLength: input.text?.length ?? 0,
-                operationsCount: input.operations?.length ?? 0,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Text analysis tool completed', {
             toolCallId,
@@ -306,6 +310,35 @@ export const textProcessingTool = createTool({
         message: z.string().optional(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Text processing tool input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Text processing tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Text processing tool received input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            inputData: {
+                textLength: input.text.length,
+                operationsCount: input.operations.length,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -485,35 +518,10 @@ export const textProcessingTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Text processing tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Text processing tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Text processing tool received input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                textLength: input.text.length,
-                operationsCount: input.operations.length,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Text processing tool completed', {
             toolCallId,

@@ -82,6 +82,26 @@ export const cytoscapeTool = createTool({
         }),
     }),
     strict: true,
+    onInputStart: ({ toolCallId }) => {
+        log.info('Cytoscape generator tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId }) => {
+        log.info('Cytoscape generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId }) => {
+        log.info('Cytoscape generator tool received input', {
+            toolCallId,
+            inputData: input,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const { nodes, edges, layout } = input
         const writer = context?.writer
@@ -275,26 +295,6 @@ export const cytoscapeTool = createTool({
         type: 'json',
         value: output,
     }),
-    onInputStart: ({ toolCallId }) => {
-        log.info('Cytoscape generator tool input streaming started', {
-            toolCallId,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId }) => {
-        log.info('Cytoscape generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('Cytoscape generator tool received input', {
-            toolCallId,
-            inputData: input,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Cytoscape generator tool completed', {
             toolCallId,

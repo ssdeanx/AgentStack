@@ -132,7 +132,7 @@ export const amazonSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('amazonSearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -141,7 +141,7 @@ export const amazonSearchTool = createTool({
         log.info('amazonSearchTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -149,7 +149,7 @@ export const amazonSearchTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('amazonSearchTool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -352,7 +352,7 @@ export const walmartSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('walmartSearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -361,7 +361,7 @@ export const walmartSearchTool = createTool({
         log.info('walmartSearchTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -369,7 +369,7 @@ export const walmartSearchTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('walmartSearchTool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -565,7 +565,7 @@ export const ebaySearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ebaySearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -574,7 +574,7 @@ export const ebaySearchTool = createTool({
         log.info('ebaySearchTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -582,7 +582,7 @@ export const ebaySearchTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ebaySearchTool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,
@@ -801,7 +801,7 @@ export const homeDepotSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('homeDepotSearchTool tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
@@ -810,7 +810,7 @@ export const homeDepotSearchTool = createTool({
         log.info('homeDepotSearchTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
@@ -818,7 +818,7 @@ export const homeDepotSearchTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('homeDepotSearchTool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             abortSignal: resolveAbortSignal(abortSignal).aborted,
             inputData: {
                 query: input.query,

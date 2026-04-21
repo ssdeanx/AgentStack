@@ -99,26 +99,25 @@ export const googleSearchTool = createTool({
     inputSchema: googleSearchInputSchema,
     outputSchema: googleSearchOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Google search tool input streaming started', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Google search tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Google search received complete input', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             query: input.query,
             numResults: input.numResults,
             location: input.location,
@@ -346,11 +345,14 @@ export const googleSearchTool = createTool({
             throw error
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Google search completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             organicResults: output?.organicResults?.length ?? 0,
             hasKnowledgeGraph: !!output?.knowledgeGraph,
             relatedSearches: output?.relatedSearches?.length ?? 0,
@@ -411,26 +413,25 @@ export const googleAiOverviewTool = createTool({
     inputSchema: googleAiOverviewInputSchema,
     outputSchema: googleAiOverviewOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('AI overview tool input streaming started', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('AI overview tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('AI overview received complete input', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             query: input.query,
             location: input.location,
             includeScrapedContent: input.includeScrapedContent,
@@ -585,11 +586,14 @@ export const googleAiOverviewTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('AI overview completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             available: output.available,
             sourcesCount: output.sources?.length ?? 0,
             hasAiOverview: (output.aiOverview ?? '') !== '',

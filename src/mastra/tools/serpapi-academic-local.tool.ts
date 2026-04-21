@@ -174,27 +174,27 @@ export const googleScholarTool = createTool({
     inputSchema: googleScholarInputSchema,
     outputSchema: googleScholarOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages, experimental_context }) => {
         log.info('Google Scholar tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
+            experimental_context,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, experimental_context }) => {
         log.info('Google Scholar tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
+            experimental_context,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, experimental_context }) => {
         log.info('Google Scholar received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             inputData: {
                 query: input.query,
                 yearStart: input.yearStart,
@@ -202,7 +202,7 @@ export const googleScholarTool = createTool({
                 sortBy: input.sortBy,
                 numResults: input.numResults,
             },
-            abortSignal: abortSignal?.aborted,
+            experimental_context,
             hook: 'onInputAvailable',
         })
     },
@@ -346,14 +346,17 @@ export const googleScholarTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         const paperCount = getGoogleScholarPaperCount(output)
 
         log.info('Google Scholar search completed', {
             toolCallId,
             toolName,
             outputData: { paperCount },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -403,32 +406,29 @@ export const googleFinanceTool = createTool({
     inputSchema: googleFinanceInputSchema,
     outputSchema: googleFinanceOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Google Finance tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Google Finance tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Google Finance received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             inputData: {
                 query: input.query,
                 exchange: input.exchange,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -530,12 +530,15 @@ export const googleFinanceTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Google Finance search completed', {
             toolCallId,
             toolName,
             outputData: { symbol: output.symbol },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -598,27 +601,25 @@ export const yelpSearchTool = createTool({
     inputSchema: yelpSearchInputSchema,
     outputSchema: yelpSearchOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Yelp Search tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Yelp Search tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Yelp Search received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             inputData: {
                 query: input.query,
                 location: input.location,
@@ -627,7 +628,6 @@ export const yelpSearchTool = createTool({
                 openNow: input.openNow,
                 numResults: input.numResults,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -740,12 +740,15 @@ export const yelpSearchTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Yelp Search completed', {
             toolCallId,
             toolName,
             outputData: { businessCount: output?.businesses?.length ?? 0 },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

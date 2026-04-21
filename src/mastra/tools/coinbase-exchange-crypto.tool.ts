@@ -127,31 +127,28 @@ export const coinbaseExchangeMarketDataTool = createTool({
     inputSchema: coinbaseInputSchema,
     outputSchema: z.custom<CoinbaseMarketDataOutput>(),
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Coinbase Exchange market-data input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Coinbase Exchange market-data received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Coinbase Exchange market-data received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             function: input.function,
             baseCurrency: input.baseCurrency,
             quoteCurrency: input.quoteCurrency,
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -335,14 +332,13 @@ export const coinbaseExchangeMarketDataTool = createTool({
             },
         ],
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         const count = countCoinbaseMarketDataItems(output.data)
 
         log.info('Coinbase Exchange market-data completed', {
             toolCallId,
             toolName,
             count,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

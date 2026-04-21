@@ -26,32 +26,29 @@ export const writeNoteTool = createTool({
     }),
     outputSchema: z.string().nonempty(),
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('writeNoteTool tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('writeNoteTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('writeNoteTool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             inputData: {
                 title: input.title,
                 content: input.content,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },

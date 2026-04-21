@@ -11,7 +11,7 @@ import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
-import { createLinkedAbortController, resolveAbortSignal } from './abort-signal.utils'
+import { createLinkedAbortController } from './abort-signal.utils'
 import type { BaseToolRequestContext } from './request-context.utils'
 
 const DEFAULT_USER_AGENT =
@@ -763,35 +763,33 @@ export const fetchTool = createTool({
     inputSchema: fetchToolInputSchema,
     outputSchema: fetchToolOutputSchema,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        
-        
+    onInputStart: ({ toolCallId, messages, experimental_context }) => {
         log.info('Fetch tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
+            experimental_context,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, experimental_context }) => {
         log.info('Fetch tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
+            experimental_context,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, experimental_context }) => {
         log.info('Fetch tool input available', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
             url: input.url,
             query: input.query,
             searchProvider: input.searchProvider,
             searchVertical: input.searchVertical,
             contentContext: input.contentContext,
+            experimental_context,
             hook: 'onInputAvailable',
         })
     },
@@ -1084,17 +1082,17 @@ export const fetchTool = createTool({
             throw error
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, experimental_context }) => {
         const parsed = fetchToolOutputSchema.safeParse(output)
         const safeOutput = parsed.success ? parsed.data : undefined
 
         log.info('Fetch tool completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             mode: safeOutput?.mode ?? 'unknown',
             resultCount: safeOutput?.results?.length ?? 0,
             hook: 'onOutput',
+            experimental_context,
         })
     },
 })

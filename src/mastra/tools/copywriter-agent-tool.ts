@@ -1,5 +1,5 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import type { MastraModelOutput } from '@mastra/core/stream'
+import type { ChunkType, MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
@@ -8,6 +8,16 @@ import type { RequestContext } from '@mastra/core/request-context'
 import type { BaseToolRequestContext } from './request-context.utils.js'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { log } from '../config/logger'
+
+type CopywriterJsonPrimitive = string | number | boolean | null
+type CopywriterJsonValue =
+    | CopywriterJsonPrimitive
+    | CopywriterJsonObject
+    | CopywriterJsonValue[]
+
+interface CopywriterJsonObject {
+    [key: string]: CopywriterJsonValue
+}
 
 export interface CopywriterRequestContext {
     mocked?: boolean // placeholder for additional options
@@ -38,8 +48,6 @@ type CopywriterToolOutput = z.infer<typeof copywriterToolOutputSchema>
 const copywriterToolFallbackOutput: CopywriterToolOutput = {
     content: '',
     contentType: 'general',
-    title: undefined,
-    summary: undefined,
     keyPoints: [],
     wordCount: 0,
 }
@@ -88,6 +96,39 @@ export const copywriterTool = createTool({
     }),
     outputSchema: copywriterToolOutputSchema,
     strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('copywriterTool tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('copywriterTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            inputChunkLength: inputTextDelta.length,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('copywriterTool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            inputData: {
+                topic: input.topic,
+                contentType: input.contentType,
+                targetAudience: input.targetAudience,
+                tone: input.tone,
+                length: input.length,
+                hasSpecificRequirements:
+                    typeof input.specificRequirements === 'string' &&
+                    input.specificRequirements.trim().length > 0,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context.writer
         const mastra = context.mastra
@@ -158,19 +199,16 @@ export const copywriterTool = createTool({
                 })
 
                 return {
+                    ...copywriterToolFallbackOutput,
                     content: `Unable to generate content: copywriterAgent is not available.`,
                     contentType,
-                    title: undefined,
-                    summary: undefined,
-                    keyPoints: [],
-                    wordCount: 0,
                 }
             }
 
             // Build the prompt with context
             let prompt = `Create ${length} ${contentType} content about: ${topic}`
 
-            if (userId !== undefined) {
+            if (typeof userId === 'string' && userId.trim().length > 0) {
                 prompt += `\n\nUser: ${userId}`
             }
 
@@ -246,11 +284,21 @@ export const copywriterTool = createTool({
                         },
                         id: 'copywriter-agent',
                     })
-                    const stream = (await agent.stream(prompt)) as
-                        | MastraModelOutput
-                        | undefined
+                    const stream = await agent.stream(prompt, {
+                        structuredOutput: {
+                            schema: copywriterToolOutputSchema,
+                        },
+                        onChunk: (chunk: ChunkType<CopywriterToolOutput>) => {
+                            if (
+                                chunk.type === 'text-delta' &&
+                                typeof chunk.payload?.text === 'string'
+                            ) {
+                                contentText += chunk.payload.text
+                            }
+                        },
+                    }) as MastraModelOutput<CopywriterToolOutput>
 
-                    if (stream?.textStream && writer) {
+                    if (stream.textStream && writer) {
                         await writer?.custom({
                             type: 'data-tool-progress',
                             data: {
@@ -262,9 +310,9 @@ export const copywriterTool = createTool({
                             id: 'copywriter-agent',
                         })
                         await stream.textStream.pipeTo(
-                            writer as unknown as WritableStream
+                            writer as WritableStream
                         )
-                    } else if (stream?.fullStream && writer) {
+                    } else if (stream.fullStream && writer) {
                         await writer?.custom({
                             type: 'data-tool-progress',
                             transient: true,
@@ -276,35 +324,14 @@ export const copywriterTool = createTool({
                             },
                             id: 'copywriter-agent',
                         })
-                        await stream.fullStream.pipeTo(
-                            writer as unknown as WritableStream
-                        )
+                        await stream.fullStream.pipeTo(writer as WritableStream)
                     }
 
-                    const text = (await stream?.text) ?? ''
-                    const responseObject =
-                        stream?.object ??
-                        (() => {
-                            try {
-                                return JSON.parse(text)
-                            } catch {
-                                return {}
-                            }
-                        })()
-
-                    if (
-                        Boolean(responseObject) &&
-                        typeof responseObject === 'object'
-                    ) {
-                        const obj = responseObject as Record<string, unknown>
-                        const contentVal = obj.content
-                        if (typeof contentVal === 'string') {
-                            contentText = contentVal
-                        } else {
-                            contentText = text
-                        }
+                    const structured = await stream.object
+                    if (structured && typeof structured.content === 'string') {
+                        contentText = structured.content
                     } else {
-                        contentText = text
+                        contentText = (await stream.text) ?? contentText
                     }
                 } catch (err) {
                     const msg = err instanceof Error ? err.message : String(err)
@@ -324,21 +351,16 @@ export const copywriterTool = createTool({
                     throw err
                 }
             } else {
-                const response = await agent.generate(prompt)
-                const responseObject =
-                    response.object ??
-                    (() => {
-                        try {
-                            return JSON.parse(response.text)
-                        } catch {
-                            return undefined
-                        }
-                    })()
-                const obj = responseObject as
-                    | Record<string, unknown>
-                    | undefined
-                if (obj && typeof obj.content === 'string') {
-                    contentText = obj.content
+                const response = await agent.generate(prompt, {
+                    structuredOutput: {
+                        schema: copywriterToolOutputSchema,
+                    },
+                })
+                if (
+                    response.object &&
+                    typeof response.object.content === 'string'
+                ) {
+                    contentText = response.object.content
                 } else {
                     contentText = response.text
                 }
@@ -361,7 +383,7 @@ export const copywriterTool = createTool({
 
             // Extract title if present (look for # or ## at start)
             const titleMatch = /^#{1,2}\s+(.+)$/m.exec(content)
-            const title = titleMatch ? titleMatch[1] : undefined
+            const title = titleMatch ? titleMatch[1] : null
 
             // Create a simple summary from the first paragraph or first few sentences
             const firstParagraph =
@@ -372,7 +394,13 @@ export const copywriterTool = createTool({
                     : firstParagraph
 
             span?.update({
-                output: { content, contentType, title, wordCount },
+                output: {
+                    content,
+                    contentType,
+                    wordCount,
+                    ...(title ? { title } : {}),
+                    ...(summary ? { summary } : {}),
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.wordCount': wordCount,
@@ -384,9 +412,9 @@ export const copywriterTool = createTool({
             return {
                 content,
                 contentType,
-                title,
-                summary,
-                keyPoints: [], // Could be enhanced to extract key points
+                ...(title ? { title } : {}),
+                ...(summary ? { summary } : {}),
+                keyPoints: [],
                 wordCount,
             }
         } catch (error) {
@@ -401,74 +429,52 @@ export const copywriterTool = createTool({
                 error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
-            throw new Error(`Failed to generate content: ${errorMsg}`, {
-                cause: error,
-            })
+
+            return {
+                ...copywriterToolFallbackOutput,
+                content: `Failed to generate content: ${errorMsg}`,
+                contentType,
+            }
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('copywriterTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('copywriterTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('copywriterTool received input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                topic: input.topic,
-                contentType: input.contentType,
-                targetAudience: input.targetAudience,
-                tone: input.tone,
-                length: input.length,
-                specificRequirements: input.specificRequirements,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
     },
     toModelOutput: (output: CopywriterToolOutput) => ({
         type: 'content',
-        value: [
-            output.title
-                ? {
-                      type: 'text' as const,
-                      text: `Title: ${output.title}`,
-                  }
-                : undefined,
-            output.summary
-                ? {
-                      type: 'text' as const,
-                      text: `Summary: ${output.summary}`,
-                  }
-                : undefined,
-            output.keyPoints?.length
-                ? {
-                      type: 'text' as const,
-                      text: `Key points:\n- ${output.keyPoints.join('\n- ')}`,
-                  }
-                : undefined,
-            {
-                type: 'text' as const,
-                text: output.content,
-            },
-        ].filter(
-            (part): part is { type: 'text'; text: string } => Boolean(part)
-        ),
+        value: (() => {
+            const keyPoints = output.keyPoints ?? []
+
+            return [
+                ...(output.title
+                    ? [
+                          {
+                              type: 'text' as const,
+                              text: `Title: ${output.title}`,
+                          },
+                      ]
+                    : []),
+                ...(output.summary
+                    ? [
+                          {
+                              type: 'text' as const,
+                              text: `Summary: ${output.summary}`,
+                          },
+                      ]
+                    : []),
+                ...(keyPoints.length > 0
+                    ? [
+                          {
+                              type: 'text' as const,
+                              text: `Key points:\n- ${keyPoints.join('\n- ')}`,
+                          },
+                      ]
+                    : []),
+                {
+                    type: 'text' as const,
+                    text: output.content,
+                },
+            ]
+        })(),
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('copywriterTool completed', {
             toolCallId,
             toolName,
@@ -479,7 +485,6 @@ export const copywriterTool = createTool({
                 keyPoints: output.keyPoints,
                 wordCount: output.wordCount,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

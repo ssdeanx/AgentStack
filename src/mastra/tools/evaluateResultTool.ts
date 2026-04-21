@@ -74,7 +74,7 @@ export const evaluateResultTool = createTool({
         })
 
         const evalSpan = getOrCreateSpan({
-            type: SpanType.TOOL_CALL,
+            type: SpanType.AGENT_RUN,
             name: 'evaluate_result',
             input: inputData,
             requestContext: context?.requestContext,

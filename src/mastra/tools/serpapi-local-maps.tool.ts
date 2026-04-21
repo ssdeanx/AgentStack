@@ -426,7 +426,7 @@ export const googleLocalTool = createTool({
     inputSchema: googleLocalInputSchema,
     outputSchema: googleLocalOutputSchema,
     strict: true,
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Google Local received input', {
             toolCallId,
             inputData: {
@@ -436,8 +436,7 @@ export const googleLocalTool = createTool({
                 ludocid: input.ludocid,
                 start: input.start,
             },
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputAvailable',
         })
     },
@@ -595,12 +594,15 @@ export const googleLocalTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Google Local completed', {
             toolCallId,
             toolName,
             placeCount: output?.localResults?.length ?? 0,
-            aborted: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -616,7 +618,7 @@ export const googleMapsReviewsTool = createTool({
     inputSchema: googleMapsReviewsInputSchema,
     outputSchema: googleMapsReviewsOutputSchema,
     strict: true,
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Google Maps Reviews received input', {
             toolCallId,
             inputData: {
@@ -629,8 +631,7 @@ export const googleMapsReviewsTool = createTool({
                 numResults: input.numResults,
                 nextPageToken: input.nextPageToken,
             },
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputAvailable',
         })
     },
@@ -847,13 +848,16 @@ export const googleMapsReviewsTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Google Maps Reviews completed', {
             toolCallId,
             toolName,
             reviewCount: output?.reviews?.length ?? 0,
             topicCount: output.topics?.length ?? 0,
-            aborted: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

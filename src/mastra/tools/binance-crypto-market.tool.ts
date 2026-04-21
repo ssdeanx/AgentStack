@@ -351,8 +351,8 @@ export const binanceSpotMarketDataTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Binance spot market-data input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
+            abortSignal,
             hook: 'onInputStart',
         })
     },
@@ -360,18 +360,16 @@ export const binanceSpotMarketDataTool = createTool({
         log.info('Binance spot market-data received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Binance spot market-data received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             function: input.function,
             symbol: input.symbol,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -511,14 +509,13 @@ export const binanceSpotMarketDataTool = createTool({
             (part): part is { type: 'text'; text: string } => Boolean(part)
         ),
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         const count = countBinanceMarketDataItems(output.data)
 
         log.info('Binance spot market-data completed', {
             toolCallId,
             toolName,
             count,
-            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },

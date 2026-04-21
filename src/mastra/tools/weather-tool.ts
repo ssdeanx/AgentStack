@@ -11,6 +11,7 @@ import {
 
 import type { RequestContext } from '@mastra/core/request-context'
 import type { BaseToolRequestContext } from './request-context.utils'
+import type { BackgroundTask } from '@mastra/core/background-tasks'
 
 export interface WeatherToolContextExtra extends BaseToolRequestContext {
     temperatureUnit?: 'celsius' | 'fahrenheit'
@@ -56,31 +57,105 @@ export const weatherTool = createTool({
         conditions: z.string(),
         location: z.string(),
         unit: z.string(), // Add unit to output schema
+        sourceUrl: z.string().url(),
     }),
+    suspendSchema: z.object({
+        message: z.string(),
+        location: z.string(),
+    }),
+    resumeSchema: z.object({
+        location: z.string(),
+        temperature: z.number(),
+        conditions: z.string(),
+        unit: z.string(),
+    }),
+    requestContextSchema: z.object({
+        temperatureUnit: z.enum(['celsius', 'fahrenheit'])
+            .optional()
+            .describe('Preferred temperature unit'),
+        maxRows: z.number().int().nonnegative().optional().describe('Maximum number of rows to return'),
+    }),
+    inputExamples: [
+        { input: { location: 'New York' } },
+        { input: { location: 'Pittsburgh' } },
+        { input: { location: 'San Francisco' } },
+        { input: { location: 'Philadelphia' } },
+    ],
+    requireApproval: false,
     strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    background: {
+        enabled: true,
+        timeoutMs: 30_000, // 30 seconds timeout for background execution
+        maxRetries: 0, // No retries for background execution
+        waitTimeoutMs: 0, // No wait time before starting background execution
+        onComplete(task: BackgroundTask) {
+            log.info('Weather tool background execution completed', {
+                id: task.id,
+                status: task.status,
+                toolCallId: task.toolCallId,
+                toolName: task.toolName,
+                hook: 'onComplete',
+                args: task.args,
+                runId: task.runId,
+                threadId: task.threadId,
+                resourceId: task.resourceId,
+                result: task.result,
+                agentId: task.agentId,
+                createdAt: task.createdAt,
+                startedAt: task.startedAt,
+                completedAt: task.completedAt,
+                error: {
+                    message: task.error?.message,
+                    stack: task.error?.stack,
+                }
+            })
+        },
+        onFailed(task: BackgroundTask) {
+            log.error('Weather tool background execution failed', {
+                id: task.id,
+                status: task.status,
+                toolCallId: task.toolCallId,
+                toolName: task.toolName,
+                args: task.args,
+                hook: 'onFailed',
+                runId: task.runId,
+                threadId: task.threadId,
+                resourceId: task.resourceId,
+                result: task.result,
+                agentId: task.agentId,
+                createdAt: task.createdAt,
+                startedAt: task.startedAt,
+                completedAt: task.completedAt,
+                timeoutMs: task.timeoutMs,
+                retryCount: task.retryCount,
+                maxRetries: task.maxRetries,
+                error: {
+                    message: task.error?.message,
+                    stack: task.error?.stack,
+                }
+            })
+        }
+    },
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Weather tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             hook: 'onInputStart',
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Weather tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Weather tool received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             inputData: { location: input.location },
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -129,7 +204,7 @@ export const weatherTool = createTool({
                 'user.id': userId,
                 'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context?.requestContext as RequestContext<unknown> | undefined,
             tracingContext,
         })
 
@@ -206,6 +281,7 @@ export const weatherTool = createTool({
             const finalResult = {
                 ...result,
                 unit: temperatureUnit === 'celsius' ? '°C' : '°F',
+                sourceUrl: result.sourceUrl,
             }
 
             await writer?.custom({
@@ -287,9 +363,13 @@ export const weatherTool = createTool({
                 type: 'text' as const,
                 text: `${String(output.temperature)}${output.unit}, ${output.conditions}.`,
             },
+            {
+                type: 'text' as const,
+                text: `Source: ${output.sourceUrl}`,
+            },
         ],
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Weather tool completed', {
             toolCallId,
             toolName,
@@ -300,7 +380,6 @@ export const weatherTool = createTool({
                 conditions: output.conditions,
             },
             hook: 'onOutput',
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
         })
     },
 })
@@ -335,6 +414,7 @@ const getWeather = async (
         windGust: data.current.wind_gusts_10m,
         conditions: getWeatherCondition(data.current.weather_code),
         location: name,
+        sourceUrl: weatherUrl,
     }
 }
 

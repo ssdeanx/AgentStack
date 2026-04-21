@@ -170,7 +170,7 @@ export const editorTool = createTool({
                         id: 'editor-agent',
                     })
                     await stream.textStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                     resultText = (await stream.text) ?? streamedText
                 } else if (stream?.fullStream && writer) {
@@ -187,7 +187,7 @@ export const editorTool = createTool({
                         id: 'editor-agent',
                     })
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                            writer as WritableStream
                     )
                     resultText = (await stream.text) ?? streamedText
                 } else if (stream) {

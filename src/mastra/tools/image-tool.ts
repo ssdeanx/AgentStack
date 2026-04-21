@@ -56,29 +56,27 @@ export const ocrTool = createTool({
             )
             .describe('Text blocks with bounding boxes'),
     }),
-            strict: true,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('OCR tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('OCR tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('OCR tool received complete input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             inputData: { imagePath: input.imagePath, language: input.language },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -232,7 +230,7 @@ export const ocrTool = createTool({
             },
         ],
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('OCR tool completed', {
             toolCallId,
             toolName,
@@ -241,7 +239,6 @@ export const ocrTool = createTool({
                 confidence: output?.confidence,
                 blockCount: output?.blocks?.length ?? 0,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -310,6 +307,32 @@ export const imageProcessorTool = createTool({
         sizeBytes: z.number(),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Image processor tool input streaming started', {
+            toolCallId,
+            messages,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Image processor tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Image processor tool received complete input', {
+            toolCallId,
+            messages,
+            inputData: {
+                inputPath: input.inputPath,
+                outputPath: input.outputPath,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -452,39 +475,11 @@ export const imageProcessorTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Image processor tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
-        log.info('Image processor tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Image processor tool received complete input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                inputPath: input.inputPath,
-                outputPath: input.outputPath,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     toModelOutput: (output) => ({
         type: 'text',
         value: `${output.success ? 'Image processing succeeded' : 'Image processing completed'}${output.width !== undefined && output.height !== undefined ? `: ${output.width}x${output.height}` : ''}${output.sizeBytes !== undefined ? ` (${output.sizeBytes} bytes)` : ''}.`,
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Image processor tool completed', {
             toolCallId,
             toolName,
@@ -494,7 +489,6 @@ export const imageProcessorTool = createTool({
                 height: output?.height,
                 sizeBytes: output?.sizeBytes,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -539,6 +533,29 @@ export const imageToMarkdownTool = createTool({
         }),
     }),
     strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Image to markdown tool input streaming started', {
+            toolCallId,
+            messages,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Image to markdown tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Image to markdown tool received complete input', {
+            toolCallId,
+            messages,
+            inputData: { imagePath: input.imagePath },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -768,31 +785,6 @@ export const imageToMarkdownTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Image to markdown tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
-        log.info('Image to markdown tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Image to markdown tool received complete input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: { imagePath: input.imagePath },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     toModelOutput: (output) => ({
         type: 'content',
         value: [
@@ -806,7 +798,7 @@ export const imageToMarkdownTool = createTool({
             },
         ],
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Image to markdown tool completed', {
             toolCallId,
             toolName,
@@ -814,7 +806,6 @@ export const imageToMarkdownTool = createTool({
                 wordCount: output.metadata.wordCount,
                 lineCount: output.metadata.lineCount,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

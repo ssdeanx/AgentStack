@@ -84,6 +84,33 @@ export const leafletTool = createTool({
     }),
     outputSchema: leafletToolOutputSchema,
     strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Leaflet generator tool input streaming started', {
+            toolCallId,
+            messages,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Leaflet generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Leaflet generator tool received input', {
+            toolCallId,
+            messages,
+            inputData: {
+                pointsCount: input.points?.length ?? 0,
+                cluster: input.cluster,
+                zoom: input.zoom,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -163,7 +190,7 @@ export const leafletTool = createTool({
             })
 
             // Generate GeoJSON FeatureCollection
-            const geoJSON = {
+            const geoJSON: LeafletJsonValue = {
                 type: 'FeatureCollection',
                 features: points.map((p) => ({
                     type: 'Feature',
@@ -172,9 +199,11 @@ export const leafletTool = createTool({
                         coordinates: [p.lng, p.lat], // GeoJSON is [lng, lat]
                     },
                     properties: {
-                        title: p.title,
-                        description: p.description,
-                        category: p.category,
+                        ...(p.title !== undefined ? { title: p.title } : {}),
+                        ...(p.description !== undefined
+                            ? { description: p.description }
+                            : {}),
+                        ...(p.category !== undefined ? { category: p.category } : {}),
                         ...p.properties,
                     },
                 })),
@@ -209,7 +238,7 @@ export const leafletTool = createTool({
                 }
             })
 
-            const result = {
+            const result: LeafletToolOutput = {
                 geoJSON,
                 center: mapCenter,
                 zoom: zoom || 13,
@@ -269,50 +298,20 @@ export const leafletTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Leaflet generator tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Leaflet generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Leaflet generator tool received input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                pointsCount: input.points?.length ?? 0,
-                cluster: input.cluster,
-                zoom: input.zoom,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    toModelOutput: (output: LeafletToolOutput) => ({
+    toModelOutput: (output) => ({
         type: 'content',
         value: [
             {
                 type: 'text' as const,
-                text: `Generated Leaflet map with ${output.markers.length} marker(s)`,
+                text: `Generated Leaflet map with ${(output as LeafletToolOutput).markers.length} marker(s)`,
             },
             {
                 type: 'text' as const,
-                text: `Center: ${output.center.lat}, ${output.center.lng} | Zoom: ${String(output.zoom)}`,
+                text: `Center: ${(output as LeafletToolOutput).center.lat}, ${(output as LeafletToolOutput).center.lng} | Zoom: ${String((output as LeafletToolOutput).zoom)}`,
             },
         ],
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Leaflet generator tool completed', {
             toolCallId,
             toolName,
@@ -320,7 +319,6 @@ export const leafletTool = createTool({
                 markersCount: output.markers?.length ?? 0,
                 zoom: output.zoom,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

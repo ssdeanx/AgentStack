@@ -1,3 +1,29 @@
+# Progress Update (2026-04-21 - Moltbook filesystem hardening)
+
+- Replaced `node:path` / `node:fs` usage in `src/mastra/tools/moltbook-tools.ts` with `mainFilesystem` from `src/mastra/workspaces.ts`.
+- Kept the Moltbook tool output schema intact and ensured the avatar upload remains type-safe by converting workspace file data into a real `ArrayBuffer` before creating the `Blob`.
+- Updated `src/mastra/tools/AGENTS.md` to require `mainFilesystem` for workspace file access inside tools.
+- Verified `src/mastra/tools/moltbook-tools.ts` is clean with targeted `get_errors`.
+
+# Progress Update (2026-04-21 - Moltbook axios tools and URL-aware output hardening)
+
+- Added a full axios-backed Moltbook tool set in `src/mastra/tools/moltbook-tools.ts` and exported it through the shared tools index.
+- Added `MOLTBOOK_API_KEY` to `.env.example` so the Moltbook tools have a documented environment placeholder.
+- Added `src/mastra/tools/tool-output-formatters.ts` and hardened the remaining SERP, fetch, and arXiv tool files with URL-aware `toModelOutput` mappings.
+- Verified targeted `get_errors` is clean on the edited tool files and on `src/mastra/lib/http-client.ts`.
+
+# Progress Update (2026-04-20 - Mastra tool hook hardening sweep)
+
+- Fixed hook ordering and signatures in `confirmation.tool.ts`, `random-generator.tool.ts`, `text-analysis.tool.ts`, and `image-tool.ts`.
+- Restored the corrupted `financial-chart-tools.ts` file and cleaned up the chart-tool hook blocks through a large-batch rewrite.
+- Preserved the top-level Mastra hook contract from `@mastra/core/dist/tools/types.d.ts` while repairing the affected tools.
+
+# Progress Update (2026-04-20 - chat adapter inventory research)
+
+- Confirmed the installed channel-adapter surface in `node_modules`: Discord, GitHub, Google Chat, Slack, plus memory/Redis state backends and shared chat utilities.
+- Captured the practical feature matrix for each adapter so the next setup pass can stage more channels without guessing at the API surface.
+- No exports were changed yet; this is a research-only pass for future reference.
+
 # Progress Update (2026-04-20 - calendar tool cross-platform refactor)
 
 - Reworked `src/mastra/tools/calendar-tool.ts` to select a calendar source by platform instead of assuming macOS Calendar.

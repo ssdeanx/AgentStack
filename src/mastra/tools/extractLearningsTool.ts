@@ -39,6 +39,35 @@ export const extractLearningsTool = createTool({
     }),
     outputSchema: extractLearningsOutputSchema,
     strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('extractLearningsTool tool input streaming started', {
+            toolCallId,
+            messages,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('extractLearningsTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('extractLearningsTool received input', {
+            toolCallId,
+            messages,
+            inputData: {
+                query: input.query,
+                result: {
+                    title: input.result.title,
+                    url: input.result.url,
+                },
+            },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const mastra = context?.mastra
         const writer = context?.writer
@@ -154,7 +183,8 @@ export const extractLearningsTool = createTool({
                 }
             }
 
-            let responseObject: unknown = {}
+            let responseObject: z.infer<typeof extractLearningsOutputSchema> =
+                extractLearningsFallbackOutput
             if (typeof agent.stream === 'function') {
                 // Use MastraModelOutput for accurate typing and pipe fullStream into the writer (Mastra nested-agent pattern)
                 await writer?.custom({
@@ -183,33 +213,38 @@ export const extractLearningsTool = createTool({
 
                 if (stream?.fullStream !== undefined && writer) {
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 }
 
                 if (stream) {
                     try {
                         const structured = await stream.object
-                        responseObject = structured ?? {}
+                        responseObject =
+                            structured ?? extractLearningsFallbackOutput
                     } catch {
                         const text = (await stream.text) ?? streamedText
                         try {
-                            responseObject = text ? JSON.parse(text) : {}
+                            responseObject = text
+                                ? JSON.parse(text)
+                                : extractLearningsFallbackOutput
                         } catch {
-                            responseObject = {}
+                            responseObject = extractLearningsFallbackOutput
                         }
                     }
                 } else {
-                    responseObject = {}
+                    responseObject = extractLearningsFallbackOutput
                 }
             } else {
                 const response = await agent.generate(prompt)
                 try {
                     responseObject =
                         response.object ??
-                        (response.text ? JSON.parse(response.text) : {})
+                        (response.text
+                            ? JSON.parse(response.text)
+                            : extractLearningsFallbackOutput)
                 } catch {
-                    responseObject = {}
+                    responseObject = extractLearningsFallbackOutput
                 }
             }
 
@@ -308,38 +343,6 @@ export const extractLearningsTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool received input', {
-            toolCallId,
-            messageCount: messages?.length ?? 0,
-            inputData: {
-                query: input.query,
-                result: {
-                    title: input.result.title,
-                    url: input.result.url,
-                },
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     toModelOutput: (output: ExtractLearningsOutput) => ({
         type: 'content',
         value: [
@@ -357,7 +360,7 @@ export const extractLearningsTool = createTool({
             (part): part is { type: 'text'; text: string } => Boolean(part)
         ),
     }),
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('extractLearningsTool completed', {
             toolCallId,
             toolName,
@@ -365,7 +368,6 @@ export const extractLearningsTool = createTool({
                 learning: output.learning,
                 followUpQuestions: output.followUpQuestions,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
