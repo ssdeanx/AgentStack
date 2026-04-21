@@ -267,7 +267,7 @@ tests/*.test.ts
 conductor/setup_state.json
 *conductor/
 *dist/
-*mastra/
+mastra/
 *node_modules/
 *coverage/
 *.next/
