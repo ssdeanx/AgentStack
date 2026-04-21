@@ -24,6 +24,27 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 
 The `createTool()` function is used to define custom tools that your Mastra agents can execute. Tools extend an agent's capabilities by allowing it to interact with external systems, perform calculations, or access specific data.
 
+### Workspace filesystem policy
+
+- Do **not** import `node:path` or `node:fs` / `node:fs/promises` in tool files.
+- If a tool needs workspace file access, import `mainFilesystem` from `../workspaces` and use its filesystem APIs.
+- Prefer `mainFilesystem.stat`, `mainFilesystem.readFile`, `mainFilesystem.writeFile`, `mainFilesystem.appendFile`, `mainFilesystem.deleteFile`, `mainFilesystem.copyFile`, `mainFilesystem.moveFile`, `mainFilesystem.mkdir`, `mainFilesystem.rmdir`, `mainFilesystem.readdir`, `mainFilesystem.exists`, `mainFilesystem.realpath`, and `mainFilesystem.resolveAbsolutePath` over Node filesystem calls.
+- Keep paths workspace-relative unless the tool explicitly documents another contract.
+- Use `mainFilesystem.getInfo()` and `mainFilesystem.getInstructions()` when a tool needs filesystem metadata or workspace guidance.
+- Use `mainFilesystem.setAllowedPaths()` only in workspace/bootstrap code, not in normal tool execution.
+- When a file operation needs binary data, keep it in `Buffer` / `Uint8Array` form and avoid creating `ArrayBuffer | SharedArrayBuffer` values that later break `Blob` typing.
+
+### Tool output and `toModelOutput`
+
+- `execute` returns the full application-facing result.
+- `toModelOutput` must be defined inline in the tool object; do not extract it into a separate formatter helper just to move model shaping logic elsewhere.
+- Use `toModelOutput` to transform rich tool data into the model-facing shape.
+- `type: 'json'` for structured results and URL-rich payloads that the model can inspect directly.
+- `type: 'text'` for a concise human-readable summary.
+- `type: 'content'` for multimodal or multi-part responses (text, image-url, file-url, etc.).
+- Keep `toModelOutput` output JSON-safe and omit optional keys instead of returning `undefined` values.
+- If a tool returns URLs, preserve them in the app-facing output schema and expose the important ones in the model-facing summary or content parts.
+
 ### Usage Example
 
 ```typescript
@@ -66,6 +87,18 @@ export const tool = createTool({
 - **`onInputDelta?`**: `function` - Optional callback invoked for each incremental chunk of input text as it streams in. Receives `inputTextDelta`, `toolCallId`, `messages`, and `abortSignal`.
 - **`onInputAvailable?`**: `function` - Optional callback invoked when the complete tool input is available and parsed. Receives the validated `input` object, `toolCallId`, `messages`, and `abortSignal`.
 - **`onOutput?`**: `function` - Optional callback invoked after the tool has successfully executed and returned output. Receives the tool's `output`, `toolCallId`, `messages`, and `abortSignal`.
+
+### ToolExecutionContext
+
+The second `execute` argument is the tool execution context.
+
+- Read `context?.requestContext` through a local interface that extends `RequestContext`.
+- Use `context?.tracingContext` for child spans and structured tracing.
+- Use `context?.writer?.custom(...)` for `data-tool-progress` updates.
+- Treat `context?.abortSignal` as authoritative cancellation state and exit early when it is already aborted.
+- Use `context?.workspace` when the tool needs a workspace handle.
+- Use `context?.mcp` only when the tool is executing under MCP and needs protocol-specific request data.
+- Avoid writing `undefined` into output payloads; prefer omitting the field entirely.
 
 ### Returns
 
@@ -245,6 +278,13 @@ To ensure high-quality, consistent observability across all tools, the following
 - Use `tool.id` and `user.id` / `workspace.id` in span metadata where applicable.
 - Emit `data-tool-progress` events at start and completion (stage must match the tool id).
 - Respect `abortSignal` early (fail fast) and record cancellations in spans.
+
+### Streaming and `ChunkType`
+
+- Any tool that uses `agent.stream(...)` should import `ChunkType` from `@mastra/core/stream` and type `onChunk` handlers with `ChunkType<YourOutputType>`.
+- `ChunkType<OUTPUT>` is the union of all stream chunk families (`agent`, `workflow`, `network`, and data chunks). Use it when inspecting or forwarding streaming events.
+- When accumulating streamed text, read only the typed `text-delta` chunks and keep the callback narrow.
+- Do not cast streamed chunks to `any` or invent wrapper objects just to satisfy TypeScript.
 
 See these docs for details and examples:
 

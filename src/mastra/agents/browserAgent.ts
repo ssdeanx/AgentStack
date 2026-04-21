@@ -3,6 +3,7 @@ import { Agent } from '@mastra/core/agent'
 import { LibsqlMemory } from '../config/libsql'
 
 import { agentBrowser } from '../browsers'
+import { convexMemory } from '../config/convex'
 
 export const browserAgent = new Agent({
   id: 'browser-agent',
@@ -37,10 +38,10 @@ Safety rules:
 - If the page is inaccessible or the evidence is weak, say so explicitly.`,
   model: 'google/gemini-3.1-flash-lite-preview',
   browser: agentBrowser,
-  memory: LibsqlMemory,
+  memory: convexMemory,
   defaultOptions: {
     maxSteps: 12,
-    toolCallConcurrency: 1,
+    toolCallConcurrency: 4,
     toolChoice: 'auto',
     includeRawChunks: true,
   },

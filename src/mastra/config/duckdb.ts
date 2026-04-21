@@ -37,7 +37,7 @@ export const duckDBMemory = new Memory({
     observationalMemory: {
             enabled: true,
             scope: 'thread', // 'resource' | 'thread'
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemma-4-31b-it',
             retrieval: { vector: true, scope: 'thread' },
             shareTokenBudget: false, // Don't share token budget between observation and reflection to preserve context
             observation: {

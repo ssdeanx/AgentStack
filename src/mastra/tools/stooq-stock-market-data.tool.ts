@@ -15,12 +15,9 @@ import {
 /**
  * Shared request context for Stooq stock data.
  */
-export interface StooqStockContext extends RequestContext {
-    userId?: string
-}
 
 const stooqInputSchema = z.object({
-    function: z.enum(['quote', 'history']).default('quote'),
+    function: z.enum(['quote', 'history']).optional(),
     symbol: z.string().min(1).describe('Stock ticker symbol, e.g. AAPL or MSFT'),
     marketSuffix: z.string().default('us').describe('Stooq market suffix, e.g. us, uk, jp'),
     limit: z.number().int().min(1).max(5000).default(100),
@@ -93,30 +90,28 @@ export const stooqStockQuotesTool = createTool({
         'Fetch free Stooq stock market data without an API key, including latest quotes and historical daily bars.',
     inputSchema: stooqInputSchema,
     outputSchema: z.custom<StooqMarketDataOutput>(),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Stooq stock quotes input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Stooq stock quotes received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Stooq stock quotes received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages: messages ?? [],
             function: input.function,
             symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -273,13 +268,24 @@ export const stooqStockQuotesTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const data = output as StooqMarketDataOutput | undefined
+    toModelOutput: (output: StooqMarketDataOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Stooq ${output.metadata.function} for ${output.metadata.symbol} (${output.metadata.market})`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${String(countStooqMarketDataItems(output.data))} item(s).`,
+            },
+        ],
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Stooq stock quotes completed', {
             toolCallId,
             toolName,
-            count: countStooqMarketDataItems(data?.data),
-            abortSignal: abortSignal?.aborted,
+            count: countStooqMarketDataItems(output.data),
             hook: 'onOutput',
         })
     },

@@ -5,14 +5,34 @@ import { log } from '../config/logger'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 
 // Each indexed item will be stored with a bbox: {minX,minY,maxX,maxY, id, data}
+type SpatialIndexJsonPrimitive = string | number | boolean | null
+
+interface SpatialIndexJsonObject {
+    [key: string]: SpatialIndexJsonValue
+}
+
+type SpatialIndexJsonValue =
+    | SpatialIndexJsonPrimitive
+    | SpatialIndexJsonObject
+    | SpatialIndexJsonValue[]
+
+type SpatialIndexTreeJSON = SpatialIndexJsonObject
+
 interface IndexedItem {
     minX: number
     minY: number
     maxX: number
     maxY: number
     id: string
-    data?: Record<string, unknown>
+    data?: SpatialIndexJsonObject
 }
+
+type SpatialIndexResultItem = IndexedItem
+
+type SpatialIndexToolOutput =
+    | { treeJSON: SpatialIndexTreeJSON; results?: never; message?: never }
+    | { treeJSON?: never; results: SpatialIndexResultItem[]; message?: never }
+    | { treeJSON?: never; results?: never; message: string }
 
 export const spatialIndexTool = createTool({
     id: 'spatial-index',
@@ -28,7 +48,7 @@ export const spatialIndexTool = createTool({
                     id: z.string(),
                     lat: z.number(),
                     lng: z.number(),
-                    data: z.record(z.string(), z.unknown()).optional(),
+                    data: z.custom<SpatialIndexJsonObject>().optional(),
                 })
             )
             .optional(),
@@ -38,11 +58,11 @@ export const spatialIndexTool = createTool({
                 northEast: z.tuple([z.number(), z.number()]),
             })
             .optional(),
-        treeJSON: z.unknown().optional(),
+        treeJSON: z.custom<SpatialIndexTreeJSON>().optional(),
     }),
     // Define a structured item schema for search results
     outputSchema: z.object({
-        treeJSON: z.unknown().optional(),
+        treeJSON: z.custom<SpatialIndexTreeJSON>().optional(),
         results: z
             .array(
                 z.object({
@@ -51,12 +71,39 @@ export const spatialIndexTool = createTool({
                     maxX: z.number(),
                     maxY: z.number(),
                     id: z.string(),
-                    data: z.record(z.string(), z.unknown()).optional(),
+                    data: z.custom<SpatialIndexJsonObject>().optional(),
                 })
             )
             .optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool input streaming started', {
+            toolCallId,
+            messages,
+            abortSignal,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool received input', {
+            toolCallId,
+            messages,
+            inputData: { action: input.action },
+            abortSignal,
+            hook: 'onInputAvailable',
+        })
+    },
+    strict: true,
     execute: async (input, context) => {
         const writer = context?.writer
         const span = getOrCreateSpan({
@@ -83,7 +130,7 @@ export const spatialIndexTool = createTool({
         const { action, points, bounds, treeJSON } = input
 
         try {
-            let result
+            let result: SpatialIndexToolOutput
             if (action === 'build') {
                 if (!points || points.length === 0) {
                     throw new Error(
@@ -102,7 +149,7 @@ export const spatialIndexTool = createTool({
                 }))
                 tree.load(items)
                 const json = tree.toJSON()
-                result = { treeJSON: json }
+                result = { treeJSON: json as SpatialIndexTreeJSON }
             } else if (action === 'fromJSON') {
                 if (treeJSON === undefined) {
                     throw new Error('treeJSON is required for fromJSON action')
@@ -118,7 +165,7 @@ export const spatialIndexTool = createTool({
                     throw new Error('bounds is required for search action')
                 }
                 const tree = new RBush<IndexedItem>()
-                tree.fromJSON(treeJSON as unknown)
+                tree.fromJSON(treeJSON)
                 const [swLat, swLng] = bounds.southWest
                 const [neLat, neLng] = bounds.northEast
                 const rawResults = tree.search({
@@ -177,37 +224,19 @@ export const spatialIndexTool = createTool({
             throw err
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Spatial Index tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Spatial Index tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Spatial Index tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { action: input.action },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
+    toModelOutput: (output) => {
+        return {
+            type: 'json',
+            value: output,
+        }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Spatial Index tool completed', {
             toolCallId,
             toolName,
-            outputData: { success: !!output.treeJSON || !!output.results },
+            outputData: {
+                success: 'treeJSON' in output || 'results' in output,
+            },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

@@ -118,12 +118,10 @@ import {
     buildSharedRequestContextPayload,
     LANGUAGE_CONTEXT_KEY,
     RESEARCH_PHASE_CONTEXT_KEY,
-    TEMPERATURE_UNIT_CONTEXT_KEY,
     USER_ID_CONTEXT_KEY,
     ROLE_CONTEXT_KEY,
     type ResearchPhase,
     type SupportedLanguage,
-    type TemperatureUnit,
 } from './agents/request-context'
 import {
     dane,
@@ -579,8 +577,6 @@ export const mastra = new Mastra({
                     requestContext.set(ROLE_CONTEXT_KEY, role)
                     requestContext.set('userRole', role)
 
-                    const temperatureUnit: TemperatureUnit =
-                        country === 'US' ? 'fahrenheit' : 'celsius'
                     const acceptedLanguage =
                         acceptLanguage.split(',')[0]?.split('-')[0] ?? 'en'
                     const supportedLanguages = [
@@ -605,7 +601,6 @@ export const mastra = new Mastra({
                         [USER_ID_CONTEXT_KEY]: userId ?? undefined,
                         [ROLE_CONTEXT_KEY]: role,
                         [LANGUAGE_CONTEXT_KEY]: language,
-                        [TEMPERATURE_UNIT_CONTEXT_KEY]: temperatureUnit,
                         [RESEARCH_PHASE_CONTEXT_KEY]: researchPhase,
                     })
 

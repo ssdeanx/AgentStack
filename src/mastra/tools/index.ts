@@ -44,6 +44,7 @@ export * from './text-analysis.tool'
 export * from './url-tool'
 export * from './weather-tool'
 export * from './write-note'
+export * from './moltbook-tools'
 
 // Export individual tools that might not be covered by export *
 export { arxivPaperDownloaderTool } from './arxiv.tool'
@@ -57,6 +58,7 @@ export { evaluateResultTool } from './evaluateResultTool'
 export { extractLearningsTool } from './extractLearningsTool'
 export { colorChangeTool } from './color-change-tool'
 export { mdocumentChunker, libsqlChunker, documentRerankerTool, mastraChunker } from './document-chunking.tool'
+export { convexChunker, convexGraphQueryTool, convexVectorQueryTool, convexRerankerTool } from './convex-rag'
 export { editorTool } from './editor-agent-tool'
 export { readPDF } from './pdf'
 export {

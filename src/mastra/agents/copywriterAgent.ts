@@ -16,6 +16,7 @@ import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import { fetchTool } from '../tools'
 import { google } from '../config'
 import { LibsqlMemory } from '../config/libsql'
+import { convexMemory } from '../config/convex'
 // Define runtime context for this agent
 export type CopywriterAgentContext = AgentRequestContext<{
   contentType?: string
@@ -68,8 +69,8 @@ Create compelling content (blog, marketing, social, technical, business, creativ
       },
     }
   },
-  model: 'google/gemini-3.1-flash-lite-preview',
-  memory: LibsqlMemory,
+  model: 'google/gemma-4-31b-it',
+  memory: convexMemory,
   tools: copywriterTools,
   scorers: {
    // toneConsistency: { scorer: createToneScorer() },
@@ -78,7 +79,6 @@ Create compelling content (blog, marketing, social, technical, business, creativ
   },
   options: {
     tracingPolicy: {
-      internal: InternalSpans.AGENT,
     },
   },
   workflows: {},

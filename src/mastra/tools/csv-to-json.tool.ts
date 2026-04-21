@@ -15,6 +15,23 @@ export interface CsvToJsonRequestContext {
     }
 }
 
+type CsvJsonValue = string | number | boolean | null | CsvJsonObject | CsvJsonValue[]
+
+interface CsvJsonObject {
+    [key: string]: CsvJsonValue
+}
+
+const csvJsonValueSchema: z.ZodType<CsvJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(csvJsonValueSchema),
+        z.record(z.string(), csvJsonValueSchema),
+    ])
+)
+
 export const csvToJsonTool = createTool({
     id: 'csv-to-json',
     description:
@@ -49,6 +66,39 @@ export const csvToJsonTool = createTool({
                 skip_empty_lines: true,
             }),
     }),
+    outputSchema: z.array(
+        z.union([z.record(z.string(), csvJsonValueSchema), z.array(csvJsonValueSchema)])
+    ),
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('CSV to JSON tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('CSV to JSON tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        const source = (input.filePath ?? '') !== ''
+            ? `file:${input.filePath ?? ''}`
+            : 'raw CSV data'
+        const options = input.options ?? {}
+        log.info('CSV to JSON received complete input', {
+            toolCallId,
+            messages: messages ?? [],
+            source,
+            delimiter: options.delimiter,
+            columns: options.columns,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context.writer
         const requestContext = context.requestContext as
@@ -159,7 +209,7 @@ export const csvToJsonTool = createTool({
                 columns: options.columns,
                 trim: options.trim,
                 skip_empty_lines: options.skip_empty_lines,
-            })
+            }) as Array<CsvJsonObject | CsvJsonValue[]>
 
             if (maxRows !== undefined && records.length > maxRows) {
                 throw new Error(
@@ -229,50 +279,15 @@ export const csvToJsonTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('CSV to JSON tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('CSV to JSON tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const source = (input.filePath ?? '') !== ''
-            ? `file:${input.filePath ?? ''}`
-            : 'raw CSV data'
-        const options = input.options ?? {}
-        log.info('CSV to JSON received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            source,
-            delimiter: options.delimiter,
-            columns: options.columns,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const recordsProcessed =
-            typeof output === 'object' &&
-            output !== null &&
-            'data' in output &&
-            Array.isArray((output as { data?: unknown }).data)
-                ? ((output as { data: unknown[] }).data).length
-                : 0
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
+        const recordsProcessed = Array.isArray(output) ? output.length : 0
         log.info('CSV to JSON conversion completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             recordsProcessed,
             hook: 'onOutput',
         })

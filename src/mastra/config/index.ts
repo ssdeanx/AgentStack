@@ -3,6 +3,7 @@
  */
 export * from './logger'
 export * from './pg-storage'
+export * from './channels'
 
 // Provider instances
 export * from './google'

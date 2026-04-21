@@ -23,38 +23,36 @@ const confirmationTool = createTool({
     resumeSchema: z.object({
         confirmed: z.boolean(),
     }),
-        onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Confirmation tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Confirmation tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Confirmation tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages: messages ?? [],
             inputData: { action: input.action },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Confirmation tool completed', {
             toolCallId,
             toolName,
-            outputData: output && 'confirmed' in output ? { confirmed: output.confirmed } : {},
-            abortSignal: abortSignal?.aborted,
+            outputData:
+                output && 'confirmed' in output ? { confirmed: output.confirmed } : {},
             hook: 'onOutput',
         })
     },
@@ -148,7 +146,7 @@ const confirmationTool = createTool({
         })
 
         return result
-    }
+    },
 })
 
 export { confirmationTool }

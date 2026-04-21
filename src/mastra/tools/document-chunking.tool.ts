@@ -18,7 +18,7 @@ import {
     logStepStart,
     logToolExecution,
 } from '../config/logger'
-import { libsqlvector as pgVector } from '../config/libsql'
+
 import { libsqlvector } from '../config/libsql'
 
 import type { RequestContext } from '@mastra/core/request-context'
@@ -27,11 +27,32 @@ import { resolveAbortSignal } from './abort-signal.utils'
 
 log.info('Initializing Document Chunking Tool...')
 
+type DocumentJsonPrimitive = string | number | boolean | null
+type DocumentJsonValue =
+    | DocumentJsonPrimitive
+    | DocumentJsonObject
+    | DocumentJsonValue[]
+
+interface DocumentJsonObject {
+    [key: string]: DocumentJsonValue
+}
+
+const documentJsonValueSchema: z.ZodType<DocumentJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(documentJsonValueSchema),
+        z.record(z.string(), documentJsonValueSchema),
+    ])
+)
+
 /**
  * Remove metadata keys that are not safe for vector stores (leading $ or containing dots)
  */
-function sanitizeMetadata(m: Record<string, unknown>): Record<string, unknown> {
-    const out: Record<string, unknown> = {}
+function sanitizeMetadata(m: DocumentJsonObject): DocumentJsonObject {
+    const out: DocumentJsonObject = {}
     const keys = Object.keys(m)
     for (const k of keys) {
         if (k.startsWith('$') || k.includes('.')) {
@@ -72,7 +93,7 @@ export interface DocumentChunkingContext extends RequestContext {
  */
 const CustomDocumentChunkingInputSchema = z.object({
     documentContent: z.string().min(1, 'Document content cannot be empty'),
-    documentMetadata: z.record(z.string(), z.unknown()).optional().default({}),
+    documentMetadata: z.record(z.string(), documentJsonValueSchema).optional().default({}),
     chunkingStrategy: z
         .enum([
             'recursive',
@@ -108,7 +129,7 @@ const CustomDocumentChunkingOutputSchema = z.object({
         z.object({
             id: z.string(),
             text: z.string(),
-            metadata: z.record(z.string(), z.unknown()),
+            metadata: z.record(z.string(), documentJsonValueSchema),
             embeddingGenerated: z.boolean(),
         })
     ),
@@ -120,7 +141,7 @@ const CustomDocumentChunkingOutputSchema = z.object({
  */
 const MastraDocumentChunkingInputSchema = z.object({
     documentContent: z.string().min(1, 'Document content cannot be empty'),
-    documentMetadata: z.record(z.string(), z.unknown()).optional().default({}),
+    documentMetadata: z.record(z.string(), documentJsonValueSchema).optional().default({}),
     chunkingStrategy: z
         .enum([
             'recursive',
@@ -139,7 +160,7 @@ const MastraDocumentChunkingInputSchema = z.object({
     chunkSeparator: z.string().default('\n'),
     // ExtractParams for metadata extraction (supports full ExtractParams)
     // Keep legacy boolean flags for convenience
-    extract: z.any().optional(),
+    extract: z.custom<ExtractParams>().optional(),
     extractTitle: z.boolean().default(false),
     extractSummary: z.boolean().default(false),
     extractKeywords: z.boolean().default(false),
@@ -156,7 +177,7 @@ const MastraDocumentChunkingOutputSchema = z.object({
     chunks: z.array(
         z.object({
             text: z.string(),
-            metadata: z.record(z.string(), z.unknown()),
+            metadata: z.record(z.string(), documentJsonValueSchema),
         })
     ),
     processingTimeMs: z.number(),
@@ -199,31 +220,29 @@ Use this tool when you need advanced document processing with metadata extractio
   `,
     inputSchema: MastraDocumentChunkingInputSchema,
     outputSchema: MastraDocumentChunkingOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Mastra chunker tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Mastra chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Mastra chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputAvailable',
         })
     },
@@ -452,13 +471,12 @@ Use this tool when you need advanced document processing with metadata extractio
             span?.end()
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Mastra chunker completed', {
             toolCallId,
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -504,32 +522,30 @@ content indexing, or semantic search capabilities.
   `,
     inputSchema: CustomDocumentChunkingInputSchema,
     outputSchema: CustomDocumentChunkingOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('MDocument chunker tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal),
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('MDocument chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('MDocument chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
-            messageCount: messages.length,
-            abort: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputAvailable',
         })
     },
@@ -830,7 +846,7 @@ content indexing, or semantic search capabilities.
 
                 // Map embeddings back to the full set: only non-empty values produced embeddings
                 const finalVectors: number[][] = []
-                const finalMetadata: Array<Record<string, unknown>> = []
+                const finalMetadata: DocumentJsonObject[] = []
                 const finalIds: string[] = []
 
                 if (embeddings.length > 0) {
@@ -922,13 +938,12 @@ content indexing, or semantic search capabilities.
             span?.end()
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('MDocument chunker completed', {
             toolCallId,
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -974,32 +989,30 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
   `,
     inputSchema: CustomDocumentChunkingInputSchema,
     outputSchema: CustomDocumentChunkingOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('LibSQL chunker tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('LibSQL chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('LibSQL chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputAvailable',
         })
     },
@@ -1012,7 +1025,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
         const indexName = inputData.indexName ?? 'memory_messages_768'
-        const embeddingModel =
+        const _embeddingModel =
             inputData.embeddingModel ?? fastembed
         const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
@@ -1297,7 +1310,7 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
 
                 // Map embeddings back to the full set: only non-empty values produced embeddings
                 const finalVectors: number[][] = []
-                const finalMetadata: Array<Record<string, unknown>> = []
+                const finalMetadata: DocumentJsonObject[] = []
                 const finalIds: string[] = []
 
                 if (embeddings.length > 0) {
@@ -1389,13 +1402,12 @@ content indexing, or semantic search capabilities using LibSQL/Turso.
             span?.end()
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('LibSQL chunker completed', {
             toolCallId,
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
-            aborted: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -1439,7 +1451,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         vectorWeight: z.number().min(0).max(1).default(0.3),
         positionWeight: z.number().min(0).max(1).default(0.2),
         // Optional metadata filter (MongoDB/Sift-style)
-        filter: z.record(z.string(), z.any()).optional(),
+        filter: z.record(z.string(), documentJsonValueSchema).optional(),
         includeVector: z.boolean().default(false),
         rerankModel: z.string().default('google/gemini-3.1-flash-lite'),
     }),
@@ -1450,29 +1462,28 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             z.object({
                 id: z.string(),
                 text: z.string(),
-                metadata: z.record(z.string(), z.unknown()),
+                metadata: z.record(z.string(), documentJsonValueSchema),
                 relevanceScore: z.number(),
                 rank: z.number(),
             })
         ),
         processingTimeMs: z.number(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Document reranker tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Document reranker received complete input', {
             toolCallId,
             userQuery: input.userQuery,
             indexName: input.indexName,
             topK: input.topK,
-            messageCount: messages.length,
-            aborted: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputAvailable',
         })
     },
@@ -1581,7 +1592,9 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 indexName,
                 queryVector: queryEmbedding,
                 topK: initialTopK,
-                filter: inputData.filter,
+                filter: inputData.filter as NonNullable<
+                    Parameters<typeof libsqlvector.query>[0]['filter']
+                >,
                 includeVector: inputData.includeVector,
             })
             const searchTime = Date.now() - searchStartTime

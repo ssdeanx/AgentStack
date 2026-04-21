@@ -75,7 +75,7 @@ const googleSearchOutputSchema = z.object({
         .describe('Related search queries'),
     searchInfo: z
         .object({
-            totalResults: z.string().optional(),
+            totalResults: z.union([z.string(), z.number()]).optional(),
             timeTaken: z.number().optional(),
         })
         .optional()
@@ -98,26 +98,26 @@ export const googleSearchTool = createTool({
         'Search Google to find current information, websites, and answers to factual questions. Returns organic search results, knowledge graph data, and related searches. Best for general web search queries.',
     inputSchema: googleSearchInputSchema,
     outputSchema: googleSearchOutputSchema,
-    onInputStart: ({ toolCallId, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Google search tool input streaming started', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Google search tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Google search received complete input', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             query: input.query,
             numResults: input.numResults,
             location: input.location,
@@ -345,14 +345,17 @@ export const googleSearchTool = createTool({
             throw error
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Google search completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
-            organicResults: output.organicResults.length,
-            hasKnowledgeGraph: !!output.knowledgeGraph,
-            relatedSearches: output.relatedSearches?.length ?? 0,
+            organicResults: output?.organicResults?.length ?? 0,
+            hasKnowledgeGraph: !!output?.knowledgeGraph,
+            relatedSearches: output?.relatedSearches?.length ?? 0,
             hook: 'onOutput',
         })
     },
@@ -409,26 +412,26 @@ export const googleAiOverviewTool = createTool({
         'Get AI-generated overviews from Google that synthesize information from multiple sources. Best for queries that need comprehensive answers combining multiple perspectives. Returns overview text and source citations.',
     inputSchema: googleAiOverviewInputSchema,
     outputSchema: googleAiOverviewOutputSchema,
-    onInputStart: ({ toolCallId, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('AI overview tool input streaming started', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('AI overview tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('AI overview received complete input', {
             toolCallId,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             query: input.query,
             location: input.location,
             includeScrapedContent: input.includeScrapedContent,
@@ -583,16 +586,17 @@ export const googleAiOverviewTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('AI overview completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             available: output.available,
-            sourcesCount: output.sources.length,
-            hasAiOverview:
-                    output.aiOverview !== undefined &&
-                    output.aiOverview !== '',
+            sourcesCount: output.sources?.length ?? 0,
+            hasAiOverview: (output.aiOverview ?? '') !== '',
             hook: 'onOutput',
         })
     },

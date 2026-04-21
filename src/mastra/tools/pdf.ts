@@ -21,36 +21,30 @@ export const readPDF = createTool({
     outputSchema: z.object({
         content: z.string(),
     }),
-    onInputStart: ({ toolCallId }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('readPDF tool input streaming started', {
             toolCallId,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('readPDF received input chunk', {
             toolCallId,
             inputTextDelta,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('readPDF received input', {
             toolCallId,
+            messages: messages ?? [],
             inputData: {
                 pdfPath: input.pdfPath,
             },
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName }) => {
-        log.info('readPDF completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                content: output.content,
-            },
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
@@ -111,5 +105,19 @@ export const readPDF = createTool({
                 content: `Error scanning PDF: ${errorMsg}`,
             }
         }
+    },
+    toModelOutput: (output: { content: string }) => ({
+        type: 'text',
+        value: output.content,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log.info('readPDF completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                contentLength: output.content.length,
+            },
+            hook: 'onOutput',
+        })
     },
 })

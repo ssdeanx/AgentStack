@@ -33,6 +33,7 @@ Establish consistent, testable, and secure entry points for all external depende
 | `openrouter.ts`     | OpenRouter model provider client setup    | Routes to 50+ models from various providers             |
 | `vertex.ts`         | Google Vertex AI model provider setup     | Google Cloud-based models                               |
 | `pg-storage.ts`     | PostgreSQL storage & vector client config | **CRITICAL**: PgVector for embeddings, memory, threads  |
+| `channels.ts`       | Shared agent channel configuration       | Adapter gating, handlers, and channel defaults          |
 | `mongodb.ts`        | MongoDB database configuration            | Alternative document storage                            |
 | `upstash.ts`        | Upstash Redis configuration               | Caching and session storage                             |
 | `upstashMemory.ts`  | Upstash Redis memory configuration        | Alternative memory provider                             |

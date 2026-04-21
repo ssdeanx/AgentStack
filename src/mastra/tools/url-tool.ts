@@ -137,43 +137,40 @@ export const urlValidationTool = createTool({
     description: 'Validate, parse, and analyze URLs',
     inputSchema: UrlValidationInputSchema,
     outputSchema: UrlValidationOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('URL validation tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('URL validation tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('URL validation tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages: messages ?? [],
             inputData: {
                 url: input.url,
                 operationsCount: input.operations?.length ?? 1,
             },
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('URL validation tool completed', {
             toolCallId,
             toolName,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
-                success: output.success,
-                operationsCompleted: output.operations.length,
+                success: output?.success ?? false,
+                operationsCompleted: output?.operations?.length ?? 0,
             },
             hook: 'onOutput',
         })
@@ -229,7 +226,7 @@ export const urlValidationTool = createTool({
                       port?: string
                       pathname: string
                       search: string
-                      hash: string
+                        hash: string
                       query: Record<string, string>
                   }
                 | {
@@ -352,40 +349,34 @@ export const urlManipulationTool = createTool({
         'Manipulate and transform URLs with query parameters, paths, and fragments',
     inputSchema: UrlManipulationInputSchema,
     outputSchema: UrlManipulationOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+        onInputStart: ({ toolCallId, messages }) => {
         log.info('URL manipulation tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('URL manipulation tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('URL manipulation tool received input', {
             toolCallId,
-            messageCount: messages.length,
             inputData: {
                 baseUrl: input.baseUrl,
                 operationsCount: input.operations.length,
             },
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        onOutput: ({ output, toolCallId, toolName }) => {
         log.info('URL manipulation tool completed', {
             toolCallId,
             toolName,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             outputData: {
                 success: output.success,
                 resultUrl: output.resultUrl,

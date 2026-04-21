@@ -1,4 +1,4 @@
-import type { AxiosInstance, AxiosRequestConfig } from 'axios'
+import type { AxiosInstance, AxiosRequestConfig, Method } from 'axios'
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
 import Bottleneck from 'bottleneck'
@@ -16,19 +16,20 @@ export interface HttpClientOptions {
 
     retryDelay?: (retryCount: number, error: unknown) => number
     timeout?: number
-    headers?: Record<string, string>
+    headers?: AxiosRequestConfig['headers']
     baseURL?: string
     maxContentLength?: number
     maxBodyLength?: number
 }
 
 export interface HttpFetchInit {
-    method?: string
+    method?: Method
     timeout?: number
     signal?: AbortSignal
     responseType?: 'json' | 'text' | 'arraybuffer'
-    headers?: Record<string, string>
-    params?: Record<string, string | number | boolean>
+    headers?: AxiosRequestConfig['headers']
+    params?: Record<string, string | number | boolean | null | undefined>
+    data?: unknown
 }
 
 export interface HttpFetchResponse {
@@ -98,6 +99,7 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
                 signal: init?.signal,
                 headers: init?.headers,
                 params: init?.params,
+                data: init?.data,
                 validateStatus: () => true,
             })
         )

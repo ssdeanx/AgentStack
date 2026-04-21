@@ -7,6 +7,27 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
+
+type AlphaVantageJsonPrimitive = string | number | boolean | null
+type AlphaVantageJsonValue =
+    | AlphaVantageJsonPrimitive
+    | AlphaVantageJsonObject
+    | AlphaVantageJsonValue[]
+
+interface AlphaVantageJsonObject {
+    [key: string]: AlphaVantageJsonValue
+}
+
+const alphaVantageJsonValueSchema: z.ZodType<AlphaVantageJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(alphaVantageJsonValueSchema),
+        z.record(z.string(), alphaVantageJsonValueSchema),
+    ])
+)
 import {
     createLinkedAbortController,
     resolveAbortSignal,
@@ -104,11 +125,9 @@ export const alphaVantageCryptoTool = createTool({
             .describe('Response format'),
     }),
     outputSchema: z.object({
-        data: z
-            .any()
-            .describe(
-                'The cryptocurrency data returned from Alpha Vantage API'
-            ),
+        data: alphaVantageJsonValueSchema.describe(
+            'The cryptocurrency data returned from Alpha Vantage API'
+        ),
         metadata: z
             .object({
                 function: z.string(),
@@ -121,30 +140,28 @@ export const alphaVantageCryptoTool = createTool({
             })
             .optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Alpha Vantage crypto tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Alpha Vantage crypto tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Alpha Vantage crypto received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             symbol: input.symbol,
             market: input.market,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -412,12 +429,17 @@ export const alphaVantageCryptoTool = createTool({
             throw error instanceof Error ? error : new Error(errMsg)
         }
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const resolved = resolveAbortSignal(abortSignal)
+        const aborted = resolved.aborted ?? false
         log.info('Alpha Vantage crypto completed', {
             toolCallId,
             toolName,
             symbol: output.metadata?.symbol ?? 'unknown',
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -491,9 +513,9 @@ export const alphaVantageStockTool = createTool({
             .describe('Price series type for technical indicators'),
     }),
     outputSchema: z.object({
-        data: z
-            .any()
-            .describe('The stock data returned from Alpha Vantage API'),
+        data: alphaVantageJsonValueSchema.describe(
+            'The stock data returned from Alpha Vantage API'
+        ),
         metadata: z
             .object({
                 function: z.string(),
@@ -508,31 +530,41 @@ export const alphaVantageStockTool = createTool({
             })
             .optional(),
     }),
+    strict: true,
 
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        const resolved = resolveAbortSignal(abortSignal)
+        const aborted = resolved.aborted ?? false
+        const messagePreview = messages?.slice?.(0, 5)
         log.info('Alpha Vantage stock tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages: messagePreview,
+            aborted,
             hook: 'onInputStart',
         })
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        const resolved = resolveAbortSignal(abortSignal)
+        const aborted = resolved.aborted ?? false
+        const messagePreview = messages?.slice?.(0, 5)
         log.info('Alpha Vantage stock tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages: messagePreview,
+            aborted,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const resolved = resolveAbortSignal(abortSignal)
+        const aborted = resolved.aborted ?? false
+        const messagePreview = messages?.slice?.(0, 5)
         log.info('Alpha Vantage stock received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages: messagePreview,
             symbol: input.symbol,
             function: input.function,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -825,6 +857,10 @@ export const alphaVantageStockTool = createTool({
         }
     },
 
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         const dataKeys =
             output.data !== null && typeof output.data === 'object'
@@ -835,7 +871,6 @@ export const alphaVantageStockTool = createTool({
             toolName,
             symbol: output.metadata?.symbol ?? 'unknown',
             dataKeys,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },
@@ -944,9 +979,9 @@ export const alphaVantageTool = createTool({
             .describe('Economic indicator to retrieve'),
     }),
     outputSchema: z.object({
-        data: z
-            .any()
-            .describe('The financial data returned from Alpha Vantage API'),
+        data: alphaVantageJsonValueSchema.describe(
+            'The financial data returned from Alpha Vantage API'
+        ),
         metadata: z
             .object({
                 function: z.string(),
@@ -958,27 +993,26 @@ export const alphaVantageTool = createTool({
             })
             .optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('alphaVantageTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('alphaVantageTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('alphaVantageTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             inputData: {
                 function: input.function,
                 symbol: input.symbol,
@@ -991,7 +1025,6 @@ export const alphaVantageTool = createTool({
                 series_type: input.series_type,
                 economic_indicator: input.economic_indicator,
             },
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1304,7 +1337,11 @@ export const alphaVantageTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         const dataKeys =
             output.data !== null && typeof output.data === 'object'
                 ? Object.keys(output.data as object).length
@@ -1314,7 +1351,6 @@ export const alphaVantageTool = createTool({
             toolName,
             function: output.metadata?.function ?? 'unknown',
             dataKeys,
-            abortSignal: resolveAbortSignal(abortSignal).aborted,
             hook: 'onOutput',
         })
     },

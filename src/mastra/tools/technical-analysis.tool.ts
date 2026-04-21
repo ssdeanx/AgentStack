@@ -337,6 +337,30 @@ export const ichimokuCloudTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Ichimoku tool', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Ichimoku tool',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Ichimoku tool', toolCallId, messages, abortSignal, {
+            highLength: input.high.length,
+            lowLength: input.low.length,
+            closeLength: input.close.length,
+            conversionPeriod: input.conversionPeriod,
+            basePeriod: input.basePeriod,
+            spanPeriod: input.spanPeriod,
+            displacement: input.displacement,
+        })
+    },
     execute: async (inputData, context): Promise<IchimokuCloudResult> => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -462,31 +486,8 @@ export const ichimokuCloudTool = createTool({
                 id: 'ichimoku-cloud',
             })
 
-            return { success: false, message: err.message }
+            return { success: false, results: [], message: err.message }
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Ichimoku tool', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Ichimoku tool',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Ichimoku tool', toolCallId, messages, abortSignal, {
-            highLength: input.high.length,
-            lowLength: input.low.length,
-            closeLength: input.close.length,
-            conversionPeriod: input.conversionPeriod,
-            basePeriod: input.basePeriod,
-            spanPeriod: input.spanPeriod,
-            displacement: input.displacement,
-        })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Ichimoku tool', toolCallId, toolName, abortSignal, {
@@ -508,6 +509,26 @@ export const fibonacciTool = createTool({
         levels: z.record(z.string(), z.number()).optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Fibonacci tool', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Fibonacci tool',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Fibonacci tool', toolCallId, messages, abortSignal, {
+            high: input.high,
+            low: input.low,
+            trend: input.trend,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -611,25 +632,6 @@ export const fibonacciTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Fibonacci tool', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Fibonacci tool',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Fibonacci tool', toolCallId, messages, abortSignal, {
-            high: input.high,
-            low: input.low,
-            trend: input.trend,
-        })
-    },
     onOutput: ({ toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Fibonacci tool', toolCallId, toolName, abortSignal, {
             success: true,
@@ -694,6 +696,25 @@ export const pivotPointsTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Pivot points tool', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Pivot points tool',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Pivot points tool', toolCallId, messages, abortSignal, {
+            high: input.high,
+            low: input.low,
+            close: input.close,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -822,25 +843,6 @@ export const pivotPointsTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Pivot points tool', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Pivot points tool',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Pivot points tool', toolCallId, messages, abortSignal, {
-            high: input.high,
-            low: input.low,
-            close: input.close,
-        })
-    },
     onOutput: ({ toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Pivot points tool', toolCallId, toolName, abortSignal, {
             success: true,
@@ -888,6 +890,24 @@ export const trendAnalysisTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Trend analysis', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Trend analysis',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Trend analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            dataLength: input.data.length,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1015,24 +1035,6 @@ export const trendAnalysisTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Trend analysis', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Trend analysis',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Trend analysis', toolCallId, messages, abortSignal, {
-            period: input.period,
-            dataLength: input.data.length,
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Trend analysis', toolCallId, toolName, abortSignal, {
             success: output.success,
@@ -1066,6 +1068,25 @@ export const momentumAnalysisTool = createTool({
         forceIndex: z.array(z.number()).optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Momentum analysis', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Momentum analysis',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Momentum analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            signalPeriod: input.signalPeriod,
+            dataLength: input.data.length,
+        })
+    },
     execute: async (inputData, context): Promise<MomentumAnalysisResult> => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1170,25 +1191,6 @@ export const momentumAnalysisTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Momentum analysis', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Momentum analysis',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Momentum analysis', toolCallId, messages, abortSignal, {
-            period: input.period,
-            signalPeriod: input.signalPeriod,
-            dataLength: input.data.length,
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Momentum analysis', toolCallId, toolName, abortSignal, {
             success: output.success,
@@ -1222,6 +1224,25 @@ export const volatilityAnalysisTool = createTool({
         atr: z.array(z.number()).optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Volatility analysis', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Volatility analysis',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Volatility analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            stdDev: input.stdDev,
+            dataLength: input.data.length,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1308,25 +1329,6 @@ export const volatilityAnalysisTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Volatility analysis', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Volatility analysis',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Volatility analysis', toolCallId, messages, abortSignal, {
-            period: input.period,
-            stdDev: input.stdDev,
-            dataLength: input.data.length,
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Volatility analysis', toolCallId, toolName, abortSignal, {
             success: output.success,
@@ -1352,6 +1354,27 @@ export const volumeAnalysisTool = createTool({
         vwap: z.array(z.number()).optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Volume analysis', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Volume analysis',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Volume analysis', toolCallId, messages, abortSignal, {
+            period: input.period,
+            highLength: input.high.length,
+            lowLength: input.low.length,
+            closeLength: input.close.length,
+            volumeLength: input.volume.length,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1432,27 +1455,6 @@ export const volumeAnalysisTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Volume analysis', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Volume analysis',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Volume analysis', toolCallId, messages, abortSignal, {
-            period: input.period,
-            highLength: input.high.length,
-            lowLength: input.low.length,
-            closeLength: input.close.length,
-            volumeLength: input.volume.length,
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Volume analysis', toolCallId, toolName, abortSignal, {
             success: output.success,
@@ -1493,6 +1495,25 @@ export const statisticalAnalysisTool = createTool({
         correlation: z.number().optional(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        logToolHookStart('Statistical analysis', toolCallId, messages, abortSignal)
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        logToolHookDelta(
+            'Statistical analysis',
+            toolCallId,
+            inputTextDelta,
+            messages,
+            abortSignal
+        )
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        logToolHookAvailable('Statistical analysis', toolCallId, messages, abortSignal, {
+            dataLength: input.data?.length ?? 0,
+            dataXLength: input.dataX?.length ?? 0,
+            dataYLength: input.dataY?.length ?? 0,
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -1589,25 +1610,6 @@ export const statisticalAnalysisTool = createTool({
             })
             return { success: false, message: errorMessage }
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        logToolHookStart('Statistical analysis', toolCallId, messages, abortSignal)
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        logToolHookDelta(
-            'Statistical analysis',
-            toolCallId,
-            inputTextDelta,
-            messages,
-            abortSignal
-        )
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        logToolHookAvailable('Statistical analysis', toolCallId, messages, abortSignal, {
-            dataLength: input.data?.length ?? 0,
-            dataXLength: input.dataX?.length ?? 0,
-            dataYLength: input.dataY?.length ?? 0,
-        })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Statistical analysis', toolCallId, toolName, abortSignal, {
@@ -2089,6 +2091,27 @@ export const candlestickPatternTool = createTool({
     },
 })
 
+type TechnicalAnalysisJsonPrimitive = string | number | boolean | null
+type TechnicalAnalysisJsonValue =
+    | TechnicalAnalysisJsonPrimitive
+    | TechnicalAnalysisJsonObject
+    | TechnicalAnalysisJsonValue[]
+
+interface TechnicalAnalysisJsonObject {
+    [key: string]: TechnicalAnalysisJsonValue
+}
+
+const technicalAnalysisJsonValueSchema: z.ZodType<TechnicalAnalysisJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(technicalAnalysisJsonValueSchema),
+        z.record(z.string(), technicalAnalysisJsonValueSchema),
+    ])
+)
+
 export const technicalAnalysisTool = createTool({
     id: 'technical-analysis',
     description:
@@ -2161,7 +2184,7 @@ export const technicalAnalysisTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        results: z.record(z.string(), z.unknown()),
+        results: z.record(z.string(), technicalAnalysisJsonValueSchema),
         stats: z
             .object({
                 mean: z.number().optional(),
@@ -2175,7 +2198,7 @@ export const technicalAnalysisTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
-        onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
         logToolHookStart('Technical analysis tool', toolCallId, messages, abortSignal)
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
@@ -2252,6 +2275,7 @@ export const technicalAnalysisTool = createTool({
                 stdDev: 2,
                 high: undefined as number[] | undefined,
                 low: undefined as number[] | undefined,
+
                 close: undefined as number[] | undefined,
                 volume: undefined as number[] | undefined,
             }
@@ -2397,6 +2421,10 @@ export const technicalAnalysisTool = createTool({
             }
         }
     },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         logToolHookOutput('Technical analysis tool', toolCallId, toolName, abortSignal, {
             success: output.success,

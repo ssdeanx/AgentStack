@@ -25,42 +25,31 @@ export const writeNoteTool = createTool({
             .describe('The markdown content of the note.'),
     }),
     outputSchema: z.string().nonempty(),
-     onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('writeNoteTool tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('writeNoteTool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('writeNoteTool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages: messages ?? [],
             inputData: {
                 title: input.title,
                 content: input.content,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('writeNoteTool completed', {
-            toolCallId,
-            toolName,
-            outputData: output,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
         })
     },
     execute: async (inputData, { writer, abortSignal, tracingContext, requestContext }) => {
@@ -165,7 +154,19 @@ export const writeNoteTool = createTool({
             throw error
         }
     },
-   
+    toModelOutput: (output) => ({
+        type: 'text',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('writeNoteTool completed', {
+            toolCallId,
+            toolName,
+            outputData: output,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type WriteNoteUITool = InferUITool<typeof writeNoteTool>

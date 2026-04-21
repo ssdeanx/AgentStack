@@ -23,28 +23,26 @@ export const jwtAuthTool = createTool({
         exp: z.number().optional(),
         iat: z.number().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('JWT auth tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('JWT auth tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ toolCallId, messages }) => {
         log.info('JWT auth received complete input', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages: messages ?? [],
             note: 'no parameters required',
             hook: 'onInputAvailable',
         })
@@ -165,11 +163,10 @@ export const jwtAuthTool = createTool({
             })
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('JWT auth completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             user: output.sub,
             roles: output.roles,
             tenant: output.tenant ?? 'none',

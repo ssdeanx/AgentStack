@@ -12,6 +12,20 @@ export interface DateTimeToolContext extends RequestContext {
     allowFutureDates?: boolean
 }
 
+type DateTimeOperationResult =
+    | string
+    | number
+    | boolean
+    | {
+          years?: number
+          months?: number
+          days?: number
+          hours?: number
+          minutes?: number
+          seconds?: number
+      }
+    | null
+
 export const dateTimeTool = createTool({
     id: 'datetime',
     description: 'Parse, format, and manipulate dates and times',
@@ -87,29 +101,27 @@ export const dateTimeTool = createTool({
         input: z.string().optional(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('DateTime tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('DateTime tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('DateTime tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             inputData: { operation: input.operation },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -140,7 +152,6 @@ export const dateTimeTool = createTool({
                 'tool.input.input': inputData.input,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         // Create child span for operation
@@ -165,7 +176,7 @@ export const dateTimeTool = createTool({
         })
 
         try {
-            let result: any
+            let result: DateTimeOperationResult
 
             switch (inputData.operation) {
                 case 'now': {
@@ -173,7 +184,6 @@ export const dateTimeTool = createTool({
                     result = now.toISOString()
                     break
                 }
-
                 case 'parse': {
                     if (!inputData.input) {
                         throw new Error(
@@ -365,12 +375,10 @@ export const dateTimeTool = createTool({
         }
     },
 
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('DateTime tool completed', {
             toolCallId,
             toolName,
-
-            abortSignal: abortSignal?.aborted,
             outputData: {
                 success: output.success,
                 operation: output.operation,
@@ -409,29 +417,27 @@ export const timeZoneTool = createTool({
         operation: z.string(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Timezone tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Timezone tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Timezone tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             inputData: { operation: input.operation, timezone: input.timezone },
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -594,12 +600,10 @@ export const timeZoneTool = createTool({
         }
     },
 
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Timezone tool completed', {
             toolCallId,
             toolName,
-
-            abortSignal: abortSignal?.aborted,
             outputData: {
                 success: output.success,
                 operation: output.operation,

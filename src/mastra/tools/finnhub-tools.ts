@@ -13,8 +13,30 @@ import {
 } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
 
+type FinnhubJsonPrimitive = string | number | boolean | null
+type FinnhubJsonValue =
+    | FinnhubJsonPrimitive
+    | FinnhubJsonObject
+    | FinnhubJsonValue[]
+    | undefined
+
+interface FinnhubJsonObject {
+    [key: string]: FinnhubJsonValue
+}
+
+const finnhubJsonValueSchema: z.ZodType<FinnhubJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(finnhubJsonValueSchema),
+        z.record(z.string(), finnhubJsonValueSchema),
+    ])
+)
+
 interface FinnhubApiResponse {
-    [key: string]: unknown
+    [key: string]: FinnhubJsonValue
     error?: string
 }
 
@@ -37,7 +59,7 @@ export const finnhubQuotesTool = createTool({
         symbol: z.string().describe("Stock symbol (e.g., 'AAPL', 'MSFT')"),
     }),
     outputSchema: z.object({
-        data: z.any().describe('The quote data returned from Finnhub API'),
+        data: finnhubJsonValueSchema.describe('The quote data returned from Finnhub API'),
         metadata: z
             .object({
                 symbol: z.string().optional(),
@@ -45,6 +67,33 @@ export const finnhubQuotesTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub quotes input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub quotes received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub quotes received complete input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            symbol: input.symbol,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const requestCtx = context?.requestContext as
             | FinnhubRequestContext
@@ -205,32 +254,24 @@ export const finnhubQuotesTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub quotes input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub quotes received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub quotes received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Finnhub quotes for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.message
+                ? {
+                      type: 'text' as const,
+                      text: output.message,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level field(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Finnhub quotes completed', {
             toolCallId,
@@ -266,7 +307,7 @@ export const finnhubCompanyTool = createTool({
         to: z.string().optional().describe('End date for news (YYYY-MM-DD)'),
     }),
     outputSchema: z.object({
-        data: z.any().describe('The company data returned from Finnhub API'),
+        data: finnhubJsonValueSchema.describe('The company data returned from Finnhub API'),
         metadata: z
             .object({
                 function: z.string(),
@@ -277,6 +318,34 @@ export const finnhubCompanyTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub company input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub company received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub company received complete input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            function: String(input.function),
+            symbol: input.symbol,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const requestCtx = context?.requestContext as
             | FinnhubRequestContext
@@ -480,33 +549,24 @@ export const finnhubCompanyTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub company input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub company received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub company received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            function: String(input.function),
-            symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Finnhub company ${output.metadata?.function ?? 'request'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.message
+                ? {
+                      type: 'text' as const,
+                      text: output.message,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level field(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Finnhub company completed', {
             toolCallId,
@@ -545,7 +605,7 @@ export const finnhubFinancialsTool = createTool({
         symbol: z.string().describe("Stock symbol (e.g., 'AAPL', 'MSFT')"),
     }),
     outputSchema: z.object({
-        data: z.any().describe('The financials data returned from Finnhub API'),
+        data: finnhubJsonValueSchema.describe('The financials data returned from Finnhub API'),
         metadata: z
             .object({
                 function: z.string(),
@@ -554,6 +614,34 @@ export const finnhubFinancialsTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub financials input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub financials received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub financials received complete input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            function: String(input.function),
+            symbol: input.symbol,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const requestCtx = context?.requestContext as
             | FinnhubRequestContext
@@ -749,33 +837,24 @@ export const finnhubFinancialsTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub financials input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub financials received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub financials received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            function: String(input.function),
-            symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Finnhub financials ${output.metadata?.function ?? 'request'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.message
+                ? {
+                      type: 'text' as const,
+                      text: output.message,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level field(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Finnhub financials completed', {
             toolCallId,
@@ -807,7 +886,7 @@ export const finnhubAnalysisTool = createTool({
         symbol: z.string().describe("Stock symbol (e.g., 'AAPL', 'MSFT')"),
     }),
     outputSchema: z.object({
-        data: z.any().describe('The analysis data returned from Finnhub API'),
+        data: finnhubJsonValueSchema.describe('The analysis data returned from Finnhub API'),
         metadata: z
             .object({
                 function: z.string(),
@@ -816,6 +895,34 @@ export const finnhubAnalysisTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub analysis input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub analysis received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub analysis received complete input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            function: String(input.function),
+            symbol: input.symbol,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const requestCtx = context?.requestContext as
             | FinnhubRequestContext
@@ -1003,33 +1110,24 @@ export const finnhubAnalysisTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub analysis input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub analysis received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub analysis received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            function: String(input.function),
-            symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Finnhub analysis ${output.metadata?.function ?? 'request'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.message
+                ? {
+                      type: 'text' as const,
+                      text: output.message,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level field(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Finnhub analysis completed', {
             toolCallId,
@@ -1089,7 +1187,7 @@ export const finnhubTechnicalTool = createTool({
             ),
     }),
     outputSchema: z.object({
-        data: z.any().describe('The technical data returned from Finnhub API'),
+        data: finnhubJsonValueSchema.describe('The technical data returned from Finnhub API'),
         metadata: z
             .object({
                 function: z.string(),
@@ -1102,6 +1200,35 @@ export const finnhubTechnicalTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub technical input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub technical received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub technical received complete input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            function: String(input.function),
+            symbol: input.symbol,
+            resolution: input.resolution,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const requestCtx = context?.requestContext as
             | FinnhubRequestContext
@@ -1335,34 +1462,24 @@ export const finnhubTechnicalTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub technical input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub technical received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub technical received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            function: String(input.function),
-            symbol: input.symbol,
-            resolution: input.resolution,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Finnhub technical ${output.metadata?.function ?? 'request'} for ${output.metadata?.symbol ?? 'unknown'}`,
+            },
+            output.message
+                ? {
+                      type: 'text' as const,
+                      text: output.message,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level field(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Finnhub technical completed', {
             toolCallId,
@@ -1391,7 +1508,7 @@ export const finnhubEconomicTool = createTool({
             .describe("Economic data code (e.g., 'MA-USA-656880')"),
     }),
     outputSchema: z.object({
-        data: z.any().describe('The economic data returned from Finnhub API'),
+        data: finnhubJsonValueSchema.describe('The economic data returned from Finnhub API'),
         metadata: z
             .object({
                 economic_code: z.string().optional(),
@@ -1399,6 +1516,33 @@ export const finnhubEconomicTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub economic input streaming started', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub economic received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Finnhub economic received complete input', {
+            toolCallId,
+            messageCount: messages?.length ?? 0,
+            economic_code: input.economic_code,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const requestCtx = context?.requestContext as
             | FinnhubRequestContext
@@ -1559,32 +1703,24 @@ export const finnhubEconomicTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub economic input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub economic received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Finnhub economic received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            economic_code: input.economic_code,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Finnhub economic ${output.metadata?.economic_code ?? 'request'}`,
+            },
+            output.message
+                ? {
+                      type: 'text' as const,
+                      text: output.message,
+                  }
+                : {
+                      type: 'text' as const,
+                      text: `Returned ${output.data && typeof output.data === 'object' ? Object.keys(output.data).length : 0} top-level field(s).`,
+                  },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Finnhub economic completed', {
             toolCallId,

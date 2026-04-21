@@ -29,6 +29,7 @@ import type {
 } from 'simple-git'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { localWorkspacePath, mainFilesystem } from '../workspaces'
 
 import type { RequestContext } from '@mastra/core/request-context'
 
@@ -145,7 +146,12 @@ type PorcelainFile = {
 }
 
 const createGitClient = (cwd?: string): GitClient =>
-    simpleGit({ baseDir: cwd ?? process.cwd() })
+    simpleGit({ baseDir: cwd ?? localWorkspacePath })
+
+const resolveGitRepoPath = async (repoPath?: string): Promise<string> => {
+    const targetPath = repoPath?.trim() || localWorkspacePath
+    return await mainFilesystem.resolveAbsolutePath(targetPath)
+}
 
 const withTimeout = async <T>(promise: Promise<T>, timeout?: number): Promise<T> => {
     if (typeof timeout !== 'number' || timeout <= 0) {
@@ -342,7 +348,30 @@ export const gitStatusTool = createTool({
         conflictedFiles: z.array(z.string()),
         message: z.string().optional(),
     }),
-
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Git status tool input streaming started', {
+            toolCallId,
+            messages,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Git status tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Git status tool received input', {
+            toolCallId,
+            messages,
+            inputData: { repoPath: input.repoPath, porcelain: input.porcelain },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestCtx = context?.requestContext as GitToolContext | undefined
@@ -381,7 +410,7 @@ export const gitStatusTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
             const args = ['status', '--porcelain']
 
             if (!inputData.porcelain) {
@@ -532,37 +561,10 @@ export const gitStatusTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Git status tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Git status tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Git status tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { repoPath: input.repoPath, porcelain: input.porcelain },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Git status tool completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             outputData: {
                 success: output.success,
                 isClean: output.isClean,
@@ -634,6 +636,7 @@ export const gitDiffTool = createTool({
         patch: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -673,7 +676,7 @@ export const gitDiffTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
             const args = ['diff']
 
             if (inputData.target !== undefined && inputData.target !== '') {
@@ -858,6 +861,7 @@ export const gitCommitTool = createTool({
         previousHash: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -897,7 +901,7 @@ export const gitCommitTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
 
             // Validate amend permission
             if (inputData.amend && !allowAmend) {
@@ -1101,6 +1105,7 @@ export const gitLogTool = createTool({
             .optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -1140,7 +1145,7 @@ export const gitLogTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
             const actualCount = Math.min(inputData.count ?? 10, maxCommits)
             const args = ['log']
 
@@ -1428,6 +1433,7 @@ export const gitBranchTool = createTool({
         conflicts: z.array(z.string()).optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -1469,7 +1475,7 @@ export const gitBranchTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
             let result: GitBranchOperationResult = {}
 
             switch (inputData.operation) {
@@ -1827,6 +1833,7 @@ export const gitStashTool = createTool({
         diff: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -1868,7 +1875,7 @@ export const gitStashTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
             let result: GitStashOperationResult = {}
 
             switch (inputData.operation) {
@@ -2141,6 +2148,7 @@ export const gitConfigTool = createTool({
         value: z.string().optional(),
         message: z.string().optional(),
     }),
+    strict: true,
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -2182,7 +2190,7 @@ export const gitConfigTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath ?? process.cwd()
+            const cwd = await resolveGitRepoPath(inputData.repoPath)
             let result: GitConfigOperationResult = {}
 
             switch (inputData.operation) {

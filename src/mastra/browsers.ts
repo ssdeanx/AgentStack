@@ -327,7 +327,7 @@ export const browserRuntimeConfig = {
 }
 
 export const agentBrowser = new AgentBrowser({
-  headless: true,
+  headless: false,
   viewport: sharedViewport,
   timeout: agentBrowserTimeoutMs,
   cdpUrl: () => chromeCdpUrl,
@@ -337,7 +337,7 @@ export const agentBrowser = new AgentBrowser({
 })
 
 export const stagehandBrowser = new StagehandBrowser({
-  headless: true,
+  headless: false,
   model:
     readStringEnv(['STAGEHAND_MODEL'], DEFAULT_STAGEHAND_MODEL) ??
     DEFAULT_STAGEHAND_MODEL,

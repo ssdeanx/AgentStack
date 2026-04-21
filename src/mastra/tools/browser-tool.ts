@@ -170,32 +170,27 @@ export const browserTool = createTool({
         ...browserPageOptionsSchema.shape,
     }),
     outputSchema: browserToolOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('Browser tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            experimental_context,
+            messages: messages ?? [],
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal, experimental_context }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('Browser tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            experimental_context,
+            messages: messages ?? [],
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal, experimental_context }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('Browser tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages: messages ?? [],
             url: input.url,
-            abortSignal: abortSignal?.aborted,
-            experimental_context,
             hook: 'onInputAvailable',
         })
     },
@@ -369,14 +364,17 @@ export const browserTool = createTool({
             }
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         const isSuccess = output.success
         log[isSuccess ? 'info' : 'warn']('Browser tool completed', {
             toolCallId,
             toolName,
             success: isSuccess,
             message: output.message.substring(0, 100),
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -399,6 +397,29 @@ export const screenshotTool = createTool({
         timeout: z.number().int().nonnegative().optional().default(30000),
     }),
     outputSchema: screenshotToolOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Screenshot tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Screenshot tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Screenshot tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -488,38 +509,11 @@ export const screenshotTool = createTool({
             return { success: false, url: inputData.url, message: errorMsg }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Screenshot tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Screenshot tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Screenshot tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log[output.success ? 'info' : 'warn']('Screenshot tool completed', {
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log[output?.success ?? false ? 'info' : 'warn']('Screenshot tool completed', {
             toolCallId,
             toolName,
-            success: output.success,
-            abortSignal: abortSignal?.aborted,
+            success: output?.success ?? false,
             hook: 'onOutput',
         })
     },
@@ -537,6 +531,29 @@ export const pdfGeneratorTool = createTool({
         timeout: z.number().int().nonnegative().optional().default(30000),
     }),
     outputSchema: pdfToolOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('PDF generator tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('PDF generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('PDF generator tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -627,38 +644,15 @@ export const pdfGeneratorTool = createTool({
             return { success: false, url: inputData.url, message: errorMsg }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('PDF generator tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('PDF generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('PDF generator tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log[output.success ? 'info' : 'warn']('PDF generator tool completed', {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log[output?.success ?? false ? 'info' : 'warn']('PDF generator tool completed', {
             toolCallId,
             toolName,
-            success: output.success,
-            abortSignal: abortSignal?.aborted,
+            success: output?.success ?? false,
             hook: 'onOutput',
         })
     },
@@ -694,6 +688,29 @@ export const clickAndExtractTool = createTool({
         waitUntil: waitUntilSchema.optional().default('domcontentloaded'),
     }),
     outputSchema: clickAndExtractOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Click and extract tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Click and extract tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Click and extract tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -814,40 +831,17 @@ export const clickAndExtractTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Click and extract tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Click and extract tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Click and extract tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log[output.success ? 'info' : 'warn'](
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log[output?.success ?? false ? 'info' : 'warn'](
             'Click and extract tool completed',
             {
                 toolCallId,
                 toolName,
-                success: output.success,
-                abortSignal: abortSignal?.aborted,
+                success: output?.success ?? false,
                 hook: 'onOutput',
             }
         )
@@ -876,6 +870,29 @@ export const fillFormTool = createTool({
         waitForNavigation: z.boolean().optional().default(false),
     }),
     outputSchema: fillFormOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Fill form tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Fill form tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Fill form tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context.abortSignal
         const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -980,38 +997,11 @@ export const fillFormTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Fill form tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Fill form tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Fill form tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log[output.success ? 'info' : 'warn']('Fill form tool completed', {
             toolCallId,
             toolName,
             success: output.success,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1025,6 +1015,29 @@ export const googleSearch = createTool({
         query: z.string(),
     }),
     outputSchema: googleSearchOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Google search tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Google search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Google search tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            query: input.query,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context.abortSignal
         const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -1155,39 +1168,12 @@ export const googleSearch = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Google search tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Google search tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Google search tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            query: input.query,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         const isSuccess = output.success
         log[isSuccess ? 'info' : 'warn']('Google search tool completed', {
             toolCallId,
             toolName,
             success: isSuccess,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1318,38 +1304,11 @@ export const extractTablesTool = createTool({
             return { success: false, message: errorMsg }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Extract tables tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Extract tables tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Extract tables tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log[output.success ? 'info' : 'warn']('Extract tables tool completed', {
             toolCallId,
             toolName,
             success: output.success,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1377,6 +1336,29 @@ export const monitorPageTool = createTool({
             .describe('Maximum number of checks before stopping'),
     }),
     outputSchema: monitorPageOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Monitor page tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Monitor page tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Monitor page tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
@@ -1485,38 +1467,11 @@ export const monitorPageTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Monitor page tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Monitor page tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Monitor page tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log[output.success ? 'info' : 'warn']('Monitor page tool completed', {
             toolCallId,
             toolName,
             success: output.success,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

@@ -124,11 +124,12 @@ export const yahooFinanceStockQuotesTool = createTool({
         'Fetch free Yahoo Finance stock data without an API key, including latest quotes and chart history.',
     inputSchema: yahooInputSchema,
     outputSchema: z.custom<YahooMarketDataOutput>(),
+    strict: true,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Yahoo Finance stock quotes input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
+            abortSignal,
             hook: 'onInputStart',
         })
     },
@@ -136,18 +137,18 @@ export const yahooFinanceStockQuotesTool = createTool({
         log.info('Yahoo Finance stock quotes received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            abortSignal: abortSignal?.aborted,
+            messages,
+            abortSignal,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Yahoo Finance stock quotes received input', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messages,
             function: input.function,
             symbol: input.symbol,
-            abortSignal: abortSignal?.aborted,
+            abortSignal,
             hook: 'onInputAvailable',
         })
     },
@@ -347,12 +348,24 @@ export const yahooFinanceStockQuotesTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
+    toModelOutput: (output: YahooMarketDataOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Yahoo Finance ${output.metadata.function} for ${output.metadata.symbol}`,
+            },
+            {
+                type: 'text' as const,
+                text: `Returned ${String(countYahooMarketDataItems(output.data))} item(s).`,
+            },
+        ],
+    }),
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const data = output as YahooMarketDataOutput | undefined
         log.info('Yahoo Finance stock quotes completed', {
             toolCallId,
             toolName,
-            count: countYahooMarketDataItems(data?.data),
+            count: countYahooMarketDataItems(output.data),
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

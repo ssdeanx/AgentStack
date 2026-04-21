@@ -8,6 +8,34 @@ import type { BaseToolRequestContext } from './request-context.utils'
 import { log, logToolExecution } from '../config/logger'
 import { downsampleTool } from './downsample.tool'
 
+type ChartJsonPrimitive = string | number | boolean | null
+type ChartJsonValue = ChartJsonPrimitive | ChartJsonObject | ChartJsonValue[]
+
+interface ChartJsonObject {
+    [key: string]: ChartJsonValue
+}
+
+let chartJsonValueSchema: z.ZodType<ChartJsonValue>
+chartJsonValueSchema = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(chartJsonValueSchema),
+        z.record(z.string(), chartJsonValueSchema),
+    ])
+)
+
+type ChartJsConfig = {
+    type: string
+    data: {
+        labels: string[]
+        datasets: ChartJsDataset[]
+    }
+    options: ChartJsonObject
+}
+
 const ChartJsInputSchema = z.object({
     data: z
         .array(
@@ -63,9 +91,9 @@ const ChartJsOutputSchema = z.object({
                 })
             ),
         }),
-        options: z.record(z.string(), z.unknown()),
+        options: chartJsonValueSchema,
     }),
-})
+}) as z.ZodType<{ config: ChartJsConfig }>
 
 type ChartJsToolOutput = z.infer<typeof ChartJsOutputSchema>
 
@@ -94,10 +122,11 @@ export const chartJsTool = createTool({
         'Generates Chart.js configuration with technical indicators for UI visualization',
     inputSchema: ChartJsInputSchema,
     outputSchema: ChartJsOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId, messages }) => {
         log.info('Chart.js generator tool input streaming started', {
             toolCallId,
-            messages: messages.length,
+            messages: messages?.length ?? 0,
             hook: 'onInputStart',
         })
     },
@@ -105,7 +134,7 @@ export const chartJsTool = createTool({
         log.info('Chart.js generator tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messages: messages.length,
+            messages: messages?.length ?? 0,
             hook: 'onInputDelta',
         })
     },
@@ -113,16 +142,8 @@ export const chartJsTool = createTool({
         log.info('Chart.js generator tool received input', {
             toolCallId,
             inputData: input,
-            messages: messages.length,
+            messages: messages?.length ?? 0,
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName }) => {
-        log.info('Chart.js generator tool completed', {
-            toolCallId,
-            toolName,
-            output,
-            hook: 'onOutput',
         })
     },
     execute: async (input, context) => {
@@ -418,6 +439,30 @@ export const chartJsTool = createTool({
                 }
             }
 
+            const hasRsi = indicators.some((i) => i.type === 'RSI')
+            const scales: ChartJsonObject = {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Price' },
+                },
+            }
+
+            if (hasRsi) {
+                scales.y1 = {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Oscillators' },
+                    min: 0,
+                    max: 100,
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            }
+
             const config: ChartJsToolOutput['config'] = {
                 type: chartType, // Base type from request
                 data: {
@@ -431,38 +476,21 @@ export const chartJsTool = createTool({
                         intersect: false,
                     },
                     plugins: {
-                        title: {
-                            display:
-                                typeof title === 'string' &&
-                                title.trim().length > 0,
-                            text: title,
-                        },
+                        title:
+                            typeof title === 'string' && title.trim().length > 0
+                                ? {
+                                      display: true,
+                                      text: title,
+                                  }
+                                : {
+                                      display: false,
+                                      text: '',
+                                  },
                         tooltip: {
                             enabled: true,
                         },
                     },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Price' },
-                        },
-                        // Only show y1 if RSI is used
-                        y1: indicators.some((i) => i.type === 'RSI')
-                            ? {
-                                  type: 'linear',
-                                  display: true,
-                                  position: 'right',
-                                  title: { display: true, text: 'Oscillators' },
-                                  min: 0,
-                                  max: 100,
-                                  grid: {
-                                      drawOnChartArea: false,
-                                  },
-                              }
-                            : undefined,
-                    },
+                    scales,
                 },
             }
 
@@ -514,6 +542,18 @@ export const chartJsTool = createTool({
             )
             throw err
         }
+    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: (output as ChartJsToolOutput).config,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log.info('Chart.js generator tool completed', {
+            toolCallId,
+            toolName,
+            output,
+            hook: 'onOutput',
+        })
     },
 })
 

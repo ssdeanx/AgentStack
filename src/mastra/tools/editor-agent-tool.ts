@@ -45,6 +45,7 @@ export const editorTool = createTool({
             .describe('Desired tone for the edited content'),
     }),
     outputSchema: editorToolOutputSchema,
+    strict: true,
     onInputStart: ({ toolCallId }) => {
         log.info('editorTool tool input streaming started', {
             toolCallId,
@@ -70,24 +71,6 @@ export const editorTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    toModelOutput: (output: EditorAgentOutput) => ({
-        type: 'text',
-        value: [
-            `Content type: ${output.contentType}`,
-            output.changes.length > 0
-                ? `Changes: ${output.changes.join('; ')}`
-                : undefined,
-            output.suggestions?.length
-                ? `Suggestions: ${output.suggestions.join('; ')}`
-                : undefined,
-            output.editedContent,
-        ]
-            .filter(
-                (part): part is string =>
-                    typeof part === 'string' && part.trim().length > 0
-            )
-            .join('\n\n'),
-    }),
     // Streaming: Pipe a nested agent's textStream into the tool writer so the UI
     // receives nested agent chunks while the tool is running. See:
     // https://mastra.ai/docs/streaming/tool-streaming#tool-using-an-agent
@@ -187,7 +170,7 @@ export const editorTool = createTool({
                         id: 'editor-agent',
                     })
                     await stream.textStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                     resultText = (await stream.text) ?? streamedText
                 } else if (stream?.fullStream && writer) {
@@ -204,7 +187,7 @@ export const editorTool = createTool({
                         id: 'editor-agent',
                     })
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                            writer as WritableStream
                     )
                     resultText = (await stream.text) ?? streamedText
                 } else if (stream) {
@@ -277,6 +260,33 @@ export const editorTool = createTool({
             })
         }
     },
+    toModelOutput: (output: EditorAgentOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Content type: ${output.contentType}`,
+            },
+            output.changes.length > 0
+                ? {
+                      type: 'text' as const,
+                      text: `Changes:\n- ${output.changes.join('\n- ')}`,
+                  }
+                : undefined,
+            output.suggestions?.length
+                ? {
+                      type: 'text' as const,
+                      text: `Suggestions:\n- ${output.suggestions.join('\n- ')}`,
+                  }
+                : undefined,
+            {
+                type: 'text' as const,
+                text: output.editedContent,
+            },
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('editorTool completed', {
             toolCallId,

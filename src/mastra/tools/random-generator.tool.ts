@@ -13,6 +13,23 @@ export interface RandomToolContext extends RequestContext {
     locale?: string
 }
 
+type RandomJsonPrimitive = string | number | boolean | null
+type RandomJsonValue = RandomJsonPrimitive | RandomJsonObject | RandomJsonValue[]
+
+interface RandomJsonObject {
+    [key: string]: RandomJsonValue
+}
+const randomJsonValueSchema: z.ZodType<RandomJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(randomJsonValueSchema),
+        z.record(z.string(), randomJsonValueSchema),
+    ])
+)
+
 export const randomGeneratorTool = createTool({
     id: 'random-generator',
     description: 'Generate random data for testing and development',
@@ -61,19 +78,35 @@ export const randomGeneratorTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        data: z
-            .union([
-                z.string(),
-                z.number(),
-                z.boolean(),
-                z.array(z.any()),
-                z.record(z.string(), z.any()),
-            ])
-            .nullable(),
+        data: randomJsonValueSchema.nullable(),
         type: z.string(),
         count: z.number(),
         message: z.string().optional(),
     }),
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Random generator tool input streaming started', {
+            toolCallId,
+            messages: messages ?? [],
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Random generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages ?? [],
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Random generator tool received input', {
+            toolCallId,
+            messages: messages ?? [],
+            inputData: { type: input.type, count: input.count },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as RandomToolContext
         const locale =
@@ -120,13 +153,7 @@ export const randomGeneratorTool = createTool({
         })
 
         try {
-            let result:
-                | string
-                | number
-                | boolean
-                | unknown[]
-                | Record<string, unknown>
-                | null = null
+            let result: RandomJsonValue | null = null
 
             if (count === 1) {
                 result = generateRandomItem(inputData.type, {
@@ -134,7 +161,7 @@ export const randomGeneratorTool = createTool({
                     locale,
                 })
             } else {
-                const items: unknown[] = []
+                const items: RandomJsonValue[] = []
                 for (let i = 0; i < count; i++) {
                     items.push(
                         generateRandomItem(inputData.type, {
@@ -204,37 +231,14 @@ export const randomGeneratorTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Random generator tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Random generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Random generator tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { type: input.type, count: input.count },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('Random generator tool completed', {
             toolCallId,
             toolName,
-            abortSignal: abortSignal?.aborted,
             outputData: {
                 success: output.success,
                 type: output.type,
@@ -260,7 +264,7 @@ interface RandomOptions {
 function generateRandomItem(
     type: string,
     options?: RandomOptions
-): string | number | boolean | unknown[] | Record<string, unknown> {
+): RandomJsonValue {
     switch (type) {
         case 'string':
             return generateRandomString(
@@ -459,16 +463,16 @@ function generateRandomAddress(locale = 'en'): string {
     return `${number} ${street}, ${city}`
 }
 
-function generateRandomArray(length: number, itemType: string): unknown[] {
-    const result = []
+function generateRandomArray(length: number, itemType: string): RandomJsonValue[] {
+    const result: RandomJsonValue[] = []
     for (let i = 0; i < length; i++) {
         result.push(generateRandomItem(itemType))
     }
     return result
 }
 
-function generateRandomObject(properties: number): Record<string, unknown> {
-    const result: Record<string, unknown> = {}
+function generateRandomObject(properties: number): RandomJsonObject {
+    const result: RandomJsonObject = {}
     for (let i = 0; i < properties; i++) {
         const key = `prop${i + 1}`
         const type = ['string', 'number', 'boolean'][

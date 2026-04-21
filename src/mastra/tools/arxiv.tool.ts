@@ -249,35 +249,34 @@ export const arxivTool = createTool({
         start_index: z.number(),
         max_results: z.number(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('ArXiv tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('ArXiv tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messages,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ArXiv tool received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             query: input.query,
             maxResults: input.max_results,
-            abortSignal: abortSignal?.aborted,
+            abortSignal,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
-        const abortSignal = context.abortSignal
+        const abortSignal = context.abortSignal as AbortSignal | undefined
         const writer = context.writer
         const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
         const userId = requestContext?.all.userId
@@ -508,12 +507,11 @@ export const arxivTool = createTool({
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('ArXiv search completed', {
             toolCallId,
             toolName,
-            entryCount: output.papers.length,
-            abortSignal: abortSignal?.aborted,
+            entryCount: output?.papers?.length ?? 0,
             hook: 'onOutput',
         })
     },
@@ -575,8 +573,8 @@ export const arxivPdfParserTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ArXiv PDF parser input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
+            abortSignal,
             hook: 'onInputStart',
         })
     },
@@ -584,18 +582,18 @@ export const arxivPdfParserTool = createTool({
         log.info('ArXiv PDF parser received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            abortSignal,
+            messages,
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ArXiv PDF parser received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             arxivId: input.arxivId,
             maxPages: input.maxPages,
-            abortSignal: abortSignal?.aborted,
+            abortSignal,
             hook: 'onInputAvailable',
         })
     },
@@ -934,14 +932,13 @@ export const arxivPdfParserTool = createTool({
         }
     },
 
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('ArXiv PDF parsing completed', {
             toolCallId,
             toolName,
             arxivId: output.arxivId,
             success: output.success,
             pageCount: output.statistics.pageCount,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1007,31 +1004,28 @@ export const arxivPaperDownloaderTool = createTool({
             })
             .optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages }) => {
         log.info('ArXiv paper downloader input streaming started', {
             toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
+            messages,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
         log.info('ArXiv paper downloader received input chunk', {
             toolCallId,
             inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
+            messages,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages }) => {
         log.info('ArXiv paper downloader received input', {
             toolCallId,
-            messageCount: messages.length,
+            messages,
             arxivId: input.arxivId,
             includePdf: input.includePdfContent,
             format: input.format,
-            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1287,14 +1281,13 @@ export const arxivPaperDownloaderTool = createTool({
         }
     },
 
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('ArXiv paper download completed', {
             toolCallId,
             toolName,
             arxivId: output.arxivId,
             success: output.success,
             hasPdf: !!output.pdfContent,
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

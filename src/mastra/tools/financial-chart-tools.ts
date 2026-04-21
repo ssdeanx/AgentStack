@@ -18,7 +18,30 @@ const chartStreamOutputSchema = z.object({
     text: z.string().optional(),
 })
 
-type ChartStreamOutput = z.infer<typeof chartStreamOutputSchema>
+type ChartStreamOutput = {
+    text?: string
+}
+
+type FinancialChartJsonPrimitive = string | number | boolean | null
+type FinancialChartJsonValue =
+    | FinancialChartJsonPrimitive
+    | FinancialChartJsonObject
+    | FinancialChartJsonValue[]
+
+interface FinancialChartJsonObject {
+    [key: string]: FinancialChartJsonValue
+}
+
+const financialChartJsonValueSchema: z.ZodType<FinancialChartJsonValue> = z.lazy(() =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(financialChartJsonValueSchema),
+        z.record(z.string(), financialChartJsonValueSchema),
+    ])
+)
 
 /**
  * Chart Supervisor Tool
@@ -81,7 +104,7 @@ export const chartSupervisorTool = createTool({
         data: z
             .object({
                 chartData: z
-                    .array(z.record(z.string(), z.unknown()))
+                    .array(z.record(z.string(), financialChartJsonValueSchema))
                     .describe('Processed data for Recharts'),
                 metadata: z.object({
                     symbols: z.array(z.string()),
@@ -113,6 +136,37 @@ export const chartSupervisorTool = createTool({
             })
         ),
     }),
+    strict: true,
+
+    onInputStart: ({ toolCallId }) => {
+        log.info('chartSupervisorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartSupervisorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId }) => {
+        log.info('chartSupervisorTool received input', {
+            toolCallId,
+            inputData: {
+                symbols: input.symbols,
+                chartType: input.chartType,
+                timeRange: input.timeRange,
+                metrics: input.metrics,
+                theme: input.theme,
+                responsive: input.responsive,
+                includeCode: input.includeCode,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
 
     execute: async (inputData, context) => {
         const {
@@ -229,11 +283,11 @@ Please:
                 })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 } else if (stream?.textStream) {
                     await stream.textStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
@@ -270,8 +324,7 @@ Please:
                     'tool.output.success': true,
                     'tool.output.chartType':
                         parsedResult.chartRecommendation?.type ?? chartType,
-                    'tool.output.dataPoints':
-                        parsedResult.data?.metadata?.dataPoints ?? 0,
+                    'tool.output.dataPoints': parsedResult.data?.metadata?.dataPoints ?? 0,
                 },
             })
             span?.end()
@@ -314,27 +367,10 @@ Please:
                 : new Error(`Failed to generate chart: ${errorMsg}`)
         }
     },
-    onInputStart: ({ toolCallId }) => {
-        log.info('chartSupervisorTool tool input streaming started', {
-            toolCallId,
-            hook: 'onInputStart',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('chartSupervisorTool received input', {
-            toolCallId,
-            inputData: {
-                symbols: input.symbols,
-                chartType: input.chartType,
-                timeRange: input.timeRange,
-                metrics: input.metrics,
-                theme: input.theme,
-                responsive: input.responsive,
-                includeCode: input.includeCode,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartSupervisorTool completed', {
             toolCallId,
@@ -344,17 +380,11 @@ Please:
                 data: output.data,
                 component: output.component,
                 chartRecommendation: output.chartRecommendation,
-                sources: output.sources,
             },
             hook: 'onOutput',
         })
     },
 })
-
-/**
- * Chart Generator Tool
- * Generates Recharts React component code
- */
 export const chartGeneratorTool = createTool({
     id: 'chart-generator',
     description:
@@ -372,36 +402,15 @@ export const chartGeneratorTool = createTool({
             ])
             .describe('The Recharts chart type to generate'),
         data: z
-            .array(z.record(z.string(), z.unknown()))
+            .array(z.record(z.string(), financialChartJsonValueSchema))
             .describe('The chart data array'),
-        dataKeys: z
-            .array(z.string())
-            .describe('Data keys to visualize (e.g., ["price", "volume"])'),
-        componentName: z
-            .string()
-            .optional()
-            .describe(
-                "Name for the React component (defaults to 'FinancialChart')"
-            ),
+        dataKeys: z.array(z.string()).describe('Keys present in data objects'),
+        componentName: z.string().optional().describe('Component name'),
         theme: z
             .enum(['light', 'dark', 'corporate'])
             .optional()
-            .describe("Color theme (defaults to 'light')"),
-        features: z
-            .array(
-                z.enum([
-                    'tooltip',
-                    'legend',
-                    'grid',
-                    'brush',
-                    'animation',
-                    'responsive',
-                ])
-            )
-            .optional()
-            .describe(
-                "Features to include (defaults to ['tooltip', 'legend', 'grid', 'responsive'])"
-            ),
+            .describe('Theme palette to apply'),
+        features: z.array(z.string()).optional().describe("Features to include (defaults to ['tooltip','legend','grid','responsive'])"),
         xAxisKey: z
             .string()
             .optional()
@@ -415,9 +424,41 @@ export const chartGeneratorTool = createTool({
         componentName: z.string(),
         code: z.string(),
         usage: z.string(),
-        props: z.record(z.string(), z.unknown()),
+        props: z.record(z.string(), financialChartJsonValueSchema),
         dependencies: z.array(z.string()),
     }),
+    strict: true,
+
+    onInputStart: ({ toolCallId }) => {
+        log.info('chartGeneratorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartGeneratorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId }) => {
+        log.info('chartGeneratorTool received input', {
+            toolCallId,
+            inputData: {
+                chartType: input.chartType,
+                data: input.data,
+                dataKeys: input.dataKeys,
+                componentName: input.componentName,
+                theme: input.theme,
+                features: input.features,
+                xAxisKey: input.xAxisKey,
+                height: input.height,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
 
     execute: async (inputData, context) => {
         const {
@@ -525,11 +566,11 @@ Return JSON with: componentName, code, usage, props, dependencies`
                 })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 } else if (stream?.textStream) {
                     await stream.textStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
@@ -604,28 +645,10 @@ Return JSON with: componentName, code, usage, props, dependencies`
             })
         }
     },
-    onInputStart: ({ toolCallId }) => {
-        log.info('chartGeneratorTool tool input streaming started', {
-            toolCallId,
-            hook: 'onInputStart',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('chartGeneratorTool received input', {
-            toolCallId,
-            inputData: {
-                chartType: input.chartType,
-                data: input.data,
-                dataKeys: input.dataKeys,
-                componentName: input.componentName,
-                theme: input.theme,
-                features: input.features,
-                xAxisKey: input.xAxisKey,
-                height: input.height,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartGeneratorTool completed', {
             toolCallId,
@@ -691,10 +714,12 @@ export const chartDataProcessorTool = createTool({
             .describe('Additional calculations to perform'),
     }),
     outputSchema: z.object({
-        chartData: z.array(z.record(z.string(), z.unknown())),
+        chartData: z.array(
+            z.record(z.string(), financialChartJsonValueSchema)
+        ),
         dataKeys: z.array(z.string()),
         domain: z.object({
-            x: z.array(z.unknown()),
+            x: z.array(financialChartJsonValueSchema),
             y: z.array(z.number()),
         }),
         metadata: z.object({
@@ -704,8 +729,39 @@ export const chartDataProcessorTool = createTool({
             lastUpdated: z.string(),
             interval: z.string(),
         }),
-        calculations: z.record(z.string(), z.unknown()).optional(),
+        calculations: z
+            .record(z.string(), financialChartJsonValueSchema)
+            .optional(),
     }),
+    strict: true,
+
+    onInputStart: ({ toolCallId }) => {
+        log.info('chartDataProcessorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartDataProcessorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId }) => {
+        log.info('chartDataProcessorTool received input', {
+            toolCallId,
+            inputData: {
+                symbols: input.symbols,
+                timeRange: input.timeRange,
+                metrics: input.metrics,
+                aggregation: input.aggregation,
+                calculations: input.calculations,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
 
     execute: async (inputData, context) => {
         const {
@@ -812,11 +868,11 @@ Return JSON with:
                 })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 } else if (stream?.textStream) {
                     await stream.textStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
@@ -900,25 +956,10 @@ Return JSON with:
                 : new Error(`Failed to process data: ${errorMsg}`)
         }
     },
-    onInputStart: ({ toolCallId }) => {
-        log.info('chartDataProcessorTool tool input streaming started', {
-            toolCallId,
-            hook: 'onInputStart',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('chartDataProcessorTool received input', {
-            toolCallId,
-            inputData: {
-                symbols: input.symbols,
-                timeRange: input.timeRange,
-                metrics: input.metrics,
-                aggregation: input.aggregation,
-                calculations: input.calculations,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartDataProcessorTool completed', {
             toolCallId,
@@ -997,6 +1038,34 @@ export const chartTypeAdvisorTool = createTool({
             suggestedHeight: z.number(),
         }),
     }),
+    strict: true,
+
+    onInputStart: ({ toolCallId }) => {
+        log.info('chartTypeAdvisorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('chartTypeAdvisorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages?.length ?? 0,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId }) => {
+        log.info('chartTypeAdvisorTool received input', {
+            toolCallId,
+            inputData: {
+                dataDescription: input.dataDescription,
+                visualizationGoal: input.visualizationGoal,
+                dataCharacteristics: input.dataCharacteristics,
+                constraints: input.constraints,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
 
     execute: async (inputData, context) => {
         const {
@@ -1084,11 +1153,11 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
                 })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 } else if (stream?.textStream) {
                     await stream.textStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
@@ -1186,24 +1255,10 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
             })
         }
     },
-    onInputStart: ({ toolCallId }) => {
-        log.info('chartTypeAdvisorTool tool input streaming started', {
-            toolCallId,
-            hook: 'onInputStart',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId }) => {
-        log.info('chartTypeAdvisorTool received input', {
-            toolCallId,
-            inputData: {
-                dataDescription: input.dataDescription,
-                visualizationGoal: input.visualizationGoal,
-                dataCharacteristics: input.dataCharacteristics,
-                constraints: input.constraints,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
+    toModelOutput: (output) => ({
+        type: 'json',
+        value: output,
+    }),
     onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartTypeAdvisorTool completed', {
             toolCallId,

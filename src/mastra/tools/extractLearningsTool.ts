@@ -18,6 +18,11 @@ const extractLearningsOutputSchema = z.object({
 
 type ExtractLearningsOutput = z.infer<typeof extractLearningsOutputSchema>
 
+const extractLearningsFallbackOutput: ExtractLearningsOutput = {
+    learning: '',
+    followUpQuestions: [],
+}
+
 export const extractLearningsTool = createTool({
     id: 'extract-learnings',
     description:
@@ -33,14 +38,36 @@ export const extractLearningsTool = createTool({
             .describe('The search result to process'),
     }),
     outputSchema: extractLearningsOutputSchema,
-    toModelOutput: (output: ExtractLearningsOutput) => ({
-        type: 'text',
-        value:
-            output.followUpQuestions.length > 0
-                ? `Learning: ${output.learning}\n\nFollow-up question: ${output.followUpQuestions[0]}`
-                : `Learning: ${output.learning}`,
-    }),
-
+    strict: true,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('extractLearningsTool tool input streaming started', {
+            toolCallId,
+            messages,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('extractLearningsTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('extractLearningsTool received input', {
+            toolCallId,
+            messages,
+            inputData: {
+                query: input.query,
+                result: {
+                    title: input.result.title,
+                    url: input.result.url,
+                },
+            },
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const mastra = context?.mastra
         const writer = context?.writer
@@ -156,7 +183,8 @@ export const extractLearningsTool = createTool({
                 }
             }
 
-            let responseObject: unknown = {}
+            let responseObject: z.infer<typeof extractLearningsOutputSchema> =
+                extractLearningsFallbackOutput
             if (typeof agent.stream === 'function') {
                 // Use MastraModelOutput for accurate typing and pipe fullStream into the writer (Mastra nested-agent pattern)
                 await writer?.custom({
@@ -185,33 +213,38 @@ export const extractLearningsTool = createTool({
 
                 if (stream?.fullStream !== undefined && writer) {
                     await stream.fullStream.pipeTo(
-                        writer as unknown as WritableStream
+                        writer as WritableStream
                     )
                 }
 
                 if (stream) {
                     try {
                         const structured = await stream.object
-                        responseObject = structured ?? {}
+                        responseObject =
+                            structured ?? extractLearningsFallbackOutput
                     } catch {
                         const text = (await stream.text) ?? streamedText
                         try {
-                            responseObject = text ? JSON.parse(text) : {}
+                            responseObject = text
+                                ? JSON.parse(text)
+                                : extractLearningsFallbackOutput
                         } catch {
-                            responseObject = {}
+                            responseObject = extractLearningsFallbackOutput
                         }
                     }
                 } else {
-                    responseObject = {}
+                    responseObject = extractLearningsFallbackOutput
                 }
             } else {
                 const response = await agent.generate(prompt)
                 try {
                     responseObject =
                         response.object ??
-                        (response.text ? JSON.parse(response.text) : {})
+                        (response.text
+                            ? JSON.parse(response.text)
+                            : extractLearningsFallbackOutput)
                 } catch {
-                    responseObject = {}
+                    responseObject = extractLearningsFallbackOutput
                 }
             }
 
@@ -310,55 +343,31 @@ export const extractLearningsTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                query: input.query,
-                result: {
-                    title: input.result.title,
-                    url: input.result.url,
-                },
+    toModelOutput: (output: ExtractLearningsOutput) => ({
+        type: 'content',
+        value: [
+            {
+                type: 'text' as const,
+                text: `Learning: ${output.learning}`,
             },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const parsed = z
-            .object({
-                learning: z.string(),
-                followUpQuestions: z.array(z.string()),
-            })
-            .safeParse(output)
+            output.followUpQuestions.length > 0
+                ? {
+                      type: 'text' as const,
+                      text: `Follow-up questions:\n- ${output.followUpQuestions.join('\n- ')}`,
+                  }
+                : undefined,
+        ].filter(
+            (part): part is { type: 'text'; text: string } => Boolean(part)
+        ),
+    }),
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('extractLearningsTool completed', {
             toolCallId,
             toolName,
             outputData: {
-                learning: parsed.success ? parsed.data.learning : '',
-                followUpQuestions: parsed.success
-                    ? parsed.data.followUpQuestions
-                    : [],
+                learning: output.learning,
+                followUpQuestions: output.followUpQuestions,
             },
-            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

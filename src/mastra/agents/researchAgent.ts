@@ -1,9 +1,9 @@
 import { libsqlQueryTool, libsqlgraphQueryTool } from './../config/libsql';
 import { libsqlChunker, mdocumentChunker } from './../tools/document-chunking.tool';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
-import type { Message, Thread } from 'chat'
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
+import { researchAgentChannels } from '../config/channels'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { fetchTool } from '../tools/fetch.tool'
@@ -42,7 +42,6 @@ import {
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
-import type { ChannelHandlers } from '@mastra/core/channels'
 import {
   getLanguageFromContext,
   getRoleFromContext,
@@ -52,8 +51,6 @@ import { researchArxivDownloadWorkflow } from '../workflows/research/research-ar
 import { researchArxivSearchWorkflow } from '../workflows/research/research-arxiv-search.workflow'
 import { LibsqlMemory } from '../config/libsql'
 import { listRepositories } from '../tools/github';
-import { createGitHubAdapter } from '@chat-adapter/github'
-import { createDiscordAdapter } from '@chat-adapter/discord'
 import { google } from '../config/google'
 import {
   TokenLimiter,
@@ -65,159 +62,7 @@ import { googleAiOverviewTool } from '../tools/serpapi-search.tool';
 import { amazonSearchTool, ebaySearchTool, homeDepotSearchTool, walmartSearchTool } from '../tools/serpapi-shopping.tool';
 import { agentFsWorkspace } from '../workspaces';
 import { agentBrowser } from '../browsers'
-import { createMemoryState } from "@chat-adapter/state-memory";
-
-//const github = createGitHubAdapter({
-//  //appId: process.env.GITHUB_APP_ID!,
-//  //privateKey: process.env.GITHUB_PRIVATE_KEY!,
-// // webhookSecret: process.env.GITHUB_WEBHOOK_SECRET!,
-//});
-
-/**
- * Enables the GitHub channel only when the webhook secret and at least one
- * supported authentication path are configured in the environment.
- */
-function isGitHubChannelConfigured(): boolean {
-  const hasWebhookSecret = Boolean(process.env.GITHUB_WEBHOOK_SECRET?.trim())
-  const hasToken = Boolean(process.env.GITHUB_TOKEN?.trim())
-  const hasAppAuth = Boolean(
-    process.env.GITHUB_APP_ID?.trim() &&
-      process.env.GITHUB_PRIVATE_KEY?.trim()
-  )
-
-  return hasWebhookSecret && (hasToken || hasAppAuth)
-}
-
-const researchAgentChannelAdapters = {
-  discord: {
-    adapter: createDiscordAdapter(),
-    gateway: false,
-  },
-  ...(isGitHubChannelConfigured()
-    ? {
-        github: {
-          adapter: createGitHubAdapter({
-            userName:
-              process.env.GITHUB_BOT_USERNAME?.trim() ?? 'research-agent',
-          }),
-          gateway: false,
-          cards: false,
-        },
-      }
-    : {}),
-}
-
-/**
- * Normalizes the message text available from channel adapters so handler logic
- * can make lightweight decisions without depending on one platform shape.
- */
-function getChannelMessageText(message: {
-  text?: string
-  content?: unknown
-}): string {
-  if (typeof message.text === 'string' && message.text.trim().length > 0) {
-    return message.text.trim()
-  }
-
-  if (typeof message.content === 'string' && message.content.trim().length > 0) {
-    return message.content.trim()
-  }
-
-  return ''
-}
-
-/**
- * Detects low-signal follow-up messages that do not warrant another full
- * research pass when the agent is already subscribed to the thread.
- */
-function isAcknowledgementOnlyMessage(messageText: string): boolean {
-  return /^(thanks|thank you|resolved|done|fixed|closed|lgtm|sgtm|looks good)[.!]?$/i.test(
-    messageText.trim()
-  )
-}
-
-/**
- * Detects GitHub-backed channel threads from the Chat SDK thread ID format.
- */
-function isGitHubThread(thread: Thread): boolean {
-  return thread.id.startsWith('github:')
-}
-
-type ResearchChannelEvent =
-  | 'direct-message'
-  | 'mention'
-  | 'subscribed-message'
-
-/**
- * Centralizes research-channel hook behavior so every handler logs the same
- * metadata and applies the same low-signal suppression rules.
- */
-async function handleResearchChannelEvent(
-  event: ResearchChannelEvent,
-  thread: Thread,
-  message: Message,
-  defaultHandler: (thread: Thread, message: Message) => Promise<void>,
-  options?: {
-    skipAcknowledgements?: boolean
-  }
-): Promise<void> {
-  const messageText = getChannelMessageText(message)
-  const acknowledgementOnly = isAcknowledgementOnlyMessage(messageText)
-  const githubThread = isGitHubThread(thread)
-
-  log.info('Research channel event', {
-    event,
-    threadId: thread.id,
-    platform: githubThread ? 'github' : 'chat',
-    textLength: messageText.length,
-    acknowledgementOnly,
-  })
-
-  if (options?.skipAcknowledgements && acknowledgementOnly) {
-    log.info('Research channel event skipped', {
-      event,
-      threadId: thread.id,
-      reason: 'acknowledgement-only',
-      platform: githubThread ? 'github' : 'chat',
-    })
-    return
-  }
-
-  await defaultHandler(thread, message)
-}
-
-const researchChannelHandlers: ChannelHandlers = {
-  onDirectMessage: async (thread, message, defaultHandler) => {
-    await handleResearchChannelEvent(
-      'direct-message',
-      thread,
-      message,
-      defaultHandler
-    )
-  },
-  onMention: async (thread, message, defaultHandler) => {
-    await handleResearchChannelEvent(
-      'mention',
-      thread,
-      message,
-      defaultHandler,
-      {
-        skipAcknowledgements: true,
-      }
-    )
-  },
-  onSubscribedMessage: async (thread, message, defaultHandler) => {
-    await handleResearchChannelEvent(
-      'subscribed-message',
-      thread,
-      message,
-      defaultHandler,
-      {
-        skipAcknowledgements: true,
-      }
-    )
-  },
-}
+import { convexMemory } from '../config/convex'
 
 type ResearchPhase = 'initial' | 'followup' | 'validation'
 const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
@@ -243,22 +88,22 @@ const researchAgentTools = {
   googleScholarTool,
   googleNewsLiteTool,
   googleTrendsTool,
-  mdocumentChunker,
-  libsqlChunker,
-  libsqlQueryTool,
-  libsqlgraphQueryTool,
+  //mdocumentChunker,
+  //libsqlChunker,
+  //libsqlQueryTool,
+  //libsqlgraphQueryTool,
   listRepositories,
-  extractLearningsTool,
-  evaluateResultTool,
+  //extractLearningsTool,
+  //evaluateResultTool,
   polygonStockQuotesTool,
   finnhubQuotesTool,
   googleFinanceTool,
   binanceSpotMarketDataTool,
   coinbaseExchangeMarketDataTool,
-  discordWebhookTool,
+  //discordWebhookTool,
   googleImagesTool,
-  googleLocalTool,
-  googleMapsReviewsTool,
+  //googleLocalTool,
+  //googleMapsReviewsTool,
   stooqStockQuotesTool,
   yahooFinanceStockQuotesTool,
   ichimokuCloudTool,
@@ -269,11 +114,14 @@ const researchAgentTools = {
   volatilityAnalysisTool,
   volumeAnalysisTool,
   statisticalAnalysisTool,
-  heikinAshiTool,
+  //heikinAshiTool,
   marketSummaryTool,
   candlestickPatternTool,
   technicalAnalysisTool,
-  amazonSearchTool, walmartSearchTool, ebaySearchTool, homeDepotSearchTool,
+  amazonSearchTool, 
+  walmartSearchTool, 
+  ebaySearchTool, 
+  //homeDepotSearchTool,
   googleSearchTool,
   googleAiOverviewTool,
 }
@@ -319,7 +167,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 - **Technical Analysis**: use 'ichimokuCloudTool', 'fibonacciTool', 'pivotPointsTool', 'trendAnalysisTool', 'momentumAnalysisTool', 'volatilityAnalysisTool', 'volumeAnalysisTool', 'statisticalAnalysisTool', 'heikinAshiTool', 'marketSummaryTool', 'candlestickPatternTool', and 'technicalAnalysisTool' for chart pattern and indicator analysis.
 - **Internal**: 'libsqlChunker' for embedding any information, 'libsqlQueryTool' for querying embedded knowledge. 'libsqlgraphQueryTool' for complex relational queries.
 - **Processing**: use workspace document tools for PDFs, Markdown, and any other filetype in the workspace;
-- **Discord**: use 'discordWebhookTool' to post short notifications or summaries to the configured Discord webhook URL.
+
 - **Stores**: 'amazonSearchTool', 'walmartSearchTool', 'ebaySearchTool', 'homeDepotSearchTool', for product research.
 
 ## Rules
@@ -343,14 +191,14 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     const role = getRoleFromContext(requestContext)
 
     if (role === 'admin') {
-      return 'kilo/x-ai/grok-code-fast-1:optimized:free'
+      return 'google/gemini-3.1-flash-preview'
     }
 
-    return 'opencode/minimax-m2.5-free'
+    return 'kilo/x-ai/grok-code-fast-1:optimized:free'
   },
   tools: researchAgentTools,
   workflows: { researchArxivDownloadWorkflow, researchArxivSearchWorkflow },
-  memory: LibsqlMemory,
+  memory: convexMemory,
   scorers: {
     //  toneConsistency: { scorer: createToneScorer() },
     //  textualDifference: { scorer: createTextualDifferenceScorer() },
@@ -371,7 +219,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     new TokenLimiter(12000),
   ],
   outputProcessors: [
-    new TokenLimiterProcessor(200000),
+    new TokenLimiterProcessor(300000),
     //     new BatchPartsProcessor({
     //         batchSize: 10,
     //        maxWaitTime: 75,
@@ -380,16 +228,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
   ],
   workspace: agentFsWorkspace,
   browser: agentBrowser,
-  channels: {
-    inlineLinks: ['*'],
-    inlineMedia: ['image/*', 'video/*', 'audio/*'],
-    adapters: researchAgentChannelAdapters,
-    threadContext: {
-      maxMessages: 15,
-    },
-    state: createMemoryState(),
-    handlers: researchChannelHandlers,
-  },
+  channels: researchAgentChannels,
   //voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
   defaultOptions: {
         //autoResumeSuspendedTools: true,
